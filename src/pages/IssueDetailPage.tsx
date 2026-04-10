@@ -60,7 +60,7 @@ export function IssueDetailPage() {
           </div>
 
           <div className="flex flex-col gap-5">
-            <AlarmList alarms={alarms} onLink={linkAlarm} onUnlink={unlinkAlarm} />
+            <AlarmList alarms={alarms} issue={issue} onLink={linkAlarm} onUnlink={unlinkAlarm} />
             <ActivityTimeline activity={issue.activity} />
           </div>
         </div>
