@@ -133,4 +133,67 @@ describe('alarmLifecycle', () => {
       expect(alarm.recoveryTime).toBeUndefined();
     });
   });
+
+  describe('link', () => {
+    it('auto-acks an Open alarm, writing acked_via_issue and linked as two entries', () => {
+      const alarm = makeAlarm({ status: 'Open' });
+      const result = alarmLifecycle.link(alarm, 'iss-042', lithoUser, now);
+      expect(result.alarm.status).toBe('Acked');
+      expect(result.alarm.linkedIssueId).toBe('iss-042');
+      // Two new activity entries: acked_via_issue then linked
+      const newEntries = result.alarm.activity.slice(1); // skip 'created'
+      expect(newEntries).toHaveLength(2);
+      expect(newEntries[0].type).toBe('acked_via_issue');
+      expect(newEntries[0].issueId).toBe('iss-042');
+      expect(newEntries[1].type).toBe('linked');
+      expect(newEntries[1].issueId).toBe('iss-042');
+    });
+
+    it('writes only linked entry when alarm is already Acked', () => {
+      const alarm = makeAlarm({ status: 'Acked' });
+      const result = alarmLifecycle.link(alarm, 'iss-042', lithoUser, now);
+      expect(result.alarm.status).toBe('Acked');
+      expect(result.alarm.linkedIssueId).toBe('iss-042');
+      const newEntries = result.alarm.activity.slice(1);
+      expect(newEntries).toHaveLength(1);
+      expect(newEntries[0].type).toBe('linked');
+      expect(newEntries[0].issueId).toBe('iss-042');
+    });
+
+    it('throws when alarm already has a linked issue (1:0..1 invariant)', () => {
+      const alarm = makeAlarm({ linkedIssueId: 'iss-001' });
+      expect(() => alarmLifecycle.link(alarm, 'iss-002', lithoUser, now)).toThrow();
+    });
+
+    it('does not mutate the original alarm', () => {
+      const alarm = makeAlarm({ status: 'Open' });
+      alarmLifecycle.link(alarm, 'iss-042', lithoUser, now);
+      expect(alarm.status).toBe('Open');
+      expect((alarm as any).linkedIssueId).toBeUndefined();
+    });
+  });
+
+  describe('unlink', () => {
+    it('removes the linked issue and preserves alarm status', () => {
+      const alarm = makeAlarm({ status: 'Acked', linkedIssueId: 'iss-042' });
+      const result = alarmLifecycle.unlink(alarm, lithoUser, now);
+      expect(result.alarm.linkedIssueId).toBeUndefined();
+      expect(result.alarm.status).toBe('Acked');
+      const newEntries = result.alarm.activity.slice(1);
+      expect(newEntries).toHaveLength(1);
+      expect(newEntries[0].type).toBe('unlinked');
+      expect(newEntries[0].issueId).toBe('iss-042');
+    });
+
+    it('throws when alarm has no linked issue', () => {
+      const alarm = makeAlarm();
+      expect(() => alarmLifecycle.unlink(alarm, lithoUser, now)).toThrow();
+    });
+
+    it('does not mutate the original alarm', () => {
+      const alarm = makeAlarm({ status: 'Acked', linkedIssueId: 'iss-042' });
+      alarmLifecycle.unlink(alarm, lithoUser, now);
+      expect(alarm.linkedIssueId).toBe('iss-042');
+    });
+  });
 });
