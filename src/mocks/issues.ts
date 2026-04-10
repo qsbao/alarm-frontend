@@ -54,8 +54,8 @@ const TITLES: Record<AlarmType, string> = {
   EndpointDrift: 'Etch endpoint signal drift',
 };
 
-// Reference epoch: 2026-04-10T08:00:00Z (matches "today" in the demo).
-const EPOCH = Date.parse('2026-04-10T08:00:00Z');
+// Use the first alarm's time as epoch reference (offset-based, always fresh)
+const EPOCH = Date.parse(MOCK_ALARMS[0].time) + 10 * 60_000;
 
 function pad(n: number, w = 3) {
   return String(n).padStart(w, '0');

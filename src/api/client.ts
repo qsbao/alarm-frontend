@@ -10,7 +10,11 @@ const issues: Issue[] = MOCK_ISSUES.map((i) => ({
   relatedAlarmIds: [...i.relatedAlarmIds],
   activity: i.activity.map((a) => ({ ...a })),
 }));
-const alarms: Alarm[] = MOCK_ALARMS.map((a) => ({ ...a }));
+const alarms: Alarm[] = MOCK_ALARMS.map((a) => ({
+  ...a,
+  labels: [...a.labels],
+  activity: a.activity.map((e) => ({ ...e })),
+}));
 
 function delay(min = 100, max = 200): Promise<void> {
   const ms = Math.floor(Math.random() * (max - min + 1)) + min;
@@ -136,7 +140,7 @@ export const api = {
 
   async listAlarms(): Promise<Alarm[]> {
     await delay();
-    return alarms.map((a) => ({ ...a }));
+    return alarms.map((a) => ({ ...a, labels: [...a.labels], activity: a.activity.map((e) => ({ ...e })) }));
   },
 
   async getAlarmsByIds(ids: string[]): Promise<Alarm[]> {
@@ -148,6 +152,6 @@ export const api = {
       .filter((id) => set.has(id))
       .map((id) => byId.get(id))
       .filter((a): a is Alarm => Boolean(a))
-      .map((a) => ({ ...a }));
+      .map((a) => ({ ...a, labels: [...a.labels], activity: a.activity.map((e) => ({ ...e })) }));
   },
 };
