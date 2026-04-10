@@ -137,6 +137,24 @@ export const ALL_ALARM_TYPES: AlarmType[] = [
   'EndpointDrift',
 ];
 
+export type AlarmSortKey = 'time' | 'severity' | 'type' | 'department';
+
+export interface AlarmFilters {
+  search?: string;
+  status?: AlarmStatus[];
+  department?: string[];
+  severity?: RiskLevel[];
+  humanRisk?: HumanRisk[];
+  alarmType?: AlarmType[];
+  owner?: string[];
+  machineId?: string[];
+  chamberId?: string[];
+  product?: string[];
+  operation?: string[];
+  labels?: AlarmLabel[];
+  active?: 'active' | 'recovered';
+}
+
 /** Valid status transitions for the issue workflow stepper. */
 export const STATUS_TRANSITIONS: Record<IssueStatus, IssueStatus[]> = {
   New: ['Investigating'],
