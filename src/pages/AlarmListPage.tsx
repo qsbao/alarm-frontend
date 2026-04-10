@@ -7,7 +7,7 @@ import { isActive, filterAlarms, sortAlarms } from '../lib/alarmFiltering';
 import { filtersToParams, paramsToFilters } from '../lib/alarmFilterUrl';
 import { getViews, saveView, deleteView, BUILTIN_VIEWS } from '../lib/savedViews';
 import type { SavedView } from '../lib/savedViews';
-import { mockClock } from '../lib/mockClock';
+import { useMockClockStore } from '../stores/mockClockStore';
 import { AlarmFilterBar } from '../components/alarms/AlarmFilterBar';
 import { QuickAckDrawer } from '../components/QuickAckDrawer';
 import type { Alarm, AlarmFilters, AlarmSortKey, RiskLevel } from '../types';
@@ -115,7 +115,7 @@ function defaultFilters(department: string): AlarmFilters {
 export function AlarmListPage() {
   const alarms = useAlarmStore((s) => s.alarms);
   const currentUser = useCurrentUserStore((s) => s.currentUser);
-  const now = mockClock.now();
+  const now = useMockClockStore((s) => s.now);
   const [drawerAlarmId, setDrawerAlarmId] = useState<string | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const [views, setViews] = useState(getViews);

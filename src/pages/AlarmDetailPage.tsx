@@ -26,7 +26,7 @@ import { useAlarmStore } from '../stores/alarmStore';
 import { useCurrentUserStore } from '../stores/currentUserStore';
 import { alarmPermissions } from '../lib/alarmPermissions';
 import { isActive } from '../lib/alarmFiltering';
-import { mockClock } from '../lib/mockClock';
+import { useMockClockStore } from '../stores/mockClockStore';
 import { api } from '../api/client';
 import type { IssueDraft } from '../lib/issueFromAlarm';
 import { LinkedIssueCard } from '../components/alarms/LinkedIssueCard';
@@ -372,7 +372,7 @@ export function AlarmDetailPage() {
   const alarm = useAlarmStore((s) => s.alarms.find((a) => a.id === id));
   const { linkAlarm, unlinkAlarm } = useAlarmStore();
   const currentUser = useCurrentUserStore((s) => s.currentUser);
-  const now = mockClock.now();
+  const now = useMockClockStore((s) => s.now);
 
   const [showModal, setShowModal] = useState(false);
   const [showIssuePicker, setShowIssuePicker] = useState(false);
