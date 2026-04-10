@@ -9,6 +9,8 @@ interface AlarmStore {
   setAlarmLabel: (id: string, user: User, action: 'add' | 'remove', label: AlarmLabel) => void;
   setAlarmRisk: (id: string, user: User, risk: HumanRisk) => void;
   recoverAlarm: (id: string) => void;
+  linkAlarm: (id: string, issueId: string, user: User) => void;
+  unlinkAlarm: (id: string, user: User) => void;
 }
 
 function replaceAlarm(alarms: Alarm[], updated: Alarm): Alarm[] {
@@ -43,6 +45,20 @@ export const useAlarmStore = create<AlarmStore>()((set, get) => ({
     const alarm = get().alarms.find((a) => a.id === id);
     if (!alarm) return;
     const { alarm: updated } = alarmLifecycle.recover(alarm, new Date().toISOString());
+    set({ alarms: replaceAlarm(get().alarms, updated) });
+  },
+
+  linkAlarm(id, issueId, user) {
+    const alarm = get().alarms.find((a) => a.id === id);
+    if (!alarm) return;
+    const { alarm: updated } = alarmLifecycle.link(alarm, issueId, user, new Date().toISOString());
+    set({ alarms: replaceAlarm(get().alarms, updated) });
+  },
+
+  unlinkAlarm(id, user) {
+    const alarm = get().alarms.find((a) => a.id === id);
+    if (!alarm) return;
+    const { alarm: updated } = alarmLifecycle.unlink(alarm, user, new Date().toISOString());
     set({ alarms: replaceAlarm(get().alarms, updated) });
   },
 }));
