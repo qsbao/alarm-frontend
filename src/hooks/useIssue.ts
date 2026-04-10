@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api/client';
+import { useAlarmStore } from '../stores/alarmStore';
+import { useCurrentUserStore } from '../stores/currentUserStore';
 import type { Alarm, Issue, IssueStatus } from '../types';
 
 export function useIssue(id: string | undefined) {
@@ -77,6 +79,9 @@ export function useIssue(id: string | undefined) {
   const linkAlarm = useCallback(
     async (alarmId: string) => {
       if (!id) return;
+      // Update alarm side (auto-ack via alarmLifecycle) + issue side (activity log)
+      const currentUser = useCurrentUserStore.getState().currentUser;
+      useAlarmStore.getState().linkAlarm(alarmId, id, currentUser);
       const updated = await api.linkAlarm(id, alarmId);
       await applyIssue(updated, true);
     },
@@ -86,6 +91,9 @@ export function useIssue(id: string | undefined) {
   const unlinkAlarm = useCallback(
     async (alarmId: string) => {
       if (!id) return;
+      // Update alarm side (clear linkedIssueId) + issue side (activity log)
+      const currentUser = useCurrentUserStore.getState().currentUser;
+      useAlarmStore.getState().unlinkAlarm(alarmId, currentUser);
       const updated = await api.unlinkAlarm(id, alarmId);
       await applyIssue(updated, true);
     },
