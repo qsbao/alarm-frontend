@@ -6,7 +6,7 @@ import { useAlarmStore } from '../stores/alarmStore';
 import { useCurrentUserStore } from '../stores/currentUserStore';
 import { alarmPermissions } from '../lib/alarmPermissions';
 import { isActive } from '../lib/alarmFiltering';
-import { mockClock } from '../lib/mockClock';
+import { useMockClockStore } from '../stores/mockClockStore';
 
 const SEVERITY_COLOR: Record<string, string> = {
   Critical: 'bg-red-500/15 text-red-400 border-red-500/30',
@@ -42,7 +42,7 @@ export function QuickAckDrawer({ alarmId, onClose }: QuickAckDrawerProps) {
   const { ackAlarm, setAlarmLabel, setAlarmRisk } = useAlarmStore();
   const currentUser = useCurrentUserStore((s) => s.currentUser);
   const [comment, setComment] = useState('');
-  const now = mockClock.now();
+  const now = useMockClockStore((s) => s.now);
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {

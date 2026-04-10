@@ -267,6 +267,50 @@ function makeVarietyAlarm(i: number, now: number): Alarm {
   };
 }
 
+let randCounter = 0;
+
+/** Generate a single random alarm fired at `now`. Always Open, active, no labels. */
+export function generateRandomAlarm(now: number): Alarm {
+  randCounter += 1;
+  const type = ALARM_TYPES[Math.floor(Math.random() * ALARM_TYPES.length)];
+  const severity = SEVERITY_POOL[Math.floor(Math.random() * SEVERITY_POOL.length)];
+  const machine = MACHINES[Math.floor(Math.random() * MACHINES.length)];
+  const chamber = CHAMBERS[Math.floor(Math.random() * CHAMBERS.length)];
+  const product = PRODUCTS[Math.floor(Math.random() * PRODUCTS.length)];
+  const operation = OPERATIONS[Math.floor(Math.random() * OPERATIONS.length)];
+  const meta = MESSAGES[type];
+  const routing = alarmRouting.route(type);
+  const time = new Date(now).toISOString();
+  const id = `alm-rand-${randCounter}`;
+  const value = +(meta.baseValue + Math.random() * 30 - 15).toFixed(2);
+
+  return {
+    id,
+    type,
+    severity,
+    message: meta.msg,
+    value,
+    unit: meta.unit,
+    time,
+    machineId: machine,
+    chamberId: chamber,
+    product,
+    operation,
+    owner: routing.owner,
+    department: routing.department,
+    status: 'Open',
+    labels: [],
+    activity: [
+      {
+        id: `${id}-act-1`,
+        type: 'created',
+        timestamp: time,
+        author: 'system',
+      },
+    ],
+  };
+}
+
 export function generateAlarms(now: number): Alarm[] {
   const deliberate = Array.from({ length: 20 }, (_, i) => makeDeliberateAlarm(i, now));
   const variety = Array.from({ length: 60 }, (_, i) => makeVarietyAlarm(i + 20, now));

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll } from 'vitest';
-import { generateAlarms } from './mockAlarmGenerator';
+import { generateAlarms, generateRandomAlarm } from './mockAlarmGenerator';
 import { isActive } from './alarmFiltering';
 import type { Alarm } from '../types';
 
@@ -111,5 +111,32 @@ describe('mockAlarmGenerator', () => {
     for (const a of alarms) counts[a.severity]++;
     // Just check that Medium has more than Critical
     expect(counts.Medium).toBeGreaterThan(counts.Critical);
+  });
+
+  describe('generateRandomAlarm', () => {
+    it('produces a valid alarm with current timestamp', () => {
+      const alarm = generateRandomAlarm(NOW);
+      expect(alarm.id).toMatch(/^alm-rand-/);
+      expect(alarm.type).toBeTruthy();
+      expect(alarm.severity).toBeTruthy();
+      expect(alarm.message).toBeTruthy();
+      expect(alarm.time).toBe(new Date(NOW).toISOString());
+      expect(alarm.machineId).toBeTruthy();
+      expect(alarm.product).toBeTruthy();
+      expect(alarm.operation).toBeTruthy();
+      expect(alarm.owner).toBeTruthy();
+      expect(alarm.department).toBeTruthy();
+      expect(alarm.status).toBe('Open');
+      expect(alarm.recoveryTime).toBeUndefined();
+      expect(alarm.labels).toEqual([]);
+      expect(alarm.activity).toHaveLength(1);
+      expect(alarm.activity[0].type).toBe('created');
+    });
+
+    it('produces different alarms on successive calls', () => {
+      const a = generateRandomAlarm(NOW);
+      const b = generateRandomAlarm(NOW);
+      expect(a.id).not.toBe(b.id);
+    });
   });
 });

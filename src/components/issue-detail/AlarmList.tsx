@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { api } from '../../api/client';
 import { isActive } from '../../lib/alarmFiltering';
 import { linkAlarmCandidates } from '../../lib/linkAlarmCandidates';
-import { mockClock } from '../../lib/mockClock';
+import { useMockClockStore } from '../../stores/mockClockStore';
 import type { Alarm, Issue, RiskLevel } from '../../types';
 
 interface AlarmListProps {
@@ -29,7 +29,7 @@ export function AlarmList({ alarms, issue, onLink, onUnlink }: AlarmListProps) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [allAlarms, setAllAlarms] = useState<Alarm[]>([]);
   const [loadingAll, setLoadingAll] = useState(false);
-  const now = mockClock.now();
+  const now = useMockClockStore((s) => s.now);
 
   useEffect(() => {
     if (!pickerOpen || allAlarms.length > 0) return;
