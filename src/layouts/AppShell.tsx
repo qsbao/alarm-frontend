@@ -1,6 +1,7 @@
 import { AlertTriangle } from 'lucide-react';
 import { Link, NavLink, Outlet } from 'react-router-dom';
 import { ThemeToggle } from '../components/ThemeToggle';
+import { UserSwitcher } from '../components/UserSwitcher';
 
 export function AppShell() {
   return (
@@ -46,6 +47,8 @@ export function AppShell() {
         </nav>
 
         <div className="flex-1" />
+        <UserSwitcher />
+        <div className="w-px h-4 bg-border-subtle" />
         <ThemeToggle />
       </header>
 

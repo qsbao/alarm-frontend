@@ -40,6 +40,7 @@ export default {
         'pop-in': 'popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
         'glow-pulse': 'glowPulse 2s ease-in-out 0.4s 3',
         'pop-glow': 'popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), glowPulse 2s ease-in-out 0.4s 3',
+        'slide-in': 'slideIn 0.2s ease-out',
       },
       keyframes: {
         fadeIn: {
@@ -65,6 +66,10 @@ export default {
         glowPulse: {
           '0%, 100%': { boxShadow: '0 0 4px 0 var(--accent-muted)' },
           '50%': { boxShadow: '0 0 12px 4px var(--accent-muted)' },
+        },
+        slideIn: {
+          '0%': { opacity: '0', transform: 'translateX(100%)' },
+          '100%': { opacity: '1', transform: 'translateX(0)' },
         },
       },
     },

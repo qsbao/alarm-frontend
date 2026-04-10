@@ -1,7 +1,10 @@
-import { Bell } from 'lucide-react';
+import { Bell, ExternalLink } from 'lucide-react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAlarmStore } from '../stores/alarmStore';
 import { isActive } from '../lib/alarmFiltering';
 import { mockClock } from '../lib/mockClock';
+import { QuickAckDrawer } from '../components/QuickAckDrawer';
 import type { Alarm, RiskLevel } from '../types';
 
 const SEVERITY_COLOR: Record<RiskLevel, string> = {
@@ -21,11 +24,23 @@ function formatTime(iso: string): string {
   return `${d.toISOString().slice(0, 10)} ${d.toISOString().slice(11, 16)}`;
 }
 
-function AlarmRow({ alarm, now }: { alarm: Alarm; now: number }) {
+function AlarmRow({
+  alarm,
+  now,
+  onRowClick,
+}: {
+  alarm: Alarm;
+  now: number;
+  onRowClick: (id: string) => void;
+}) {
+  const navigate = useNavigate();
   const active = isActive(alarm, now);
 
   return (
-    <tr className="border-b border-border-subtle/40 hover:bg-surface-overlay/30 transition-colors">
+    <tr
+      className="border-b border-border-subtle/40 hover:bg-surface-overlay/30 transition-colors cursor-pointer"
+      onClick={() => onRowClick(alarm.id)}
+    >
       <td className="px-3 py-2.5 text-xs font-mono text-theme-secondary">{alarm.id}</td>
       <td className="px-3 py-2.5">
         <span className="badge text-[10px]">{alarm.type}</span>
@@ -56,6 +71,18 @@ function AlarmRow({ alarm, now }: { alarm: Alarm; now: number }) {
           {active ? 'Active' : 'Recovered'}
         </span>
       </td>
+      <td className="px-3 py-2.5">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate(`/alarms/${alarm.id}`);
+          }}
+          className="p-1 rounded hover:bg-surface-overlay/60 text-theme-muted hover:text-theme-primary transition-colors"
+          title="Open detail page"
+        >
+          <ExternalLink size={13} />
+        </button>
+      </td>
     </tr>
   );
 }
@@ -63,6 +90,7 @@ function AlarmRow({ alarm, now }: { alarm: Alarm; now: number }) {
 export function AlarmListPage() {
   const alarms = useAlarmStore((s) => s.alarms);
   const now = mockClock.now();
+  const [drawerAlarmId, setDrawerAlarmId] = useState<string | null>(null);
 
   return (
     <div className="h-full overflow-auto p-6">
@@ -82,8 +110,8 @@ export function AlarmListPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border-default">
-                  {['ID', 'Type', 'Severity', 'Message', 'Machine', 'Dept', 'Owner', 'Time', 'Status', 'Active'].map((h) => (
-                    <th key={h} className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-theme-muted text-left">
+                  {['ID', 'Type', 'Severity', 'Message', 'Machine', 'Dept', 'Owner', 'Time', 'Status', 'Active', ''].map((h, i) => (
+                    <th key={i} className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-theme-muted text-left">
                       {h}
                     </th>
                   ))}
@@ -91,13 +119,25 @@ export function AlarmListPage() {
               </thead>
               <tbody>
                 {alarms.map((alarm) => (
-                  <AlarmRow key={alarm.id} alarm={alarm} now={now} />
+                  <AlarmRow
+                    key={alarm.id}
+                    alarm={alarm}
+                    now={now}
+                    onRowClick={setDrawerAlarmId}
+                  />
                 ))}
               </tbody>
             </table>
           </div>
         </div>
       </div>
+
+      {drawerAlarmId && (
+        <QuickAckDrawer
+          alarmId={drawerAlarmId}
+          onClose={() => setDrawerAlarmId(null)}
+        />
+      )}
     </div>
   );
 }
