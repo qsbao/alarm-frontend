@@ -12,16 +12,59 @@ export type AlarmType =
   | 'GasFlowDeviation'
   | 'EndpointDrift';
 
+export type AlarmStatus = 'Open' | 'Acked';
+export type HumanRisk = 'high' | 'middle' | 'low';
+export type AlarmLabel =
+  | 'FalsePositive'
+  | 'Recurring'
+  | 'LotImpacting'
+  | 'NeedsEngReview'
+  | 'UnderObservation';
+
+export type AlarmActivityType =
+  | 'created'
+  | 'acked'
+  | 'acked_via_issue'
+  | 'recovered'
+  | 'linked'
+  | 'unlinked'
+  | 'label_added'
+  | 'label_removed'
+  | 'risk_changed';
+
+export interface AlarmActivityEntry {
+  id: string;
+  type: AlarmActivityType;
+  timestamp: string; // ISO 8601
+  author: string;
+  note?: string;
+  label?: AlarmLabel;
+  fromRisk?: HumanRisk;
+  toRisk?: HumanRisk;
+  issueId?: string;
+}
+
 export interface Alarm {
   id: string; // "alm-001"
+  // Immutable 4W block
   type: AlarmType;
   severity: RiskLevel;
-  time: string; // ISO 8601
-  machineId: string; // "LITHO-07"
-  chamberId?: string;
   message: string;
   value?: number;
   unit?: string;
+  time: string; // ISO 8601 — When
+  recoveryTime?: string; // ISO 8601 — once set, immutable
+  machineId: string; // Where — "LITHO-07"
+  chamberId?: string;
+  product: string; // Where context
+  operation: string; // Where context
+  owner: string; // Who — set at fire-time, immutable
+  department: string; // Who — set at fire-time, immutable
+  // Mutable triage layer
+  status: AlarmStatus;
+  humanRisk?: HumanRisk;
+  labels: AlarmLabel[];
+  activity: AlarmActivityEntry[];
 }
 
 export type ActivityType =
@@ -63,6 +106,16 @@ export interface Issue {
   relatedAlarmIds: string[];
   activity: ActivityEntry[]; // ascending; render reversed
 }
+
+export const ALL_ALARM_STATUSES: AlarmStatus[] = ['Open', 'Acked'];
+export const ALL_HUMAN_RISKS: HumanRisk[] = ['high', 'middle', 'low'];
+export const ALL_ALARM_LABELS: AlarmLabel[] = [
+  'FalsePositive',
+  'Recurring',
+  'LotImpacting',
+  'NeedsEngReview',
+  'UnderObservation',
+];
 
 export const ALL_RISK_LEVELS: RiskLevel[] = ['Low', 'Medium', 'High', 'Critical'];
 export const ALL_ISSUE_STATUSES: IssueStatus[] = ['New', 'Investigating', 'Resolved', 'Closed'];

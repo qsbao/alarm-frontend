@@ -31,6 +31,18 @@ export function AppShell() {
           >
             Issues
           </NavLink>
+          <NavLink
+            to="/alarms"
+            className={({ isActive }) =>
+              `inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-150 ${
+                isActive
+                  ? 'text-theme-accent bg-accent-subtle'
+                  : 'text-theme-secondary hover:text-theme-primary hover:bg-surface-overlay/50'
+              }`
+            }
+          >
+            Alarms
+          </NavLink>
         </nav>
 
         <div className="flex-1" />
