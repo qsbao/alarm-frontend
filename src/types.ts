@@ -1,3 +1,8 @@
+export interface User {
+  name: string;
+  department: string;
+}
+
 export type RiskLevel = 'Low' | 'Medium' | 'High' | 'Critical';
 export type IssueStatus = 'New' | 'Investigating' | 'Resolved' | 'Closed';
 export type AlarmType =
