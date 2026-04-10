@@ -375,8 +375,11 @@ export function AlarmDetailPage() {
   const now = mockClock.now();
 
   const [showModal, setShowModal] = useState(false);
+  const [showIssuePicker, setShowIssuePicker] = useState(false);
   const [linkedIssue, setLinkedIssue] = useState<Issue | undefined>(undefined);
   const [issueLoading, setIssueLoading] = useState(false);
+  const [allIssues, setAllIssues] = useState<Issue[]>([]);
+  const [issuesLoading, setIssuesLoading] = useState(false);
 
   const fetchLinkedIssue = useCallback(async (issueId: string | undefined) => {
     if (!issueId) {
@@ -402,6 +405,28 @@ export function AlarmDetailPage() {
     linkAlarm(alarm.id, created.id, currentUser);
     setLinkedIssue(created);
     setShowModal(false);
+  };
+
+  const handleOpenIssuePicker = async () => {
+    setShowIssuePicker(true);
+    if (allIssues.length === 0) {
+      setIssuesLoading(true);
+      try {
+        const list = await api.listIssues();
+        setAllIssues(list);
+      } finally {
+        setIssuesLoading(false);
+      }
+    }
+  };
+
+  const handleLinkToIssue = async (issueId: string) => {
+    if (!alarm) return;
+    linkAlarm(alarm.id, issueId, currentUser);
+    await api.linkAlarm(issueId, alarm.id);
+    const found = await api.getIssue(issueId);
+    setLinkedIssue(found);
+    setShowIssuePicker(false);
   };
 
   const handleUnlink = () => {
@@ -483,7 +508,44 @@ export function AlarmDetailPage() {
               loading={issueLoading}
               onUnlink={handleUnlink}
               onCreateIssue={() => setShowModal(true)}
+              onLinkExisting={handleOpenIssuePicker}
             />
+
+            {showIssuePicker && !alarm.linkedIssueId && (
+              <div className="card p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-xs font-semibold uppercase tracking-wide text-theme-muted">
+                    Select Issue
+                  </h2>
+                  <button
+                    onClick={() => setShowIssuePicker(false)}
+                    className="btn-ghost btn-sm"
+                  >
+                    Cancel
+                  </button>
+                </div>
+                {issuesLoading ? (
+                  <div className="text-xs text-theme-muted">Loading issues...</div>
+                ) : (
+                  <ul className="max-h-56 overflow-y-auto flex flex-col gap-1">
+                    {allIssues
+                      .filter((i) => i.status !== 'Closed')
+                      .map((iss) => (
+                        <li key={iss.id}>
+                          <button
+                            onClick={() => handleLinkToIssue(iss.id)}
+                            className="w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-surface-overlay/60"
+                          >
+                            <span className="text-[11px] text-theme-secondary font-mono shrink-0">{iss.id}</span>
+                            <span className="badge text-[10px] shrink-0">{iss.status}</span>
+                            <span className="text-xs text-theme-primary truncate flex-1">{iss.title}</span>
+                          </button>
+                        </li>
+                      ))}
+                  </ul>
+                )}
+              </div>
+            )}
             <AlarmActivityTimeline activity={alarm.activity} />
           </div>
         </div>

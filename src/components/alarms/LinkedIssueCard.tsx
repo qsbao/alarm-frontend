@@ -1,4 +1,4 @@
-import { ExternalLink, FileText, Plus, Unlink } from 'lucide-react';
+import { ExternalLink, FileText, Link as LinkIcon, Plus, Unlink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { Issue } from '../../types';
 
@@ -7,9 +7,10 @@ interface LinkedIssueCardProps {
   loading: boolean;
   onUnlink: () => void;
   onCreateIssue: () => void;
+  onLinkExisting: () => void;
 }
 
-export function LinkedIssueCard({ issue, loading, onUnlink, onCreateIssue }: LinkedIssueCardProps) {
+export function LinkedIssueCard({ issue, loading, onUnlink, onCreateIssue, onLinkExisting }: LinkedIssueCardProps) {
   return (
     <div className="card p-5">
       <h2 className="text-xs font-semibold uppercase tracking-wide text-theme-muted mb-3">
@@ -58,13 +59,22 @@ export function LinkedIssueCard({ issue, loading, onUnlink, onCreateIssue }: Lin
       {!loading && !issue && (
         <div className="flex flex-col gap-2">
           <div className="text-xs text-theme-muted italic">No linked issue.</div>
-          <button
-            onClick={onCreateIssue}
-            className="btn-primary btn-sm self-start"
-          >
-            <Plus size={13} />
-            Create issue from alarm
-          </button>
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={onCreateIssue}
+              className="btn-primary btn-sm"
+            >
+              <Plus size={13} />
+              Create issue
+            </button>
+            <button
+              onClick={onLinkExisting}
+              className="btn-secondary btn-sm"
+            >
+              <LinkIcon size={13} />
+              Link to existing issue
+            </button>
+          </div>
         </div>
       )}
     </div>
