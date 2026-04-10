@@ -51,6 +51,14 @@ function appendActivity(
   return entry;
 }
 
+function nextIssueId(): string {
+  const maxNum = issues.reduce((max, i) => {
+    const num = parseInt(i.id.replace('iss-', ''), 10);
+    return num > max ? num : max;
+  }, 0);
+  return `iss-${String(maxNum + 1).padStart(3, '0')}`;
+}
+
 export const api = {
   async listIssues(): Promise<Issue[]> {
     await delay();
@@ -131,6 +139,28 @@ export const api = {
       issue.relatedAlarmIds.splice(idx, 1);
       appendActivity(issue, 'alarm_unlinked', { alarmId });
     }
+    return {
+      ...issue,
+      relatedAlarmIds: [...issue.relatedAlarmIds],
+      activity: issue.activity.map((a) => ({ ...a })),
+    };
+  },
+
+  async createIssue(draft: Omit<Issue, 'id' | 'activity'>): Promise<Issue> {
+    await delay();
+    const id = nextIssueId();
+    const seedActivity: ActivityEntry = {
+      id: `${id}-act-1`,
+      type: 'created',
+      timestamp: new Date().toISOString(),
+      author: 'system',
+    };
+    const issue: Issue = {
+      ...draft,
+      id,
+      activity: [seedActivity],
+    };
+    issues.push(issue);
     return {
       ...issue,
       relatedAlarmIds: [...issue.relatedAlarmIds],

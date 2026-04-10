@@ -69,6 +69,7 @@ export interface Alarm {
   status: AlarmStatus;
   humanRisk?: HumanRisk;
   labels: AlarmLabel[];
+  linkedIssueId?: string; // 1 alarm : 0..1 issue
   activity: AlarmActivityEntry[];
 }
 

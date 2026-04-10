@@ -89,6 +89,68 @@ export const alarmLifecycle = {
     };
   },
 
+  link(alarm: Alarm, issueId: string, actor: User, timestamp: string): { alarm: Alarm; activityEntries: AlarmActivityEntry[] } {
+    if (alarm.linkedIssueId) {
+      throw new Error(`Alarm ${alarm.id} is already linked to issue ${alarm.linkedIssueId}`);
+    }
+
+    const entries: AlarmActivityEntry[] = [];
+    let status = alarm.status;
+
+    // Auto-ack Open alarms when linking to an issue
+    if (alarm.status === 'Open') {
+      entries.push({
+        id: nextActId(alarm.id),
+        type: 'acked_via_issue',
+        timestamp,
+        author: actor.name,
+        issueId,
+      });
+      status = 'Acked';
+    }
+
+    entries.push({
+      id: nextActId(alarm.id),
+      type: 'linked',
+      timestamp,
+      author: actor.name,
+      issueId,
+    });
+
+    return {
+      alarm: {
+        ...alarm,
+        status,
+        linkedIssueId: issueId,
+        activity: [...alarm.activity, ...entries],
+      },
+      activityEntries: entries,
+    };
+  },
+
+  unlink(alarm: Alarm, actor: User, timestamp: string): LifecycleResult {
+    if (!alarm.linkedIssueId) {
+      throw new Error(`Alarm ${alarm.id} is not linked to any issue`);
+    }
+
+    const activityEntry: AlarmActivityEntry = {
+      id: nextActId(alarm.id),
+      type: 'unlinked',
+      timestamp,
+      author: actor.name,
+      issueId: alarm.linkedIssueId,
+    };
+
+    return {
+      alarm: {
+        ...alarm,
+        linkedIssueId: undefined,
+        activity: [...alarm.activity, activityEntry],
+      },
+      activityEntry,
+    };
+  },
+
   recover(alarm: Alarm, timestamp: string): LifecycleResult {
     if (alarm.recoveryTime) {
       throw new Error(`Alarm ${alarm.id} already has a recoveryTime`);

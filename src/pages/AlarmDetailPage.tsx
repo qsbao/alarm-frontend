@@ -18,15 +18,19 @@ import {
   User,
   Wrench,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import type { Alarm, AlarmActivityEntry, AlarmActivityType, AlarmLabel, HumanRisk } from '../types';
+import type { Alarm, AlarmActivityEntry, AlarmActivityType, AlarmLabel, HumanRisk, Issue } from '../types';
 import { ALL_ALARM_LABELS, ALL_HUMAN_RISKS } from '../types';
 import { useAlarmStore } from '../stores/alarmStore';
 import { useCurrentUserStore } from '../stores/currentUserStore';
 import { alarmPermissions } from '../lib/alarmPermissions';
 import { isActive } from '../lib/alarmFiltering';
 import { mockClock } from '../lib/mockClock';
+import { api } from '../api/client';
+import type { IssueDraft } from '../lib/issueFromAlarm';
+import { LinkedIssueCard } from '../components/alarms/LinkedIssueCard';
+import { CreateIssueFromAlarmModal } from '../components/alarms/CreateIssueFromAlarmModal';
 
 const SEVERITY_COLOR: Record<string, string> = {
   Critical: 'bg-red-500/15 text-red-400 border-red-500/30',
@@ -366,7 +370,48 @@ function FourWPanels({ alarm, now }: { alarm: Alarm; now: number }) {
 export function AlarmDetailPage() {
   const { id } = useParams<{ id: string }>();
   const alarm = useAlarmStore((s) => s.alarms.find((a) => a.id === id));
+  const { linkAlarm, unlinkAlarm } = useAlarmStore();
+  const currentUser = useCurrentUserStore((s) => s.currentUser);
   const now = mockClock.now();
+
+  const [showModal, setShowModal] = useState(false);
+  const [linkedIssue, setLinkedIssue] = useState<Issue | undefined>(undefined);
+  const [issueLoading, setIssueLoading] = useState(false);
+
+  const fetchLinkedIssue = useCallback(async (issueId: string | undefined) => {
+    if (!issueId) {
+      setLinkedIssue(undefined);
+      return;
+    }
+    setIssueLoading(true);
+    try {
+      const found = await api.getIssue(issueId);
+      setLinkedIssue(found);
+    } finally {
+      setIssueLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchLinkedIssue(alarm?.linkedIssueId);
+  }, [alarm?.linkedIssueId, fetchLinkedIssue]);
+
+  const handleCreateIssue = async (draft: IssueDraft) => {
+    if (!alarm) return;
+    const created = await api.createIssue(draft);
+    linkAlarm(alarm.id, created.id, currentUser);
+    setLinkedIssue(created);
+    setShowModal(false);
+  };
+
+  const handleUnlink = () => {
+    if (!alarm || !alarm.linkedIssueId) return;
+    const issueId = alarm.linkedIssueId;
+    unlinkAlarm(alarm.id, currentUser);
+    // Also remove from issue's relatedAlarmIds
+    api.unlinkAlarm(issueId, alarm.id);
+    setLinkedIssue(undefined);
+  };
 
   if (!alarm) {
     return (
@@ -433,10 +478,25 @@ export function AlarmDetailPage() {
           </div>
 
           <div className="flex flex-col gap-5">
+            <LinkedIssueCard
+              issue={linkedIssue}
+              loading={issueLoading}
+              onUnlink={handleUnlink}
+              onCreateIssue={() => setShowModal(true)}
+            />
             <AlarmActivityTimeline activity={alarm.activity} />
           </div>
         </div>
       </div>
+
+      {showModal && (
+        <CreateIssueFromAlarmModal
+          alarm={alarm}
+          currentUser={currentUser}
+          onSubmit={handleCreateIssue}
+          onClose={() => setShowModal(false)}
+        />
+      )}
     </div>
   );
 }

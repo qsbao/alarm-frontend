@@ -1,0 +1,169 @@
+import { X } from 'lucide-react';
+import { useState } from 'react';
+import type { Alarm, AlarmType, RiskLevel, User } from '../../types';
+import { ALL_ALARM_TYPES, ALL_RISK_LEVELS } from '../../types';
+import { buildIssueFromAlarm, type IssueDraft } from '../../lib/issueFromAlarm';
+
+interface CreateIssueFromAlarmModalProps {
+  alarm: Alarm;
+  currentUser: User;
+  onSubmit: (draft: IssueDraft) => void;
+  onClose: () => void;
+}
+
+export function CreateIssueFromAlarmModal({
+  alarm,
+  currentUser,
+  onSubmit,
+  onClose,
+}: CreateIssueFromAlarmModalProps) {
+  const initial = buildIssueFromAlarm(alarm, currentUser, new Date().toISOString());
+  const [title, setTitle] = useState(initial.title);
+  const [description, setDescription] = useState(initial.description);
+  const [alarmType, setAlarmType] = useState<AlarmType>(initial.alarmType);
+  const [riskLevel, setRiskLevel] = useState<RiskLevel>(initial.riskLevel);
+  const [product, setProduct] = useState(initial.product);
+  const [operation, setOperation] = useState(initial.operation);
+  const [owner, setOwner] = useState(initial.owner);
+  const [department, setDepartment] = useState(initial.department);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit({
+      title,
+      description,
+      date: initial.date,
+      alarmType,
+      riskLevel,
+      status: 'New',
+      issueTime: initial.issueTime,
+      operation,
+      product,
+      owner,
+      department,
+      relatedAlarmIds: [alarm.id],
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div className="bg-surface-raised border border-border-default rounded-xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-4 border-b border-border-subtle">
+          <h2 className="text-sm font-semibold text-theme-primary">Create Issue from Alarm</h2>
+          <button onClick={onClose} className="text-theme-muted hover:text-theme-primary">
+            <X size={16} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-4 flex flex-col gap-3">
+          <label className="flex flex-col gap-1">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted">Title</span>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="input-base text-xs"
+              required
+            />
+          </label>
+
+          <label className="flex flex-col gap-1">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted">Description</span>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="input-base text-xs resize-none"
+              rows={3}
+              required
+            />
+          </label>
+
+          <div className="grid grid-cols-2 gap-3">
+            <label className="flex flex-col gap-1">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted">Alarm Type</span>
+              <select
+                value={alarmType}
+                onChange={(e) => setAlarmType(e.target.value as AlarmType)}
+                className="input-base text-xs"
+              >
+                {ALL_ALARM_TYPES.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </label>
+
+            <label className="flex flex-col gap-1">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted">Risk Level</span>
+              <select
+                value={riskLevel}
+                onChange={(e) => setRiskLevel(e.target.value as RiskLevel)}
+                className="input-base text-xs"
+              >
+                {ALL_RISK_LEVELS.map((r) => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <label className="flex flex-col gap-1">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted">Product</span>
+              <input
+                type="text"
+                value={product}
+                onChange={(e) => setProduct(e.target.value)}
+                className="input-base text-xs"
+              />
+            </label>
+
+            <label className="flex flex-col gap-1">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted">Operation</span>
+              <input
+                type="text"
+                value={operation}
+                onChange={(e) => setOperation(e.target.value)}
+                className="input-base text-xs"
+              />
+            </label>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <label className="flex flex-col gap-1">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted">Owner</span>
+              <input
+                type="text"
+                value={owner}
+                onChange={(e) => setOwner(e.target.value)}
+                className="input-base text-xs"
+              />
+            </label>
+
+            <label className="flex flex-col gap-1">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted">Department</span>
+              <input
+                type="text"
+                value={department}
+                onChange={(e) => setDepartment(e.target.value)}
+                className="input-base text-xs"
+              />
+            </label>
+          </div>
+
+          <div className="text-[10px] text-theme-muted">
+            Linked alarm: <span className="font-mono">{alarm.id}</span>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2 border-t border-border-subtle">
+            <button type="button" onClick={onClose} className="btn-secondary btn-sm">
+              Cancel
+            </button>
+            <button type="submit" className="btn-primary btn-sm">
+              Create Issue
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
