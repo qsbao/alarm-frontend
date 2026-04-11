@@ -9,6 +9,7 @@ interface IssueStore {
   riskFilter: RiskLevel | 'all';
   statusFilter: IssueStatus | 'all';
   alarmTypeFilter: AlarmType | 'all';
+  activeViewName: string | null;
   sortKey: SortKey;
   sortDir: SortDir;
   page: number; // 1-based
@@ -18,6 +19,7 @@ interface IssueStore {
   setRiskFilter: (r: RiskLevel | 'all') => void;
   setStatusFilter: (s: IssueStatus | 'all') => void;
   setAlarmTypeFilter: (t: AlarmType | 'all') => void;
+  setActiveViewName: (name: string | null) => void;
   setSort: (key: SortKey) => void;
   setPage: (p: number) => void;
   reset: () => void;
@@ -29,6 +31,7 @@ const INITIAL: Pick<
   | 'riskFilter'
   | 'statusFilter'
   | 'alarmTypeFilter'
+  | 'activeViewName'
   | 'sortKey'
   | 'sortDir'
   | 'page'
@@ -38,6 +41,7 @@ const INITIAL: Pick<
   riskFilter: 'all',
   statusFilter: 'all',
   alarmTypeFilter: 'all',
+  activeViewName: null,
   sortKey: 'date',
   sortDir: 'desc',
   page: 1,
@@ -50,6 +54,7 @@ export const useIssueStore = create<IssueStore>((set) => ({
   setRiskFilter: (r) => set({ riskFilter: r, page: 1 }),
   setStatusFilter: (s) => set({ statusFilter: s, page: 1 }),
   setAlarmTypeFilter: (t) => set({ alarmTypeFilter: t, page: 1 }),
+  setActiveViewName: (name) => set({ activeViewName: name, page: 1 }),
   setSort: (key) =>
     set((state) => {
       // Click same column → flip direction. Click new column → reset to desc.

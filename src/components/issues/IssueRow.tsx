@@ -1,6 +1,10 @@
+import { Hourglass } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { Issue } from '../../types';
 import { getUserById } from '../../mocks/users';
+import { useCurrentUserStore } from '../../stores/currentUserStore';
+import { awaitingMyAction } from '../../lib/workflows/discovery';
+import { getDefinition } from '../../lib/workflows/registry';
 import { RiskBadge } from './RiskBadge';
 import { StatusBadge } from './StatusBadge';
 
@@ -16,6 +20,8 @@ function formatDateTime(iso: string): string {
 
 export function IssueRow({ issue }: { issue: Issue }) {
   const navigate = useNavigate();
+  const currentUser = useCurrentUserStore((s) => s.currentUser);
+  const awaiting = awaitingMyAction(issue, currentUser, getDefinition);
 
   return (
     <tr
@@ -33,6 +39,14 @@ export function IssueRow({ issue }: { issue: Issue }) {
       </td>
       <td className="px-3 py-2 text-sm whitespace-nowrap">
         <StatusBadge status={issue.status} />
+      </td>
+      <td className="px-3 py-2 text-sm whitespace-nowrap">
+        {awaiting && (
+          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium border bg-amber-500/15 text-amber-400 border-amber-500/30">
+            <Hourglass size={10} />
+            you
+          </span>
+        )}
       </td>
       <td className="px-3 py-2 text-sm text-theme-primary font-medium max-w-md truncate">
         {issue.title}
