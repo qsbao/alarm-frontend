@@ -1,5 +1,6 @@
 import { Search, X } from 'lucide-react';
 import { useIssueStore } from '../../stores/issueStore';
+import { ISSUE_BUILTIN_VIEWS } from '../../lib/issueSavedViews';
 import {
   ALL_ALARM_TYPES,
   ALL_ISSUE_STATUSES,
@@ -14,14 +15,37 @@ export function FilterBar() {
   const riskFilter = useIssueStore((s) => s.riskFilter);
   const statusFilter = useIssueStore((s) => s.statusFilter);
   const alarmTypeFilter = useIssueStore((s) => s.alarmTypeFilter);
+  const activeViewName = useIssueStore((s) => s.activeViewName);
   const setSearch = useIssueStore((s) => s.setSearch);
   const setRiskFilter = useIssueStore((s) => s.setRiskFilter);
   const setStatusFilter = useIssueStore((s) => s.setStatusFilter);
   const setAlarmTypeFilter = useIssueStore((s) => s.setAlarmTypeFilter);
+  const setActiveViewName = useIssueStore((s) => s.setActiveViewName);
   const reset = useIssueStore((s) => s.reset);
 
   return (
-    <div className="flex gap-2 flex-wrap items-center">
+    <div className="space-y-2">
+      {/* Row 1: Saved views rail */}
+      <div className="flex items-center gap-1.5 flex-wrap">
+        {ISSUE_BUILTIN_VIEWS.map((view) => (
+          <button
+            key={view.name}
+            onClick={() =>
+              setActiveViewName(activeViewName === view.name ? null : view.name)
+            }
+            className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
+              activeViewName === view.name
+                ? 'bg-accent-subtle text-theme-accent border border-theme-accent/30'
+                : 'bg-surface-overlay/30 text-theme-secondary border border-border-subtle/40 hover:border-border-default hover:text-theme-primary'
+            }`}
+          >
+            {view.name}
+          </button>
+        ))}
+      </div>
+
+      {/* Row 2: Search + filters */}
+      <div className="flex gap-2 flex-wrap items-center">
       <div className="relative flex-1 min-w-[220px] max-w-md">
         <Search
           size={14}
@@ -79,6 +103,7 @@ export function FilterBar() {
         <X size={14} />
         Clear
       </button>
+      </div>
     </div>
   );
 }
