@@ -1,7 +1,7 @@
-import { Check, ChevronDown, ChevronRight, Circle, Clock, Eye, Ban, MoreHorizontal } from 'lucide-react';
+import { Check, ChevronDown, ChevronRight, Circle, Clock, Eye, Ban, MoreHorizontal, AlertCircle } from 'lucide-react';
 import { useState } from 'react';
 import type { Issue } from '../../types';
-import type { Action, ActionRecord, WorkflowDefinition } from '../../lib/workflows/types';
+import type { Action, ActionRecord, PayloadFieldSchema, PayloadSchema, WorkflowDefinition } from '../../lib/workflows/types';
 import { getDefinition } from '../../lib/workflows/registry';
 import {
   getActionDisplayStatus,
@@ -12,6 +12,7 @@ import {
   type PhaseDisplayState,
 } from '../../lib/workflows/panelHelpers';
 import { getUserById } from '../../mocks/users';
+import { useCurrentUserStore } from '../../stores/currentUserStore';
 
 const lookupUser = (id: string) => getUserById(id)?.name;
 
@@ -31,9 +32,10 @@ const STATUS_LABEL: Record<ActionDisplayStatus, string> = {
 
 interface WorkflowPanelProps {
   issue: Issue;
+  onFireAction?: (actionId: string, actorId: string, payload: Record<string, unknown>) => Promise<void>;
 }
 
-export function WorkflowPanel({ issue }: WorkflowPanelProps) {
+export function WorkflowPanel({ issue, onFireAction }: WorkflowPanelProps) {
   const workflow = issue.workflow;
   if (!workflow) return null;
 
@@ -47,7 +49,7 @@ export function WorkflowPanel({ issue }: WorkflowPanelProps) {
     ?? (workflow.completedAt ? 'Completed' : '');
 
   return (
-    <div className="card p-5">
+    <div id="workflow-panel" className="card p-5">
       <Header name={definition.name} currentPhaseLabel={currentPhaseLabel} isTerminal={!!workflow.completedAt} />
       <PhaseRibbon phases={phaseStates} />
       {currentPhase && !workflow.completedAt && (
@@ -55,6 +57,7 @@ export function WorkflowPanel({ issue }: WorkflowPanelProps) {
           phase={currentPhase}
           definition={definition}
           issue={issue}
+          onFireAction={onFireAction}
         />
       )}
       {historyRecords.length > 0 && (
@@ -119,12 +122,15 @@ function CurrentPhaseActions({
   phase,
   definition,
   issue,
+  onFireAction,
 }: {
   phase: import('../../lib/workflows/types').Phase;
   definition: WorkflowDefinition;
   issue: Issue;
+  onFireAction?: (actionId: string, actorId: string, payload: Record<string, unknown>) => Promise<void>;
 }) {
   const workflow = issue.workflow!;
+  const currentUser = useCurrentUserStore((s) => s.currentUser);
 
   return (
     <div className="mb-3">
@@ -138,6 +144,12 @@ function CurrentPhaseActions({
           const completedRecord = status === 'done'
             ? (workflow.completedActions[phase.id] ?? []).find((r) => r.actionId === action.id)
             : undefined;
+          // Check if current user passes the gate
+          const userCanAct = status !== 'done' && action.gate({
+            user: { id: currentUser.id },
+            instance: workflow,
+            issue,
+          });
           return (
             <ActionRow
               key={action.id}
@@ -145,6 +157,9 @@ function CurrentPhaseActions({
               status={status}
               actorName={actorName}
               completedRecord={completedRecord}
+              userCanAct={userCanAct}
+              currentUserId={currentUser.id}
+              onFireAction={onFireAction}
             />
           );
         })}
@@ -158,13 +173,20 @@ function ActionRow({
   status,
   actorName,
   completedRecord,
+  userCanAct,
+  currentUserId,
+  onFireAction,
 }: {
   action: Action;
   status: ActionDisplayStatus;
   actorName: string | undefined;
   completedRecord: ActionRecord | undefined;
+  userCanAct: boolean;
+  currentUserId: string;
+  onFireAction?: (actionId: string, actorId: string, payload: Record<string, unknown>) => Promise<void>;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [showForm, setShowForm] = useState(false);
   const Icon = STATUS_ICON[status];
 
   return (
@@ -184,8 +206,16 @@ function ActionRow({
         <span className="text-xs font-medium text-theme-primary flex-1">
           {action.label}
         </span>
-        {status !== 'done' && actorName && (
-          <span className="text-[10px] text-theme-muted italic">
+        {status !== 'done' && userCanAct && !showForm && (
+          <button
+            onClick={() => setShowForm(true)}
+            className="text-[10px] font-medium px-2 py-0.5 rounded bg-accent-subtle text-theme-accent hover:bg-accent/20 transition-colors"
+          >
+            Act
+          </button>
+        )}
+        {status !== 'done' && !userCanAct && actorName && (
+          <span className="text-[10px] text-theme-muted italic" title={`Gated to ${actorName}`}>
             waiting on {actorName}
           </span>
         )}
@@ -213,7 +243,144 @@ function ActionRow({
       {expanded && completedRecord && (
         <PayloadView payload={completedRecord.payload} />
       )}
+      {showForm && (
+        <InlineActionForm
+          action={action}
+          currentUserId={currentUserId}
+          onSubmit={async (payload) => {
+            await onFireAction?.(action.id, currentUserId, payload);
+            setShowForm(false);
+          }}
+          onCancel={() => setShowForm(false)}
+        />
+      )}
     </li>
+  );
+}
+
+function InlineActionForm({
+  action,
+  currentUserId,
+  onSubmit,
+  onCancel,
+}: {
+  action: Action;
+  currentUserId: string;
+  onSubmit: (payload: Record<string, unknown>) => Promise<void>;
+  onCancel: () => void;
+}) {
+  const [values, setValues] = useState<Record<string, string>>(() => {
+    const init: Record<string, string> = {};
+    for (const key of Object.keys(action.payloadSchema)) {
+      init[key] = '';
+    }
+    return init;
+  });
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    // Client-side validation
+    for (const [fieldName, schema] of Object.entries(action.payloadSchema)) {
+      const val = values[fieldName] ?? '';
+      if (schema.required && !val) {
+        setError(`${schema.label} is required`);
+        return;
+      }
+      if (schema.kind === 'text' && schema.minLength && val.length < schema.minLength) {
+        setError(`${schema.label} must be at least ${schema.minLength} character(s)`);
+        return;
+      }
+    }
+
+    setSubmitting(true);
+    try {
+      await onSubmit(values);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Action failed');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="ml-8 mt-1 mb-1 p-3 rounded bg-surface-overlay/40 border border-border-subtle/30">
+      {Object.entries(action.payloadSchema).map(([fieldName, schema]) => (
+        <SchemaField
+          key={fieldName}
+          fieldName={fieldName}
+          schema={schema}
+          value={values[fieldName] ?? ''}
+          onChange={(v) => setValues({ ...values, [fieldName]: v })}
+        />
+      ))}
+      {error && (
+        <div className="flex items-center gap-1.5 mt-2 text-[11px] text-red-500">
+          <AlertCircle size={12} />
+          {error}
+        </div>
+      )}
+      <div className="flex gap-2 mt-3">
+        <button
+          type="submit"
+          disabled={submitting}
+          className="btn-primary btn-sm text-[11px]"
+        >
+          {submitting ? 'Submitting...' : 'Submit'}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="btn-secondary btn-sm text-[11px]"
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function SchemaField({
+  fieldName,
+  schema,
+  value,
+  onChange,
+}: {
+  fieldName: string;
+  schema: PayloadFieldSchema;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <label className="flex flex-col gap-1 mb-2 last:mb-0">
+      <span className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted">
+        {schema.label}
+        {schema.required && <span className="text-red-400 ml-0.5">*</span>}
+      </span>
+      {schema.kind === 'enum' && schema.options ? (
+        <select
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="input-base text-xs"
+        >
+          <option value="">Select...</option>
+          {schema.options.map((opt) => (
+            <option key={opt} value={opt}>{opt}</option>
+          ))}
+        </select>
+      ) : (
+        <textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="input-base text-xs resize-none"
+          rows={2}
+          placeholder={schema.minLength ? `Min ${schema.minLength} character(s)` : ''}
+        />
+      )}
+    </label>
   );
 }
 

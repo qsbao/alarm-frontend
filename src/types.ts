@@ -81,7 +81,8 @@ export type ActivityType =
   | 'assignment'
   | 'comment'
   | 'alarm_linked'
-  | 'alarm_unlinked';
+  | 'alarm_unlinked'
+  | 'workflow_transition';
 
 export interface ActivityEntry {
   id: string;
@@ -93,6 +94,13 @@ export interface ActivityEntry {
   assignedTo?: string;
   text?: string;
   alarmId?: string;
+  // workflow_transition fields (pointer — full payload is in WorkflowInstance.actionHistory)
+  workflowDefinitionId?: string;
+  workflowPhaseId?: string;
+  workflowActionId?: string;
+  workflowActorId?: string;
+  workflowFromPhaseId?: string;
+  workflowToPhaseId?: string;
 }
 
 export interface Issue {
