@@ -16,8 +16,13 @@ describe('getDefaultWorkflowId', () => {
     'EndpointDrift',
   ];
 
-  it('returns generic_linear_v1 for all alarm types', () => {
-    for (const type of ALL_ALARM_TYPES) {
+  it('returns spc_ooc_branching_v1 for EndpointDrift', () => {
+    expect(getDefaultWorkflowId('EndpointDrift')).toBe('spc_ooc_branching_v1');
+  });
+
+  it('returns generic_linear_v1 for non-SPC-OOC alarm types', () => {
+    const nonSpcOoc = ALL_ALARM_TYPES.filter((t) => t !== 'EndpointDrift');
+    for (const type of nonSpcOoc) {
       expect(getDefaultWorkflowId(type)).toBe('generic_linear_v1');
     }
   });
