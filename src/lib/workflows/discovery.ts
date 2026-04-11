@@ -5,6 +5,29 @@ interface IssueWithWorkflow extends Issue {
   workflow?: WorkflowInstance;
 }
 
+/**
+ * Returns the labels of all currently ongoing steps for an issue,
+ * sorted by step order. No gate evaluation — purely status-based.
+ */
+export function getOngoingStepLabels(
+  issue: IssueWithWorkflow,
+  getDefinition: (id: string) => WorkflowDefinition | undefined,
+): string[] {
+  const workflow = issue.workflow;
+  if (!workflow || workflow.completedAt) return [];
+
+  const definition = getDefinition(workflow.definitionId);
+  if (!definition) return [];
+
+  return definition.steps
+    .filter((step) => {
+      const state = workflow.stepStates[step.id];
+      return state?.status === 'ongoing';
+    })
+    .sort((a, b) => a.order - b.order)
+    .map((step) => step.label);
+}
+
 export function awaitingMyAction(
   issue: IssueWithWorkflow,
   user: { id: UserId },
