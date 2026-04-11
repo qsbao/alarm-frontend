@@ -91,13 +91,11 @@ export interface ActivityEntry {
   assignedTo?: string;
   text?: string;
   alarmId?: string;
-  // workflow_transition fields (pointer — full payload is in WorkflowInstance.actionHistory)
+  // workflow_transition fields
   workflowDefinitionId?: string;
-  workflowPhaseId?: string;
-  workflowActionId?: string;
+  workflowStepId?: string;
+  workflowAction?: string; // 'attach' | 'complete'
   workflowActorId?: string;
-  workflowFromPhaseId?: string;
-  workflowToPhaseId?: string;
 }
 
 export interface Issue {

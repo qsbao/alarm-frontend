@@ -26,16 +26,13 @@ function makeIssue(workflow?: WorkflowInstance): Issue {
 
 function makeInstance(overrides: Partial<WorkflowInstance> = {}): WorkflowInstance {
   return {
-    definitionId: 'spc_ooc_v1',
-    currentPhaseId: 'p1_owner_input',
-    actors: [
-      { userId: 'user-tanaka', role: 'chart_owner' },
-      { userId: 'user-pi', role: 'pi_engineer' },
-      { userId: 'user-l5', role: 'owner_l5_manager' },
-      { userId: 'user-l4', role: 'owner_l4_manager' },
-    ],
-    completedActions: {},
-    actionHistory: [],
+    definitionId: 'generic_linear_v1',
+    stepStates: {
+      chart_owner_comment: { status: 'ongoing' },
+      resolved: { status: 'pending' },
+      closed: { status: 'pending' },
+    },
+    actors: [],
     ...overrides,
   };
 }
@@ -66,8 +63,9 @@ describe('Awaiting my action predicate', () => {
   const view = ISSUE_BUILTIN_VIEWS[0];
   const user = { id: 'user-tanaka', name: 'Tanaka', department: 'Litho' };
 
-  it('returns true for issue with workflow awaiting this user', () => {
+  it('returns true for issue with ongoing step the user can act on', () => {
     const issue = makeIssue(makeInstance());
+    // chart_owner_comment has no gate, so any user can act
     expect(view.predicate(issue, user, getDefinition)).toBe(true);
   });
 
@@ -81,30 +79,28 @@ describe('Awaiting my action predicate', () => {
     expect(view.predicate(issue, user, getDefinition)).toBe(false);
   });
 
-  it('returns false for user not gated on current phase', () => {
-    const issue = makeIssue(makeInstance());
-    const otherUser = { id: 'user-pi', name: 'PI', department: 'Litho' };
-    expect(view.predicate(issue, otherUser, getDefinition)).toBe(false);
-  });
-
-  it('returns true for PI when in P2', () => {
+  it('returns true for owner when resolved is ongoing', () => {
     const instance = makeInstance({
-      currentPhaseId: 'p2_pi_l5_review',
-      completedActions: {
-        p1_owner_input: [
-          {
-            id: 'r1',
-            actionId: 'chart_owner_comment',
-            phaseId: 'p1_owner_input',
-            actorId: 'user-tanaka',
-            timestamp: '2025-01-15T12:00:00Z',
-            payload: {},
-          },
-        ],
+      stepStates: {
+        chart_owner_comment: { status: 'completed', completedAt: '2025-01-15T12:00:00Z', completedBy: 'user-tanaka' },
+        resolved: { status: 'ongoing' },
+        closed: { status: 'pending' },
       },
     });
     const issue = makeIssue(instance);
-    const piUser = { id: 'user-pi', name: 'PI', department: 'Litho' };
-    expect(view.predicate(issue, piUser, getDefinition)).toBe(true);
+    expect(view.predicate(issue, user, getDefinition)).toBe(true);
+  });
+
+  it('returns false for non-owner when resolved is ongoing', () => {
+    const instance = makeInstance({
+      stepStates: {
+        chart_owner_comment: { status: 'completed', completedAt: '2025-01-15T12:00:00Z', completedBy: 'user-tanaka' },
+        resolved: { status: 'ongoing' },
+        closed: { status: 'pending' },
+      },
+    });
+    const issue = makeIssue(instance);
+    const otherUser = { id: 'user-other', name: 'Other', department: 'Litho' };
+    expect(view.predicate(issue, otherUser, getDefinition)).toBe(false);
   });
 });

@@ -16,7 +16,7 @@ export function IssueDetailPage() {
     addComment,
     linkAlarm,
     unlinkAlarm,
-    fireWorkflowAction,
+    completeWorkflowStep,
   } = useIssue(id);
 
   if (loading && !issue) {
@@ -45,7 +45,7 @@ export function IssueDetailPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           <div className="lg:col-span-2 flex flex-col gap-5">
-            <WorkflowPanel issue={issue} onFireAction={fireWorkflowAction} />
+            <WorkflowPanel issue={issue} onCompleteStep={completeWorkflowStep} />
 
             <div className="card p-5">
               <h2 className="text-xs font-semibold uppercase tracking-wide text-theme-muted mb-3">

@@ -1,15 +1,12 @@
 import type { ActivityEntry, ActivityType, Alarm, Issue } from '../types';
 import { MOCK_ALARMS } from '../mocks/alarms';
 import { MOCK_ISSUES } from '../mocks/issues';
-import { applyAction, attachWorkflow } from '../lib/workflows/engine';
+import { attachWorkflow, completeStep } from '../lib/workflows/engine';
 import { getDefinition } from '../lib/workflows/registry';
 import type { WorkflowInstance } from '../lib/workflows/types';
-import { MANAGER_CHAIN } from '../mocks/managerChain';
-import { PI_BY_DEPARTMENT } from '../mocks/piByDepartment';
 
 const CURRENT_USER = 'demo.user';
 
-// Deep-clone a WorkflowInstance from seed data (JSON round-trip is fine for plain data).
 function deepCloneWorkflow(wf: WorkflowInstance | undefined): WorkflowInstance | undefined {
   if (!wf) return undefined;
   return JSON.parse(JSON.stringify(wf)) as WorkflowInstance;
@@ -35,14 +32,7 @@ function delay(min = 100, max = 200): Promise<void> {
 
 function cloneWorkflow(wf: WorkflowInstance | undefined): WorkflowInstance | undefined {
   if (!wf) return undefined;
-  return {
-    ...wf,
-    actors: wf.actors.map((a) => ({ ...a })),
-    completedActions: Object.fromEntries(
-      Object.entries(wf.completedActions).map(([k, v]) => [k, v.map((r) => ({ ...r, payload: { ...r.payload } }))]),
-    ),
-    actionHistory: wf.actionHistory.map((r) => ({ ...r, payload: { ...r.payload } })),
-  };
+  return JSON.parse(JSON.stringify(wf)) as WorkflowInstance;
 }
 
 function cloneIssue(issue: Issue): Issue {
@@ -109,7 +99,6 @@ export const api = {
     await delay();
     const issue = findIssue(id);
     issue.ownerId = ownerId;
-    // Note: workflow actors remain frozen on owner reassignment (by design)
     appendActivity(issue, 'assignment', { assignedTo: ownerId });
     return cloneIssue(issue);
   },
@@ -161,8 +150,8 @@ export const api = {
   },
 
   /**
-   * Attaches a workflow to an issue. The engine writes the initial phase's
-   * status onto the issue. Appends a workflow_transition activity entry.
+   * Attaches a workflow to an issue. The engine activates root steps and
+   * derives status. Appends a workflow_transition activity entry.
    */
   async attachWorkflowToIssue(
     id: string,
@@ -175,38 +164,29 @@ export const api = {
     if (!definition) throw new Error(`Unknown workflow definition: ${definitionId}`);
     if (issue.workflow) throw new Error('Issue already has a workflow attached');
 
-    const mocks = {
-      alarms: alarms.map((a) => ({ id: a.id, chartOwnerId: a.chartOwnerId })),
-      piByDepartment: PI_BY_DEPARTMENT as Record<string, string>,
-      managerChain: MANAGER_CHAIN as Record<string, { l5: string; l4: string }>,
-    };
-
-    const result = attachWorkflow(definition, issue, mocks, new Date().toISOString());
+    const result = attachWorkflow(definition, issue, {}, new Date().toISOString());
     if ('error' in result) throw new Error(result.error);
 
     issue.workflow = result.instance;
     issue.status = result.issue.status;
 
-    // Append workflow_transition activity via the chokepoint
     appendActivity(issue, 'workflow_transition', {
       workflowDefinitionId: result.activityEntry.definitionId,
-      workflowPhaseId: result.activityEntry.phaseId,
-      workflowActionId: result.activityEntry.actionId,
+      workflowStepId: result.activityEntry.stepId,
+      workflowAction: result.activityEntry.action,
       workflowActorId: actorUserId,
-      workflowFromPhaseId: result.activityEntry.fromPhaseId,
-      workflowToPhaseId: result.activityEntry.toPhaseId,
     });
 
     return cloneIssue(issue);
   },
 
   /**
-   * Fires a workflow action on an issue. Wraps the pure engine with side effects:
-   * mutates the issue's workflow, appends workflow_transition activity, persists.
+   * Completes a workflow step on an issue. Validates payload and gate,
+   * transitions the step, activates downstream steps, and derives status.
    */
-  async fireWorkflowAction(
+  async completeStep(
     id: string,
-    actionId: string,
+    stepId: string,
     actorId: string,
     payload: Record<string, unknown>,
   ): Promise<Issue> {
@@ -217,33 +197,29 @@ export const api = {
     const definition = getDefinition(issue.workflow.definitionId);
     if (!definition) throw new Error(`Unknown workflow definition: ${issue.workflow.definitionId}`);
 
-    const result = applyAction(definition, issue.workflow, issue, {
-      actionId,
+    const result = completeStep(definition, issue.workflow, issue, {
+      stepId,
       actorId,
       timestamp: new Date().toISOString(),
       payload,
     });
     if ('error' in result) throw new Error(result.error);
 
-    // Mutate the stored issue's workflow + status (engine derives status from phase tag)
     issue.workflow = result.instance;
     issue.status = result.issue.status;
 
-    // Append workflow_transition activity via the chokepoint
     appendActivity(issue, 'workflow_transition', {
       workflowDefinitionId: result.activityEntry.definitionId,
-      workflowPhaseId: result.activityEntry.phaseId,
-      workflowActionId: result.activityEntry.actionId,
+      workflowStepId: result.activityEntry.stepId,
+      workflowAction: result.activityEntry.action,
       workflowActorId: result.activityEntry.actorId,
-      workflowFromPhaseId: result.activityEntry.fromPhaseId,
-      workflowToPhaseId: result.activityEntry.toPhaseId,
     });
 
     return cloneIssue(issue);
   },
 
   /**
-   * Resets all issues to their initial mock state (including curated workflows).
+   * Resets all issues to their initial mock state.
    * Used by the dev panel.
    */
   resetAllWorkflows(): void {
@@ -265,7 +241,6 @@ export const api = {
   async getAlarmsByIds(ids: string[]): Promise<Alarm[]> {
     await delay();
     const set = new Set(ids);
-    // Preserve the order of `ids` for stable rendering.
     const byId = new Map(alarms.map((a) => [a.id, a]));
     return ids
       .filter((id) => set.has(id))

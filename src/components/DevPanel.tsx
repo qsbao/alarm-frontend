@@ -1,11 +1,11 @@
-import { Clock, Zap, HeartPulse, RotateCcw, FastForward, Undo2 } from 'lucide-react';
+import { Clock, Zap, HeartPulse, RotateCcw, FastForward } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAlarmStore } from '../stores/alarmStore';
 import { useMockClockStore } from '../stores/mockClockStore';
 import { generateRandomAlarm } from '../lib/mockAlarmGenerator';
 import { isActive } from '../lib/alarmFiltering';
-import { findNextAdvanceAction, findSendbackAction } from '../lib/devPanelHelpers';
+import { findNextAdvanceAction } from '../lib/devPanelHelpers';
 import { refreshEvents } from '../lib/refreshEvents';
 import { api } from '../api/client';
 import { getDefinition } from '../lib/workflows/registry';
@@ -19,7 +19,6 @@ function useCurrentIssueId(): string | undefined {
   return match?.[1];
 }
 
-/** Fetches the current issue and re-fetches on refresh events. */
 function useCurrentIssue(issueId: string | undefined): Issue | undefined {
   const [issue, setIssue] = useState<Issue | undefined>(undefined);
 
@@ -36,7 +35,6 @@ function useCurrentIssue(issueId: string | undefined): Issue | undefined {
     load();
   }, [load]);
 
-  // Re-fetch after dev panel mutations fire refreshEvents.
   useEffect(() => refreshEvents.subscribe(() => load()), [load]);
 
   return issue;
@@ -51,17 +49,12 @@ export function DevPanel() {
   const currentIssueId = useCurrentIssueId();
   const currentIssue = useCurrentIssue(currentIssueId);
 
-  // Derive button-enable state from the live issue's workflow
   const workflow = currentIssue?.workflow;
   const definition = workflow ? getDefinition(workflow.definitionId) : undefined;
 
   const canAdvance =
     !!currentIssue && !!workflow && !!definition &&
     !!findNextAdvanceAction(currentIssue, definition, workflow);
-
-  const canSendback =
-    !!currentIssue && !!workflow && !!definition &&
-    !!findSendbackAction(currentIssue, definition, workflow);
 
   function handleAdvanceTime() {
     advance(THIRTY_MINUTES);
@@ -93,17 +86,7 @@ export function DevPanel() {
     const info = findNextAdvanceAction(currentIssue, definition, currentIssue.workflow);
     if (!info) return;
 
-    await api.fireWorkflowAction(currentIssue.id, info.action.id, info.actorId, info.payload);
-    refreshEvents.emit();
-  }
-
-  async function handleTriggerSendback() {
-    if (!currentIssue?.workflow || !definition) return;
-
-    const info = findSendbackAction(currentIssue, definition, currentIssue.workflow);
-    if (!info) return;
-
-    await api.fireWorkflowAction(currentIssue.id, info.action.id, info.actorId, info.payload);
+    await api.completeStep(currentIssue.id, info.step.id, info.actorId, info.payload);
     refreshEvents.emit();
   }
 
@@ -141,7 +124,6 @@ export function DevPanel() {
         Recover oldest active alarm
       </button>
 
-      {/* Workflow controls */}
       <div className="border-t border-border-subtle pt-2 mt-0.5">
         <div className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted mb-1.5">Workflows</div>
 
@@ -160,15 +142,6 @@ export function DevPanel() {
         >
           <FastForward className="w-3.5 h-3.5 shrink-0" />
           Advance current workflow
-        </button>
-
-        <button
-          onClick={handleTriggerSendback}
-          disabled={!canSendback}
-          className="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-theme-secondary hover:text-theme-primary hover:bg-surface-raised transition-colors w-full disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          <Undo2 className="w-3.5 h-3.5 shrink-0" />
-          Trigger send-back
         </button>
       </div>
     </div>
