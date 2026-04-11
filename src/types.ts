@@ -113,6 +113,7 @@ export interface Issue {
   description: string;
   relatedAlarmIds: string[];
   activity: ActivityEntry[]; // ascending; render reversed
+  workflow?: import('./lib/workflows/types').WorkflowInstance;
 }
 
 export const ALL_ALARM_STATUSES: AlarmStatus[] = ['Open', 'Acked'];
