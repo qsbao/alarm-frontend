@@ -23,6 +23,9 @@ export function IssueDetailPage() {
     editWorkflowStep,
     addBlocker,
     removeBlocker,
+    fetchHighlightCandidates,
+    createHighlightedIssue,
+    linkExistingIssueAsHighlight,
   } = useIssue(id);
 
   if (loading && !issue) {
@@ -60,6 +63,9 @@ export function IssueDetailPage() {
               onEditStep={editWorkflowStep}
               onAddBlocker={addBlocker}
               onRemoveBlocker={removeBlocker}
+              onFetchHighlightCandidates={fetchHighlightCandidates}
+              onCreateHighlightedIssue={createHighlightedIssue}
+              onLinkExistingIssueAsHighlight={linkExistingIssueAsHighlight}
             />
 
             <div className="card p-5">

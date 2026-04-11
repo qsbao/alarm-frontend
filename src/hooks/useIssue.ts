@@ -4,6 +4,7 @@ import { refreshEvents } from '../lib/refreshEvents';
 import { useAlarmStore } from '../stores/alarmStore';
 import { useCurrentUserStore } from '../stores/currentUserStore';
 import type { Alarm, Issue } from '../types';
+import type { HighlightCandidate } from '../lib/relations/highlightCandidates';
 
 export interface BlockerInfo {
   issueId: string;
@@ -166,6 +167,35 @@ export function useIssue(id: string | undefined) {
     [id, applyIssue],
   );
 
+  const fetchHighlightCandidates = useCallback(async (): Promise<HighlightCandidate[]> => {
+    if (!id) return [];
+    return api.listHighlightCandidates(id);
+  }, [id]);
+
+  const createHighlightedIssue = useCallback(
+    async (targetOperationId: string) => {
+      if (!id) return;
+      const currentUser = useCurrentUserStore.getState().currentUser;
+      const { parent: updated } = await api.createHighlightedIssue(id, targetOperationId, currentUser.id);
+      await applyIssue(updated, false);
+      const blockerList = await api.getBlockers(id);
+      setBlockers(blockerList);
+    },
+    [id, applyIssue],
+  );
+
+  const linkExistingIssueAsHighlight = useCallback(
+    async (existingIssueId: string) => {
+      if (!id) return;
+      const currentUser = useCurrentUserStore.getState().currentUser;
+      const updated = await api.linkExistingIssueAsHighlight(id, existingIssueId, currentUser.id);
+      await applyIssue(updated, false);
+      const blockerList = await api.getBlockers(id);
+      setBlockers(blockerList);
+    },
+    [id, applyIssue],
+  );
+
   return {
     issue,
     alarms,
@@ -182,5 +212,8 @@ export function useIssue(id: string | undefined) {
     editWorkflowStep,
     addBlocker,
     removeBlocker,
+    fetchHighlightCandidates,
+    createHighlightedIssue,
+    linkExistingIssueAsHighlight,
   };
 }
