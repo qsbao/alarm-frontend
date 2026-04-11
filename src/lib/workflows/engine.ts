@@ -2,6 +2,7 @@ import type { Issue, IssueStatus } from '../../types';
 import type {
   AttachWorkflowResult,
   CompleteStepResult,
+  EditStepResult,
   PayloadSchema,
   ReviveStepResult,
   SkipStepResult,
@@ -386,6 +387,75 @@ export function reviveStep(
       definitionId: definition.id,
       stepId: params.stepId,
       action: 'revive',
+      actorId: params.actorId,
+      timestamp: params.timestamp,
+    },
+  };
+}
+
+export function editCompletedStep(
+  definition: WorkflowDefinition,
+  instance: WorkflowInstance,
+  issue: Issue,
+  params: {
+    stepId: string;
+    actorId: UserId;
+    timestamp: string;
+    payload: Record<string, unknown>;
+  },
+): EditStepResult {
+  const step = definition.steps.find((s) => s.id === params.stepId);
+  if (!step) {
+    return { error: `Step not found: ${params.stepId}` };
+  }
+
+  const stepState = instance.stepStates[params.stepId];
+  if (!stepState || stepState.status !== 'completed') {
+    return { error: `Step ${params.stepId} is not completed (current status: ${stepState?.status ?? 'unknown'})` };
+  }
+
+  // Gate check against the current actor (not the original completer)
+  if (step.gate) {
+    const gateResult = step.gate({
+      user: { id: params.actorId },
+      instance,
+      issue,
+    });
+    if (!gateResult) {
+      return { error: `User ${params.actorId} does not pass gate for step ${params.stepId}` };
+    }
+  }
+
+  // Payload validation
+  if (step.payloadSchema) {
+    const validationError = validatePayload(params.payload, step.payloadSchema);
+    if (validationError) {
+      return { error: validationError };
+    }
+  }
+
+  // Mutate payload in place — preserve completedAt/completedBy, no downstream cascade
+  const newStepStates: Record<string, StepState> = {};
+  for (const [id, state] of Object.entries(instance.stepStates)) {
+    newStepStates[id] = { ...state };
+  }
+  newStepStates[params.stepId] = {
+    ...newStepStates[params.stepId],
+    payload: params.payload,
+  };
+
+  const newInstance: WorkflowInstance = {
+    ...instance,
+    stepStates: newStepStates,
+  };
+
+  return {
+    instance: newInstance,
+    issue: { ...issue, workflow: newInstance },
+    activityEntry: {
+      definitionId: definition.id,
+      stepId: params.stepId,
+      action: 'edit',
       actorId: params.actorId,
       timestamp: params.timestamp,
     },
