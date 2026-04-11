@@ -38,28 +38,31 @@ SLEEP_BETWEEN_NO_WORK="${SLEEP_BETWEEN_NO_WORK:-300}"
 PER_ISSUE_TIMEOUT="${PER_ISSUE_TIMEOUT:-3600}"
 MODEL="${MODEL:-}"
 
-# Issue dependency graph from PRD #15. Keep in sync with the PRD if it changes.
+# Issue dependency graph from PRD #31. Keep in sync with the PRD if it changes.
 # (Function-based instead of `declare -A` so it works on macOS bash 3.2.)
 #
-# Diamond, not a linear chain — #19 and #21 can run in parallel after #18.
-#   #17 Slice 1: Workflow engine + SPC OOC definition (pure lib)
-#   #18 Slice 2: Mock data + schema migration            (needs 17)
-#   #19 Slice 3: WorkflowPanel — read-only               (needs 17, 18)
-#   #20 Slice 4: Action firing, forms, mirroring, status (needs 19)
-#   #21 Slice 5: Discovery surface (saved view + badge)  (needs 17, 18)
-#   #22 Slice 6: Dev panel workflow controls             (needs 20)
+# Fan-out after #32 — #33, #35, #36, #38 can run in parallel; #34 follows #33
+# and #37 follows #36.
+#   #32 Slice 1: Step-DAG engine + generic linear + panel rewrite (no blockers)
+#   #33 Slice 2: SPC OOC branching definition           (needs 32)
+#   #34 Slice 3: Skip + revive                          (needs 33)
+#   #35 Slice 4: Edit completed step                    (needs 32)
+#   #36 Slice 5: IssueRelation + blocker gate           (needs 32)
+#   #37 Slice 6: Highlight dialog + route data          (needs 36)
+#   #38 Slice 7: Discovery surface                      (needs 32)
 blockers_for() {
   case "$1" in
-    17) echo "" ;;
-    18) echo "17" ;;
-    19) echo "17 18" ;;
-    20) echo "19" ;;
-    21) echo "17 18" ;;
-    22) echo "20" ;;
+    32) echo "" ;;
+    33) echo "32" ;;
+    34) echo "33" ;;
+    35) echo "32" ;;
+    36) echo "32" ;;
+    37) echo "36" ;;
+    38) echo "32" ;;
     *)  echo "" ;;
   esac
 }
-ALL_ISSUES="17 18 19 21 20 22"
+ALL_ISSUES="32 33 34 35 36 37 38"
 
 # -------------------------------------------------------------------- helpers
 
@@ -124,8 +127,8 @@ You are working autonomously on GitHub issue #$n in the repository $REPO.
 Step 1. Read the issue:
   gh issue view $n --repo $REPO
 
-Step 2. Read the parent PRD (issue #15) for full architectural context:
-  gh issue view 15 --repo $REPO
+Step 2. Read the parent PRD (issue #31) for full architectural context:
+  gh issue view 31 --repo $REPO
 
 Step 3. Use the tdd skill (red-green-refactor). For each acceptance criterion:
 write a failing test first, watch it fail, write the minimum code to make it
