@@ -43,6 +43,7 @@ export const spcOocBranchingDefinition: WorkflowDefinition = {
       label: 'Meeting',
       order: 5,
       preSteps: ['l4_review', 'pi_comment'],
+      skippableIf: (issue) => issue.riskLevel === 'Low',
     },
     {
       id: 'resolved',
