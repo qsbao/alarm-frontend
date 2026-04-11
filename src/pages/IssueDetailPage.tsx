@@ -11,6 +11,7 @@ export function IssueDetailPage() {
   const {
     issue,
     alarms,
+    blockers,
     loading,
     assignOwner,
     addComment,
@@ -20,6 +21,8 @@ export function IssueDetailPage() {
     skipWorkflowStep,
     reviveWorkflowStep,
     editWorkflowStep,
+    addBlocker,
+    removeBlocker,
   } = useIssue(id);
 
   if (loading && !issue) {
@@ -50,10 +53,13 @@ export function IssueDetailPage() {
           <div className="lg:col-span-2 flex flex-col gap-5">
             <WorkflowPanel
               issue={issue}
+              blockers={blockers}
               onCompleteStep={completeWorkflowStep}
               onSkipStep={skipWorkflowStep}
               onReviveStep={reviveWorkflowStep}
               onEditStep={editWorkflowStep}
+              onAddBlocker={addBlocker}
+              onRemoveBlocker={removeBlocker}
             />
 
             <div className="card p-5">

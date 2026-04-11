@@ -1,6 +1,7 @@
 import {
   GitBranch,
   Link as LinkIcon,
+  Link2,
   MessageSquare,
   Plus,
   Unlink,
@@ -17,6 +18,8 @@ const ICON_MAP: Record<ActivityType, typeof Plus> = {
   alarm_linked: LinkIcon,
   alarm_unlinked: Unlink,
   workflow_transition: GitBranch,
+  blocker_added: Link2,
+  blocker_removed: Unlink,
 };
 
 function relativeTime(iso: string): string {
@@ -105,6 +108,22 @@ function describe(entry: ActivityEntry): React.ReactNode {
         </>
       );
     }
+    case 'blocker_added':
+      return (
+        <>
+          <span className="text-theme-primary font-medium">{entry.author}</span> added blocker
+          {' '}
+          <span className="font-mono text-theme-secondary">{entry.blockerIssueId}</span>
+        </>
+      );
+    case 'blocker_removed':
+      return (
+        <>
+          <span className="text-theme-primary font-medium">{entry.author}</span> removed blocker
+          {' '}
+          <span className="font-mono text-theme-secondary">{entry.blockerIssueId}</span>
+        </>
+      );
   }
 }
 

@@ -5,9 +5,16 @@ import { useAlarmStore } from '../stores/alarmStore';
 import { useCurrentUserStore } from '../stores/currentUserStore';
 import type { Alarm, Issue } from '../types';
 
+export interface BlockerInfo {
+  issueId: string;
+  title: string;
+  status: string;
+}
+
 export function useIssue(id: string | undefined) {
   const [issue, setIssue] = useState<Issue | undefined>(undefined);
   const [alarms, setAlarms] = useState<Alarm[]>([]);
+  const [blockers, setBlockers] = useState<BlockerInfo[]>([]);
   const [loading, setLoading] = useState(true);
 
   const reload = useCallback(async () => {
@@ -26,6 +33,12 @@ export function useIssue(id: string | undefined) {
         setAlarms(list);
       } else {
         setAlarms([]);
+      }
+      if (found) {
+        const blockerList = await api.getBlockers(id);
+        setBlockers(blockerList);
+      } else {
+        setBlockers([]);
       }
     } finally {
       setLoading(false);
@@ -129,9 +142,34 @@ export function useIssue(id: string | undefined) {
     [id, applyIssue],
   );
 
+  const addBlocker = useCallback(
+    async (blockerIssueId: string) => {
+      if (!id) return;
+      const currentUser = useCurrentUserStore.getState().currentUser;
+      const updated = await api.addBlocker(id, blockerIssueId, currentUser.id);
+      await applyIssue(updated, false);
+      const blockerList = await api.getBlockers(id);
+      setBlockers(blockerList);
+    },
+    [id, applyIssue],
+  );
+
+  const removeBlocker = useCallback(
+    async (blockerIssueId: string) => {
+      if (!id) return;
+      const currentUser = useCurrentUserStore.getState().currentUser;
+      const updated = await api.removeBlocker(id, blockerIssueId, currentUser.id);
+      await applyIssue(updated, false);
+      const blockerList = await api.getBlockers(id);
+      setBlockers(blockerList);
+    },
+    [id, applyIssue],
+  );
+
   return {
     issue,
     alarms,
+    blockers,
     loading,
     reload,
     assignOwner,
@@ -142,5 +180,7 @@ export function useIssue(id: string | undefined) {
     skipWorkflowStep,
     reviveWorkflowStep,
     editWorkflowStep,
+    addBlocker,
+    removeBlocker,
   };
 }
