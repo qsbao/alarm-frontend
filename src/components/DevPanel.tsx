@@ -1,11 +1,15 @@
 import { Clock, Zap, HeartPulse, RotateCcw, FastForward, Undo2 } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAlarmStore } from '../stores/alarmStore';
 import { useMockClockStore } from '../stores/mockClockStore';
 import { generateRandomAlarm } from '../lib/mockAlarmGenerator';
 import { isActive } from '../lib/alarmFiltering';
+import { findNextAdvanceAction, findSendbackAction } from '../lib/devPanelHelpers';
+import { refreshEvents } from '../lib/refreshEvents';
 import { api } from '../api/client';
 import { getDefinition } from '../lib/workflows/registry';
+import type { Issue } from '../types';
 
 const THIRTY_MINUTES = 30 * 60 * 1000;
 
@@ -15,6 +19,29 @@ function useCurrentIssueId(): string | undefined {
   return match?.[1];
 }
 
+/** Fetches the current issue and re-fetches on refresh events. */
+function useCurrentIssue(issueId: string | undefined): Issue | undefined {
+  const [issue, setIssue] = useState<Issue | undefined>(undefined);
+
+  const load = useCallback(async () => {
+    if (!issueId) {
+      setIssue(undefined);
+      return;
+    }
+    const found = await api.getIssue(issueId);
+    setIssue(found);
+  }, [issueId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  // Re-fetch after dev panel mutations fire refreshEvents.
+  useEffect(() => refreshEvents.subscribe(() => load()), [load]);
+
+  return issue;
+}
+
 export function DevPanel() {
   const advance = useMockClockStore((s) => s.advance);
   const now = useMockClockStore((s) => s.now);
@@ -22,6 +49,19 @@ export function DevPanel() {
   const addAlarm = useAlarmStore((s) => s.addAlarm);
   const recoverAlarm = useAlarmStore((s) => s.recoverAlarm);
   const currentIssueId = useCurrentIssueId();
+  const currentIssue = useCurrentIssue(currentIssueId);
+
+  // Derive button-enable state from the live issue's workflow
+  const workflow = currentIssue?.workflow;
+  const definition = workflow ? getDefinition(workflow.definitionId) : undefined;
+
+  const canAdvance =
+    !!currentIssue && !!workflow && !!definition &&
+    !!findNextAdvanceAction(currentIssue, definition, workflow);
+
+  const canSendback =
+    !!currentIssue && !!workflow && !!definition &&
+    !!findSendbackAction(currentIssue, definition, workflow);
 
   function handleAdvanceTime() {
     advance(THIRTY_MINUTES);
@@ -44,88 +84,27 @@ export function DevPanel() {
 
   function handleResetWorkflows() {
     api.resetAllWorkflows();
-    // Force reload to reflect reset
-    window.location.reload();
+    refreshEvents.emit();
   }
 
   async function handleAdvanceWorkflow() {
-    if (!currentIssueId) return;
-    const issue = await api.getIssue(currentIssueId);
-    if (!issue?.workflow || issue.workflow.completedAt) return;
+    if (!currentIssue?.workflow || !definition) return;
 
-    const def = getDefinition(issue.workflow.definitionId);
-    if (!def) return;
+    const info = findNextAdvanceAction(currentIssue, definition, currentIssue.workflow);
+    if (!info) return;
 
-    const currentPhase = def.phases.find((p) => p.id === issue.workflow!.currentPhaseId);
-    if (!currentPhase) return;
-
-    const completedIds = new Set(
-      (issue.workflow.completedActions[issue.workflow.currentPhaseId] ?? []).map((r) => r.actionId),
-    );
-
-    // Find the next available required action (skip optional/sendsBackTo)
-    const nextAction = currentPhase.actions.find(
-      (a) => !completedIds.has(a.id) && a.required && !a.sendsBackTo,
-    );
-    if (!nextAction) return;
-
-    // Find the actor who passes the gate
-    const actor = issue.workflow.actors.find((a) =>
-      nextAction.gate({ user: { id: a.userId }, instance: issue.workflow!, issue }),
-    );
-    if (!actor) return;
-
-    // Build synthetic payload
-    const payload: Record<string, unknown> = {};
-    for (const [key, schema] of Object.entries(nextAction.payloadSchema)) {
-      if (schema.required) {
-        if (schema.kind === 'enum' && schema.options?.length) {
-          payload[key] = schema.options[0];
-        } else {
-          payload[key] = `[Dev panel auto-fill for ${key}]`;
-        }
-      }
-    }
-
-    await api.fireWorkflowAction(currentIssueId, nextAction.id, actor.userId, payload);
-    window.location.reload();
+    await api.fireWorkflowAction(currentIssue.id, info.action.id, info.actorId, info.payload);
+    refreshEvents.emit();
   }
 
   async function handleTriggerSendback() {
-    if (!currentIssueId) return;
-    const issue = await api.getIssue(currentIssueId);
-    if (!issue?.workflow || issue.workflow.completedAt) return;
+    if (!currentIssue?.workflow || !definition) return;
 
-    const def = getDefinition(issue.workflow.definitionId);
-    if (!def) return;
+    const info = findSendbackAction(currentIssue, definition, currentIssue.workflow);
+    if (!info) return;
 
-    const currentPhase = def.phases.find((p) => p.id === issue.workflow!.currentPhaseId);
-    if (!currentPhase) return;
-
-    const completedIds = new Set(
-      (issue.workflow.completedActions[issue.workflow.currentPhaseId] ?? []).map((r) => r.actionId),
-    );
-
-    // Find a sendsBackTo action
-    const sendbackAction = currentPhase.actions.find(
-      (a) => !completedIds.has(a.id) && a.sendsBackTo,
-    );
-    if (!sendbackAction) return;
-
-    const actor = issue.workflow.actors.find((a) =>
-      sendbackAction.gate({ user: { id: a.userId }, instance: issue.workflow!, issue }),
-    );
-    if (!actor) return;
-
-    const payload: Record<string, unknown> = {};
-    for (const [key, schema] of Object.entries(sendbackAction.payloadSchema)) {
-      if (schema.required) {
-        payload[key] = `[Dev panel send-back reason]`;
-      }
-    }
-
-    await api.fireWorkflowAction(currentIssueId, sendbackAction.id, actor.userId, payload);
-    window.location.reload();
+    await api.fireWorkflowAction(currentIssue.id, info.action.id, info.actorId, info.payload);
+    refreshEvents.emit();
   }
 
   return (
@@ -176,7 +155,7 @@ export function DevPanel() {
 
         <button
           onClick={handleAdvanceWorkflow}
-          disabled={!currentIssueId}
+          disabled={!canAdvance}
           className="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-theme-secondary hover:text-theme-primary hover:bg-surface-raised transition-colors w-full disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <FastForward className="w-3.5 h-3.5 shrink-0" />
@@ -185,7 +164,7 @@ export function DevPanel() {
 
         <button
           onClick={handleTriggerSendback}
-          disabled={!currentIssueId}
+          disabled={!canSendback}
           className="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-theme-secondary hover:text-theme-primary hover:bg-surface-raised transition-colors w-full disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <Undo2 className="w-3.5 h-3.5 shrink-0" />

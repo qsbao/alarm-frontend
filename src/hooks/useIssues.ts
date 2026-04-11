@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../api/client';
+import { refreshEvents } from '../lib/refreshEvents';
 import { getUserById } from '../mocks/users';
 import { useIssueStore } from '../stores/issueStore';
 import { useCurrentUserStore } from '../stores/currentUserStore';
@@ -42,6 +43,9 @@ export function useIssues() {
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  // Re-fetch when external mutations (e.g. dev panel) signal a change.
+  useEffect(() => refreshEvents.subscribe(() => refresh()), [refresh]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
