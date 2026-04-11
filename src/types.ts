@@ -81,7 +81,9 @@ export type ActivityType =
   | 'comment'
   | 'alarm_linked'
   | 'alarm_unlinked'
-  | 'workflow_transition';
+  | 'workflow_transition'
+  | 'blocker_added'
+  | 'blocker_removed';
 
 export interface ActivityEntry {
   id: string;
@@ -96,6 +98,8 @@ export interface ActivityEntry {
   workflowStepId?: string;
   workflowAction?: string; // 'attach' | 'complete'
   workflowActorId?: string;
+  // blocker fields
+  blockerIssueId?: string;
 }
 
 export interface Issue {

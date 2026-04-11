@@ -1,6 +1,7 @@
-import { Check, Circle, Clock, AlertCircle, SkipForward } from 'lucide-react';
+import { Check, Circle, Clock, AlertCircle, SkipForward, Link2, Trash2, Plus } from 'lucide-react';
 import { useState } from 'react';
 import type { Issue } from '../../types';
+import type { BlockerInfo } from '../../hooks/useIssue';
 import type { PayloadFieldSchema, Step, StepStatus } from '../../lib/workflows/types';
 import { getDefinition } from '../../lib/workflows/registry';
 import { getStepDisplayList, canUserActOnStep, canSkipStep, canReviveStep, canEditStep } from '../../lib/workflows/panelHelpers';
@@ -8,13 +9,25 @@ import { useCurrentUserStore } from '../../stores/currentUserStore';
 
 interface WorkflowPanelProps {
   issue: Issue;
+  blockers?: BlockerInfo[];
   onCompleteStep?: (stepId: string, actorId: string, payload: Record<string, unknown>) => Promise<void>;
   onSkipStep?: (stepId: string, actorId: string) => Promise<void>;
   onReviveStep?: (stepId: string, actorId: string) => Promise<void>;
   onEditStep?: (stepId: string, actorId: string, payload: Record<string, unknown>) => Promise<void>;
+  onAddBlocker?: (blockerIssueId: string) => Promise<void>;
+  onRemoveBlocker?: (blockerIssueId: string) => Promise<void>;
 }
 
-export function WorkflowPanel({ issue, onCompleteStep, onSkipStep, onReviveStep, onEditStep }: WorkflowPanelProps) {
+export function WorkflowPanel({
+  issue,
+  blockers = [],
+  onCompleteStep,
+  onSkipStep,
+  onReviveStep,
+  onEditStep,
+  onAddBlocker,
+  onRemoveBlocker,
+}: WorkflowPanelProps) {
   const workflow = issue.workflow;
   if (!workflow) return null;
 
@@ -23,6 +36,7 @@ export function WorkflowPanel({ issue, onCompleteStep, onSkipStep, onReviveStep,
 
   const stepList = getStepDisplayList(definition, workflow);
   const isTerminal = !!workflow.completedAt;
+  const resolvedCompleted = workflow.stepStates['resolved']?.status === 'completed';
 
   return (
     <div id="workflow-panel" className="card p-5">
@@ -54,6 +68,13 @@ export function WorkflowPanel({ issue, onCompleteStep, onSkipStep, onReviveStep,
           />
         ))}
       </ul>
+
+      <RelatedIssuesSection
+        blockers={blockers}
+        resolvedCompleted={resolvedCompleted}
+        onAddBlocker={onAddBlocker}
+        onRemoveBlocker={onRemoveBlocker}
+      />
     </div>
   );
 }
@@ -365,5 +386,155 @@ function SchemaField({
         />
       )}
     </label>
+  );
+}
+
+const BLOCKER_STATUS_STYLES: Record<string, string> = {
+  New: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+  Investigating: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+  Resolved: 'bg-green-500/10 text-green-600 dark:text-green-400',
+  Closed: 'bg-surface-overlay/60 text-theme-muted',
+};
+
+function RelatedIssuesSection({
+  blockers,
+  resolvedCompleted,
+  onAddBlocker,
+  onRemoveBlocker,
+}: {
+  blockers: BlockerInfo[];
+  resolvedCompleted: boolean;
+  onAddBlocker?: (blockerIssueId: string) => Promise<void>;
+  onRemoveBlocker?: (blockerIssueId: string) => Promise<void>;
+}) {
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newBlockerId, setNewBlockerId] = useState('');
+  const [addError, setAddError] = useState<string | null>(null);
+  const [addPending, setAddPending] = useState(false);
+
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = newBlockerId.trim();
+    if (!trimmed) return;
+    setAddError(null);
+    setAddPending(true);
+    try {
+      await onAddBlocker?.(trimmed);
+      setNewBlockerId('');
+      setShowAddForm(false);
+    } catch (err) {
+      setAddError(err instanceof Error ? err.message : 'Failed to add blocker');
+    } finally {
+      setAddPending(false);
+    }
+  };
+
+  return (
+    <div className="mt-4 pt-4 border-t border-border-subtle/30">
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-theme-muted flex items-center gap-1.5">
+          <Link2 size={12} />
+          Related Issues
+        </h3>
+        {!resolvedCompleted && !showAddForm && (
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="text-[10px] font-medium px-2 py-0.5 rounded bg-accent-subtle text-theme-accent hover:bg-accent/20 transition-colors flex items-center gap-1"
+          >
+            <Plus size={10} />
+            Add blocker
+          </button>
+        )}
+      </div>
+
+      {blockers.length === 0 && !showAddForm && (
+        <p className="text-[11px] text-theme-muted italic">No blocking issues</p>
+      )}
+
+      {blockers.length > 0 && (
+        <ul className="flex flex-col gap-1">
+          {blockers.map((b) => (
+            <BlockerRow
+              key={b.issueId}
+              blocker={b}
+              onRemove={onRemoveBlocker}
+            />
+          ))}
+        </ul>
+      )}
+
+      {showAddForm && (
+        <form onSubmit={handleAdd} className="mt-2 p-3 rounded bg-surface-overlay/40 border border-border-subtle/30">
+          <label className="flex flex-col gap-1 mb-2">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted">
+              Blocking Issue ID
+            </span>
+            <input
+              type="text"
+              value={newBlockerId}
+              onChange={(e) => setNewBlockerId(e.target.value)}
+              placeholder="e.g. iss-005"
+              className="input-base text-xs"
+              autoFocus
+            />
+          </label>
+          {addError && (
+            <div className="flex items-center gap-1.5 mb-2 text-[11px] text-red-500">
+              <AlertCircle size={12} />
+              {addError}
+            </div>
+          )}
+          <div className="flex gap-2">
+            <button type="submit" disabled={addPending} className="btn-primary btn-sm text-[11px]">
+              {addPending ? 'Adding...' : 'Add'}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setShowAddForm(false); setAddError(null); }}
+              className="btn-secondary btn-sm text-[11px]"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
+    </div>
+  );
+}
+
+function BlockerRow({
+  blocker,
+  onRemove,
+}: {
+  blocker: BlockerInfo;
+  onRemove?: (blockerIssueId: string) => Promise<void>;
+}) {
+  const [removePending, setRemovePending] = useState(false);
+
+  return (
+    <li className="flex items-center gap-2 py-1.5 px-2 rounded-md bg-surface-overlay/30">
+      <Link2 size={12} className="shrink-0 text-theme-muted" />
+      <span className="text-xs font-medium text-theme-primary flex-1 truncate">
+        {blocker.issueId} — {blocker.title}
+      </span>
+      <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+        BLOCKER_STATUS_STYLES[blocker.status] ?? 'bg-surface-overlay/40 text-theme-muted/60'
+      }`}>
+        {blocker.status}
+      </span>
+      {onRemove && (
+        <button
+          disabled={removePending}
+          onClick={async () => {
+            setRemovePending(true);
+            try { await onRemove(blocker.issueId); } finally { setRemovePending(false); }
+          }}
+          className="text-red-400 hover:text-red-500 transition-colors p-0.5"
+          title="Remove blocker"
+        >
+          <Trash2 size={12} />
+        </button>
+      )}
+    </li>
   );
 }
