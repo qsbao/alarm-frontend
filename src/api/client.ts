@@ -94,11 +94,11 @@ export const api = {
     };
   },
 
-  async assignIssueOwner(id: string, owner: string): Promise<Issue> {
+  async assignIssueOwner(id: string, ownerId: string): Promise<Issue> {
     await delay();
     const issue = findIssue(id);
-    issue.owner = owner;
-    appendActivity(issue, 'assignment', { assignedTo: owner });
+    issue.ownerId = ownerId;
+    appendActivity(issue, 'assignment', { assignedTo: ownerId });
     return {
       ...issue,
       relatedAlarmIds: [...issue.relatedAlarmIds],

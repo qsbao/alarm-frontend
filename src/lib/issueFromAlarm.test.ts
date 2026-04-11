@@ -25,7 +25,7 @@ function makeAlarm(overrides: Partial<Alarm> = {}): Alarm {
   };
 }
 
-const currentUser: User = { name: 'L. Rossi', department: 'Litho' };
+const currentUser: User = { id: 'user-rossi', name: 'L. Rossi', department: 'Litho' };
 
 describe('buildIssueFromAlarm', () => {
   it('maps all documented fields from alarm to issue draft', () => {
@@ -40,7 +40,7 @@ describe('buildIssueFromAlarm', () => {
     expect(draft.issueTime).toBe(alarm.time);
     expect(draft.operation).toBe(alarm.operation);
     expect(draft.product).toBe(alarm.product);
-    expect(draft.owner).toBe(alarm.owner);
+    expect(draft.ownerId).toBe('user-tanaka');
     expect(draft.department).toBe(alarm.department);
     expect(draft.relatedAlarmIds).toEqual([alarm.id]);
     expect(draft.date).toBe(now);

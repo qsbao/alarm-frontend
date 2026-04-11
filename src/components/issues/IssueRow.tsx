@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import type { Issue } from '../../types';
+import { getUserById } from '../../mocks/users';
 import { RiskBadge } from './RiskBadge';
 import { StatusBadge } from './StatusBadge';
 
@@ -46,7 +47,7 @@ export function IssueRow({ issue }: { issue: Issue }) {
         {issue.product}
       </td>
       <td className="px-3 py-2 text-sm text-theme-secondary whitespace-nowrap">
-        {issue.owner}
+        {getUserById(issue.ownerId)?.name ?? issue.ownerId}
       </td>
       <td className="px-3 py-2 text-sm text-theme-secondary whitespace-nowrap">
         {issue.department}

@@ -32,7 +32,7 @@ const baseIssue: Issue = {
   issueTime: '2025-06-01T11:00:00.000Z',
   operation: 'Wafer transfer',
   product: 'A7-Litho',
-  owner: 'H. Tanaka',
+  ownerId: 'user-tanaka',
   department: 'Litho',
   description: 'Test',
   relatedAlarmIds: ['alm-099'],

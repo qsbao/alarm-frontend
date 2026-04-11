@@ -106,7 +106,7 @@ export interface Issue {
   operation: string; // e.g. "Wafer transfer"
   // dimension columns
   product: string; // e.g. "A7-Litho"
-  owner: string; // e.g. "H. Tanaka"
+  ownerId: string; // UserId — e.g. "user-tanaka"
   department: string; // e.g. "Litho"
   // detail-only fields
   description: string;

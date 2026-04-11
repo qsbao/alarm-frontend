@@ -15,7 +15,7 @@ function makeIssue(overrides: Partial<Issue> = {}): Issue {
     issueTime: '2025-01-15T09:55:00Z',
     operation: 'Lithography',
     product: 'A7-Litho',
-    owner: 'H. Tanaka',
+    ownerId: 'user-tanaka',
     department: 'Litho',
     description: 'SPC chart out of control',
     relatedAlarmIds: ['alm-001'],
@@ -48,7 +48,7 @@ describe('attachWorkflow', () => {
     const mocks = {
       alarms: [{ id: 'alm-001', chartOwnerId: 'user-tanaka' }],
       piByDepartment: { Litho: 'user-pi' },
-      managerChain: { 'H. Tanaka': { l5: 'user-l5', l4: 'user-l4' } },
+      managerChain: { 'user-tanaka': { l5: 'user-l5', l4: 'user-l4' } },
     };
 
     const result = attachWorkflow(spcOocDefinition, issue, mocks, ts);

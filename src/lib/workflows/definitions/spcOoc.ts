@@ -143,7 +143,7 @@ export const spcOocDefinition: WorkflowDefinition = {
       resolve: (issue, mocks) => {
         const chain = mocks.managerChain as Record<string, { l5: string; l4: string }> | undefined;
         if (!chain) return undefined;
-        return chain[issue.owner]?.l5;
+        return chain[issue.ownerId]?.l5;
       },
     },
     {
@@ -151,7 +151,7 @@ export const spcOocDefinition: WorkflowDefinition = {
       resolve: (issue, mocks) => {
         const chain = mocks.managerChain as Record<string, { l5: string; l4: string }> | undefined;
         if (!chain) return undefined;
-        return chain[issue.owner]?.l4;
+        return chain[issue.ownerId]?.l4;
       },
     },
   ],
