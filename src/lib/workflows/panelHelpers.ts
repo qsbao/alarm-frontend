@@ -79,3 +79,18 @@ export function canReviveStep(step: Step, instance: WorkflowInstance): boolean {
   if (resolvedState && resolvedState.status === 'completed') return false;
   return true;
 }
+
+/**
+ * Checks if a user can edit a completed step (completed + gate passes for current user).
+ */
+export function canEditStep(
+  step: Step,
+  instance: WorkflowInstance,
+  issue: Issue,
+  userId: string,
+): boolean {
+  const state = instance.stepStates[step.id];
+  if (!state || state.status !== 'completed') return false;
+  if (!step.gate) return true;
+  return step.gate({ user: { id: userId }, instance, issue });
+}

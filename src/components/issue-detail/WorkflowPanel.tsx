@@ -3,7 +3,7 @@ import { useState } from 'react';
 import type { Issue } from '../../types';
 import type { PayloadFieldSchema, Step, StepStatus } from '../../lib/workflows/types';
 import { getDefinition } from '../../lib/workflows/registry';
-import { getStepDisplayList, canUserActOnStep, canSkipStep, canReviveStep } from '../../lib/workflows/panelHelpers';
+import { getStepDisplayList, canUserActOnStep, canSkipStep, canReviveStep, canEditStep } from '../../lib/workflows/panelHelpers';
 import { useCurrentUserStore } from '../../stores/currentUserStore';
 
 interface WorkflowPanelProps {
@@ -11,9 +11,10 @@ interface WorkflowPanelProps {
   onCompleteStep?: (stepId: string, actorId: string, payload: Record<string, unknown>) => Promise<void>;
   onSkipStep?: (stepId: string, actorId: string) => Promise<void>;
   onReviveStep?: (stepId: string, actorId: string) => Promise<void>;
+  onEditStep?: (stepId: string, actorId: string, payload: Record<string, unknown>) => Promise<void>;
 }
 
-export function WorkflowPanel({ issue, onCompleteStep, onSkipStep, onReviveStep }: WorkflowPanelProps) {
+export function WorkflowPanel({ issue, onCompleteStep, onSkipStep, onReviveStep, onEditStep }: WorkflowPanelProps) {
   const workflow = issue.workflow;
   if (!workflow) return null;
 
@@ -49,6 +50,7 @@ export function WorkflowPanel({ issue, onCompleteStep, onSkipStep, onReviveStep 
             onCompleteStep={onCompleteStep}
             onSkipStep={onSkipStep}
             onReviveStep={onReviveStep}
+            onEditStep={onEditStep}
           />
         ))}
       </ul>
@@ -71,6 +73,7 @@ function StepRow({
   onCompleteStep,
   onSkipStep,
   onReviveStep,
+  onEditStep,
 }: {
   step: Step;
   status: StepStatus;
@@ -79,8 +82,10 @@ function StepRow({
   onCompleteStep?: (stepId: string, actorId: string, payload: Record<string, unknown>) => Promise<void>;
   onSkipStep?: (stepId: string, actorId: string) => Promise<void>;
   onReviveStep?: (stepId: string, actorId: string) => Promise<void>;
+  onEditStep?: (stepId: string, actorId: string, payload: Record<string, unknown>) => Promise<void>;
 }) {
   const [showForm, setShowForm] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
   const [skipPending, setSkipPending] = useState(false);
   const [revivePending, setRevivePending] = useState(false);
   const currentUser = useCurrentUserStore((s) => s.currentUser);
@@ -89,6 +94,7 @@ function StepRow({
   const userCanAct = status === 'ongoing' && canUserActOnStep(step, workflow, issue, currentUser.id);
   const userCanSkip = status === 'ongoing' && canSkipStep(step, workflow, issue);
   const userCanRevive = status === 'skipped' && canReviveStep(step, workflow);
+  const userCanEdit = status === 'completed' && canEditStep(step, workflow, issue, currentUser.id);
   const Icon = STATUS_ICON[status];
 
   return (
@@ -144,6 +150,15 @@ function StepRow({
           </button>
         )}
 
+        {status === 'completed' && userCanEdit && step.payloadSchema && !showEditForm && (
+          <button
+            onClick={() => setShowEditForm(true)}
+            className="text-[10px] font-medium px-2 py-0.5 rounded bg-surface-overlay/60 text-theme-muted hover:bg-surface-overlay transition-colors"
+          >
+            Edit
+          </button>
+        )}
+
         {status === 'pending' && waitingOnLabels.length > 0 && (
           <span className="text-[10px] text-theme-muted italic">
             Waiting on: {waitingOnLabels.join(', ')}
@@ -182,6 +197,18 @@ function StepRow({
             setShowForm(false);
           }}
           onCancel={() => setShowForm(false)}
+        />
+      )}
+      {showEditForm && step.payloadSchema && Object.keys(step.payloadSchema).length > 0 && (
+        <InlineStepForm
+          step={step}
+          currentUserId={currentUser.id}
+          initialValues={workflow.stepStates[step.id]?.payload}
+          onSubmit={async (payload) => {
+            await onEditStep?.(step.id, currentUser.id, payload);
+            setShowEditForm(false);
+          }}
+          onCancel={() => setShowEditForm(false)}
         />
       )}
     </li>
@@ -224,11 +251,13 @@ function ConfirmAction({
 function InlineStepForm({
   step,
   currentUserId,
+  initialValues,
   onSubmit,
   onCancel,
 }: {
   step: Step;
   currentUserId: string;
+  initialValues?: Record<string, unknown>;
   onSubmit: (payload: Record<string, unknown>) => Promise<void>;
   onCancel: () => void;
 }) {
@@ -236,7 +265,7 @@ function InlineStepForm({
   const [values, setValues] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {};
     for (const key of Object.keys(schema)) {
-      init[key] = '';
+      init[key] = initialValues?.[key] != null ? String(initialValues[key]) : '';
     }
     return init;
   });

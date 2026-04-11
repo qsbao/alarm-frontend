@@ -120,6 +120,15 @@ export function useIssue(id: string | undefined) {
     [id, applyIssue],
   );
 
+  const editWorkflowStep = useCallback(
+    async (stepId: string, actorId: string, payload: Record<string, unknown>) => {
+      if (!id) return;
+      const updated = await api.editCompletedStep(id, stepId, actorId, payload);
+      await applyIssue(updated, false);
+    },
+    [id, applyIssue],
+  );
+
   return {
     issue,
     alarms,
@@ -132,5 +141,6 @@ export function useIssue(id: string | undefined) {
     completeWorkflowStep,
     skipWorkflowStep,
     reviveWorkflowStep,
+    editWorkflowStep,
   };
 }

@@ -19,6 +19,7 @@ export function IssueDetailPage() {
     completeWorkflowStep,
     skipWorkflowStep,
     reviveWorkflowStep,
+    editWorkflowStep,
   } = useIssue(id);
 
   if (loading && !issue) {
@@ -52,6 +53,7 @@ export function IssueDetailPage() {
               onCompleteStep={completeWorkflowStep}
               onSkipStep={skipWorkflowStep}
               onReviveStep={reviveWorkflowStep}
+              onEditStep={editWorkflowStep}
             />
 
             <div className="card p-5">
