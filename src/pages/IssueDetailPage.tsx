@@ -3,6 +3,7 @@ import { ActivityTimeline } from '../components/issue-detail/ActivityTimeline';
 import { AlarmList } from '../components/issue-detail/AlarmList';
 import { CommentBox } from '../components/issue-detail/CommentBox';
 import { IssueHeader } from '../components/issue-detail/IssueHeader';
+import { WorkflowPanel } from '../components/issue-detail/WorkflowPanel';
 import { WorkflowStepper } from '../components/issue-detail/WorkflowStepper';
 import { useIssue } from '../hooks/useIssue';
 
@@ -46,6 +47,8 @@ export function IssueDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           <div className="lg:col-span-2 flex flex-col gap-5">
             <WorkflowStepper status={issue.status} onChange={changeStatus} />
+
+            <WorkflowPanel issue={issue} />
 
             <div className="card p-5">
               <h2 className="text-xs font-semibold uppercase tracking-wide text-theme-muted mb-3">
