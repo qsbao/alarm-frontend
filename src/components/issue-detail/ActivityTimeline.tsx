@@ -79,18 +79,8 @@ function describe(entry: ActivityEntry): React.ReactNode {
         : entry.author;
       const def = entry.workflowDefinitionId ? getDefinition(entry.workflowDefinitionId) : undefined;
       const defName = def?.name ?? entry.workflowDefinitionId ?? 'workflow';
-      const actionId = entry.workflowActionId ?? '';
-      const isAttach = actionId === '__attach__';
-      const fromPhase = def?.phases.find((p) => p.id === entry.workflowFromPhaseId);
-      const toPhase = def?.phases.find((p) => p.id === entry.workflowToPhaseId);
-      // Find action label
-      let actionLabel = actionId;
-      if (def) {
-        for (const phase of def.phases) {
-          const act = phase.actions.find((a) => a.id === actionId);
-          if (act) { actionLabel = act.label; break; }
-        }
-      }
+      const action = entry.workflowAction ?? '';
+      const isAttach = action === 'attach';
 
       if (isAttach) {
         return (
@@ -102,20 +92,16 @@ function describe(entry: ActivityEntry): React.ReactNode {
         );
       }
 
-      const moved = entry.workflowFromPhaseId !== entry.workflowToPhaseId;
+      // Find step label
+      const stepId = entry.workflowStepId ?? '';
+      const step = def?.steps.find((s) => s.id === stepId);
+      const stepLabel = step?.label ?? stepId;
+
       return (
         <>
           <span className="text-theme-primary font-medium">{actorName}</span>
-          {' '}
-          <span className="text-theme-secondary">{actionLabel}</span>
-          {moved && fromPhase && toPhase && (
-            <>
-              {' '}
-              <span className="text-theme-muted">{fromPhase.label}</span>
-              {' \u2192 '}
-              <span className="text-theme-accent font-medium">{toPhase.label}</span>
-            </>
-          )}
+          {' completed '}
+          <span className="text-theme-accent font-medium">{stepLabel}</span>
         </>
       );
     }

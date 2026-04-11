@@ -119,6 +119,6 @@ function makeIssue(i: number): Issue {
 import { applyCuratedWorkflows } from './curatedWorkflows';
 
 const _issues: Issue[] = Array.from({ length: 40 }, (_, i) => makeIssue(i));
-applyCuratedWorkflows(_issues, MOCK_ALARMS);
+applyCuratedWorkflows(_issues);
 
 export const MOCK_ISSUES: Issue[] = _issues;

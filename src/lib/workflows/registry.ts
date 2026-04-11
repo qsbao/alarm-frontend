@@ -1,11 +1,9 @@
 import type { WorkflowDefinition } from './types';
-import { spcOocDefinition } from './definitions/spcOoc';
-import { genericIssueDefinition } from './definitions/genericIssue';
+import { genericLinearDefinition } from './definitions/genericLinear';
 
 const definitions = new Map<string, WorkflowDefinition>();
 
-definitions.set(spcOocDefinition.id, spcOocDefinition);
-definitions.set(genericIssueDefinition.id, genericIssueDefinition);
+definitions.set(genericLinearDefinition.id, genericLinearDefinition);
 
 export function getDefinition(id: string): WorkflowDefinition | undefined {
   return definitions.get(id);

@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { buildSyntheticPayload, findNextAdvanceAction, findSendbackAction } from './devPanelHelpers';
-import { spcOocDefinition } from './workflows/definitions/spcOoc';
+import { buildSyntheticPayload, findNextAdvanceAction } from './devPanelHelpers';
+import { genericLinearDefinition } from './workflows/definitions/genericLinear';
 import type { Issue } from '../types';
 import type { WorkflowInstance } from './workflows/types';
 
 function makeIssue(overrides: Partial<Issue> = {}): Issue {
   return {
     id: 'iss-001',
-    title: 'SPC OOC on LITHO-07',
+    title: 'Test issue',
     date: '2025-01-15T10:00:00Z',
     alarmType: 'TempSpike',
     riskLevel: 'High',
@@ -17,8 +17,8 @@ function makeIssue(overrides: Partial<Issue> = {}): Issue {
     product: 'A7-Litho',
     ownerId: 'user-tanaka',
     department: 'Litho',
-    description: 'SPC OOC',
-    relatedAlarmIds: ['alm-001'],
+    description: 'Test',
+    relatedAlarmIds: [],
     activity: [],
     ...overrides,
   };
@@ -26,16 +26,13 @@ function makeIssue(overrides: Partial<Issue> = {}): Issue {
 
 function makeInstance(overrides: Partial<WorkflowInstance> = {}): WorkflowInstance {
   return {
-    definitionId: 'spc_ooc_v1',
-    currentPhaseId: 'p1_owner_input',
-    actors: [
-      { userId: 'user-tanaka', role: 'chart_owner' },
-      { userId: 'user-pi', role: 'pi_engineer' },
-      { userId: 'user-l5', role: 'owner_l5_manager' },
-      { userId: 'user-l4', role: 'owner_l4_manager' },
-    ],
-    completedActions: {},
-    actionHistory: [],
+    definitionId: 'generic_linear_v1',
+    stepStates: {
+      chart_owner_comment: { status: 'ongoing' },
+      resolved: { status: 'pending' },
+      closed: { status: 'pending' },
+    },
+    actors: [],
     ...overrides,
   };
 }
@@ -87,125 +84,37 @@ describe('buildSyntheticPayload', () => {
 });
 
 describe('findNextAdvanceAction', () => {
-  it('returns the chart_owner_comment action at P1', () => {
+  it('returns chart_owner_comment step when it is ongoing', () => {
     const issue = makeIssue();
     const instance = makeInstance();
-    const result = findNextAdvanceAction(issue, spcOocDefinition, instance);
+    const result = findNextAdvanceAction(issue, genericLinearDefinition, instance);
 
     expect(result).toBeDefined();
-    expect(result!.action.id).toBe('chart_owner_comment');
+    expect(result!.step.id).toBe('chart_owner_comment');
+    // chart_owner_comment has no gate, uses issue.ownerId
     expect(result!.actorId).toBe('user-tanaka');
-    expect(result!.payload.ooc_reason_type).toBe('Tool');
-    expect(result!.payload.comment).toBe('[Dev panel auto-fill for comment]');
   });
 
-  it('returns pi_comment at P2 when both required actions are pending', () => {
-    const issue = makeIssue();
-    const instance = makeInstance({ currentPhaseId: 'p2_pi_l5_review' });
-    const result = findNextAdvanceAction(issue, spcOocDefinition, instance);
-
-    expect(result).toBeDefined();
-    expect(result!.action.id).toBe('pi_comment');
-    expect(result!.actorId).toBe('user-pi');
-  });
-
-  it('returns l5_approve at P2 when pi_comment is already done', () => {
+  it('returns resolved step when it is ongoing', () => {
     const issue = makeIssue();
     const instance = makeInstance({
-      currentPhaseId: 'p2_pi_l5_review',
-      completedActions: {
-        p2_pi_l5_review: [
-          {
-            id: 'r1',
-            actionId: 'pi_comment',
-            phaseId: 'p2_pi_l5_review',
-            actorId: 'user-pi',
-            timestamp: '2025-01-15T12:00:00Z',
-            payload: { comment: 'test' },
-          },
-        ],
+      stepStates: {
+        chart_owner_comment: { status: 'completed', completedAt: 'ts', completedBy: 'u' },
+        resolved: { status: 'ongoing' },
+        closed: { status: 'pending' },
       },
     });
-    const result = findNextAdvanceAction(issue, spcOocDefinition, instance);
+    const result = findNextAdvanceAction(issue, genericLinearDefinition, instance);
 
     expect(result).toBeDefined();
-    expect(result!.action.id).toBe('l5_approve');
-    expect(result!.actorId).toBe('user-l5');
-  });
-
-  it('returns l4_approve at P3', () => {
-    const issue = makeIssue();
-    const instance = makeInstance({ currentPhaseId: 'p3_l4_approval' });
-    const result = findNextAdvanceAction(issue, spcOocDefinition, instance);
-
-    expect(result).toBeDefined();
-    expect(result!.action.id).toBe('l4_approve');
-    expect(result!.actorId).toBe('user-l4');
+    expect(result!.step.id).toBe('resolved');
+    expect(result!.actorId).toBe('user-tanaka');
   });
 
   it('returns undefined for a completed workflow', () => {
     const issue = makeIssue();
     const instance = makeInstance({ completedAt: '2025-01-15T12:00:00Z' });
-    const result = findNextAdvanceAction(issue, spcOocDefinition, instance);
-
-    expect(result).toBeUndefined();
-  });
-
-  it('returns undefined when all required actions in the current phase are done', () => {
-    const issue = makeIssue();
-    const instance = makeInstance({
-      currentPhaseId: 'p2_pi_l5_review',
-      completedActions: {
-        p2_pi_l5_review: [
-          { id: 'r1', actionId: 'pi_comment', phaseId: 'p2_pi_l5_review', actorId: 'user-pi', timestamp: '2025-01-15T12:00:00Z', payload: {} },
-          { id: 'r2', actionId: 'l5_approve', phaseId: 'p2_pi_l5_review', actorId: 'user-l5', timestamp: '2025-01-15T12:00:00Z', payload: {} },
-        ],
-      },
-    });
-    const result = findNextAdvanceAction(issue, spcOocDefinition, instance);
-    // All required actions in P2 are done; the engine would have advanced the phase,
-    // but in this test the phase wasn't advanced — still, no required action is left.
-    expect(result).toBeUndefined();
-  });
-});
-
-describe('findSendbackAction', () => {
-  it('returns undefined at P1 (no sendsBackTo actions in P1)', () => {
-    const issue = makeIssue();
-    const instance = makeInstance();
-    const result = findSendbackAction(issue, spcOocDefinition, instance);
-
-    expect(result).toBeUndefined();
-  });
-
-  it('returns l5_request_info at P2', () => {
-    const issue = makeIssue();
-    const instance = makeInstance({ currentPhaseId: 'p2_pi_l5_review' });
-    const result = findSendbackAction(issue, spcOocDefinition, instance);
-
-    expect(result).toBeDefined();
-    expect(result!.action.id).toBe('l5_request_info');
-    expect(result!.actorId).toBe('user-l5');
-    expect(result!.payload.reason).toBe('[Dev panel auto-fill for reason]');
-  });
-
-  it('returns l4_request_info at P3', () => {
-    const issue = makeIssue();
-    const instance = makeInstance({ currentPhaseId: 'p3_l4_approval' });
-    const result = findSendbackAction(issue, spcOocDefinition, instance);
-
-    expect(result).toBeDefined();
-    expect(result!.action.id).toBe('l4_request_info');
-    expect(result!.actorId).toBe('user-l4');
-  });
-
-  it('returns undefined for a completed workflow', () => {
-    const issue = makeIssue();
-    const instance = makeInstance({
-      currentPhaseId: 'p3_l4_approval',
-      completedAt: '2025-01-15T12:00:00Z',
-    });
-    const result = findSendbackAction(issue, spcOocDefinition, instance);
+    const result = findNextAdvanceAction(issue, genericLinearDefinition, instance);
 
     expect(result).toBeUndefined();
   });

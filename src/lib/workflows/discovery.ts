@@ -16,16 +16,11 @@ export function awaitingMyAction(
   const definition = getDefinition(workflow.definitionId);
   if (!definition) return false;
 
-  const currentPhase = definition.phases.find((p) => p.id === workflow.currentPhaseId);
-  if (!currentPhase) return false;
-
-  const completedIds = new Set(
-    (workflow.completedActions[workflow.currentPhaseId] ?? []).map((r) => r.actionId),
-  );
-
-  return currentPhase.actions.some(
-    (action) =>
-      !completedIds.has(action.id) &&
-      action.gate({ user, instance: workflow, issue }),
-  );
+  // Check if any ongoing step has a gate that this user passes (or no gate)
+  return definition.steps.some((step) => {
+    const state = workflow.stepStates[step.id];
+    if (!state || state.status !== 'ongoing') return false;
+    if (!step.gate) return true; // no gate = anyone can act
+    return step.gate({ user, instance: workflow, issue });
+  });
 }

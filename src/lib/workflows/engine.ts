@@ -1,19 +1,13 @@
-import type { Issue } from '../../types';
+import type { Issue, IssueStatus } from '../../types';
 import type {
-  ActionRecord,
-  ApplyActionResult,
   AttachWorkflowResult,
+  CompleteStepResult,
   PayloadSchema,
+  StepState,
   UserId,
   WorkflowDefinition,
   WorkflowInstance,
 } from './types';
-
-let recordCounter = 0;
-function nextRecordId(): string {
-  recordCounter += 1;
-  return `wf-act-${recordCounter}`;
-}
 
 function validatePayload(
   payload: Record<string, unknown>,
@@ -45,14 +39,72 @@ function validatePayload(
   return null;
 }
 
-function withWorkflowStatus(
-  issue: Issue,
+/**
+ * Activates pending steps whose preSteps are all completed or skipped.
+ * Mutates `stepStates` in place for simplicity; callers should pass a copy.
+ */
+function activateSteps(
+  definition: WorkflowDefinition,
+  stepStates: Record<string, StepState>,
+): void {
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const step of definition.steps) {
+      const state = stepStates[step.id];
+      if (state.status !== 'pending') continue;
+
+      const allPreDone = step.preSteps.every((preId) => {
+        const preState = stepStates[preId];
+        return preState && (preState.status === 'completed' || preState.status === 'skipped');
+      });
+
+      if (allPreDone) {
+        stepStates[step.id] = { status: 'ongoing' };
+        changed = true;
+      }
+    }
+  }
+}
+
+/**
+ * Derives Issue.status from impliesStatus of steps.
+ * Priority: highest-order completed step with impliesStatus.
+ * Fallback: lowest-order ongoing step with impliesStatus.
+ */
+export function deriveStatus(
   definition: WorkflowDefinition,
   instance: WorkflowInstance,
-): Issue {
-  const phase = definition.phases.find((p) => p.id === instance.currentPhaseId);
-  const nextStatus = phase?.status ?? issue.status;
-  return { ...issue, workflow: instance, status: nextStatus };
+): IssueStatus | undefined {
+  // Among completed steps with impliesStatus, pick highest order
+  let bestCompleted: { order: number; status: IssueStatus } | undefined;
+  for (const step of definition.steps) {
+    if (!step.impliesStatus) continue;
+    const state = instance.stepStates[step.id];
+    if (state?.status !== 'completed') continue;
+    if (!bestCompleted || step.order > bestCompleted.order) {
+      bestCompleted = { order: step.order, status: step.impliesStatus };
+    }
+  }
+  if (bestCompleted) return bestCompleted.status;
+
+  // Fallback: lowest-order ongoing step with impliesStatus
+  let bestOngoing: { order: number; status: IssueStatus } | undefined;
+  for (const step of definition.steps) {
+    if (!step.impliesStatus) continue;
+    const state = instance.stepStates[step.id];
+    if (state?.status !== 'ongoing') continue;
+    if (!bestOngoing || step.order < bestOngoing.order) {
+      bestOngoing = { order: step.order, status: step.impliesStatus };
+    }
+  }
+  return bestOngoing?.status;
+}
+
+function isTerminal(stepStates: Record<string, StepState>): boolean {
+  return Object.values(stepStates).every(
+    (s) => s.status === 'completed' || s.status === 'skipped',
+  );
 }
 
 export function attachWorkflow(
@@ -61,8 +113,8 @@ export function attachWorkflow(
   mocks: Record<string, unknown>,
   timestamp: string,
 ): AttachWorkflowResult {
+  // Resolve required roles
   const actors: { userId: UserId; role: string }[] = [];
-
   for (const roleEntry of definition.requiredRoles) {
     const userId = roleEntry.resolve(issue, mocks);
     if (!userId) {
@@ -71,162 +123,123 @@ export function attachWorkflow(
     actors.push({ userId, role: roleEntry.role });
   }
 
+  // Initialize all steps as pending
+  const stepStates: Record<string, StepState> = {};
+  for (const step of definition.steps) {
+    stepStates[step.id] = { status: 'pending' };
+  }
+
+  // Activate root steps (no preSteps)
+  activateSteps(definition, stepStates);
+
   const instance: WorkflowInstance = {
     definitionId: definition.id,
-    currentPhaseId: definition.phases[0].id,
+    stepStates,
     actors,
-    completedActions: {},
-    actionHistory: [],
+  };
+
+  const status = deriveStatus(definition, instance);
+  const updatedIssue: Issue = {
+    ...issue,
+    workflow: instance,
+    ...(status ? { status } : {}),
   };
 
   return {
     instance,
-    issue: withWorkflowStatus(issue, definition, instance),
+    issue: updatedIssue,
     activityEntry: {
       definitionId: definition.id,
-      phaseId: definition.phases[0].id,
-      actionId: '__attach__',
+      stepId: definition.steps[0]?.id ?? '',
+      action: 'attach',
       actorId: 'system',
-      fromPhaseId: '',
-      toPhaseId: definition.phases[0].id,
       timestamp,
     },
   };
 }
 
-export function applyAction(
+export function completeStep(
   definition: WorkflowDefinition,
   instance: WorkflowInstance,
   issue: Issue,
   params: {
-    actionId: string;
+    stepId: string;
     actorId: UserId;
     timestamp: string;
     payload: Record<string, unknown>;
   },
-): ApplyActionResult {
+): CompleteStepResult {
   if (instance.completedAt) {
     return { error: 'Workflow is already completed' };
   }
 
-  const currentPhase = definition.phases.find((p) => p.id === instance.currentPhaseId);
-  if (!currentPhase) {
-    return { error: `Phase not found: ${instance.currentPhaseId}` };
+  const step = definition.steps.find((s) => s.id === params.stepId);
+  if (!step) {
+    return { error: `Step not found: ${params.stepId}` };
   }
 
-  const action = currentPhase.actions.find((a) => a.id === params.actionId);
-  if (!action) {
-    return { error: `Action ${params.actionId} not found in current phase ${instance.currentPhaseId}` };
+  const stepState = instance.stepStates[params.stepId];
+  if (!stepState || stepState.status !== 'ongoing') {
+    return { error: `Step ${params.stepId} is not ongoing (current status: ${stepState?.status ?? 'unknown'})` };
   }
 
   // Gate check
-  const gateResult = action.gate({
-    user: { id: params.actorId },
-    instance,
-    issue,
-  });
-  if (!gateResult) {
-    return { error: `User ${params.actorId} does not pass gate for action ${params.actionId}` };
+  if (step.gate) {
+    const gateResult = step.gate({
+      user: { id: params.actorId },
+      instance,
+      issue,
+    });
+    if (!gateResult) {
+      return { error: `User ${params.actorId} does not pass gate for step ${params.stepId}` };
+    }
   }
 
   // Payload validation
-  const validationError = validatePayload(params.payload, action.payloadSchema);
-  if (validationError) {
-    return { error: validationError };
+  if (step.payloadSchema) {
+    const validationError = validatePayload(params.payload, step.payloadSchema);
+    if (validationError) {
+      return { error: validationError };
+    }
   }
 
-  const record: ActionRecord = {
-    id: nextRecordId(),
-    actionId: params.actionId,
-    phaseId: instance.currentPhaseId,
-    actorId: params.actorId,
-    timestamp: params.timestamp,
+  // Build new step states
+  const newStepStates: Record<string, StepState> = {};
+  for (const [id, state] of Object.entries(instance.stepStates)) {
+    newStepStates[id] = { ...state };
+  }
+  newStepStates[params.stepId] = {
+    status: 'completed',
     payload: params.payload,
+    completedAt: params.timestamp,
+    completedBy: params.actorId,
   };
 
-  const newHistory = [...instance.actionHistory, record];
+  // Activate downstream steps
+  activateSteps(definition, newStepStates);
 
-  // Handle sendsBackTo
-  if (action.sendsBackTo) {
-    const targetPhaseIdx = definition.phases.findIndex((p) => p.id === action.sendsBackTo);
-    const newCompleted: Record<string, ActionRecord[]> = {};
-    // Keep completedActions only for phases before the target
-    for (const phase of definition.phases) {
-      if (definition.phases.indexOf(phase) < targetPhaseIdx) {
-        if (instance.completedActions[phase.id]) {
-          newCompleted[phase.id] = [...instance.completedActions[phase.id]];
-        }
-      }
-      // phases from target forward: cleared
-    }
-
-    const sentBackInstance: WorkflowInstance = {
-      ...instance,
-      currentPhaseId: action.sendsBackTo,
-      completedActions: newCompleted,
-      actionHistory: newHistory,
-    };
-    return {
-      instance: sentBackInstance,
-      issue: withWorkflowStatus(issue, definition, sentBackInstance),
-      activityEntry: {
-        definitionId: definition.id,
-        phaseId: instance.currentPhaseId,
-        actionId: params.actionId,
-        actorId: params.actorId,
-        fromPhaseId: instance.currentPhaseId,
-        toPhaseId: action.sendsBackTo,
-        timestamp: params.timestamp,
-      },
-    };
-  }
-
-  // Normal action: add to completedActions
-  const phaseActions = instance.completedActions[instance.currentPhaseId] ?? [];
-  const newCompletedActions = {
-    ...instance.completedActions,
-    [instance.currentPhaseId]: [...phaseActions, record],
-  };
-
-  // Walk forward through phases as long as the current phase's required
-  // actions are all complete. A phase with zero required actions auto-clears.
-  let phaseIdx = definition.phases.findIndex((p) => p.id === instance.currentPhaseId);
-  let completedAt: string | undefined;
-  while (phaseIdx >= 0) {
-    const phase = definition.phases[phaseIdx];
-    const completedIds = new Set(
-      (newCompletedActions[phase.id] ?? []).map((r) => r.actionId),
-    );
-    const allRequiredDone = phase.actions
-      .filter((a) => a.required)
-      .every((a) => completedIds.has(a.id));
-    if (!allRequiredDone) break;
-    if (phaseIdx < definition.phases.length - 1) {
-      phaseIdx += 1;
-    } else {
-      completedAt = params.timestamp;
-      break;
-    }
-  }
-  const newPhaseId = definition.phases[phaseIdx].id;
-
-  const advancedInstance: WorkflowInstance = {
+  const terminal = isTerminal(newStepStates);
+  const newInstance: WorkflowInstance = {
     ...instance,
-    currentPhaseId: newPhaseId,
-    completedActions: newCompletedActions,
-    actionHistory: newHistory,
-    ...(completedAt ? { completedAt } : {}),
+    stepStates: newStepStates,
+    ...(terminal ? { completedAt: params.timestamp } : {}),
   };
+
+  const status = deriveStatus(definition, newInstance);
+  const updatedIssue: Issue = {
+    ...issue,
+    workflow: newInstance,
+    ...(status ? { status } : {}),
+  };
+
   return {
-    instance: advancedInstance,
-    issue: withWorkflowStatus(issue, definition, advancedInstance),
+    instance: newInstance,
+    issue: updatedIssue,
     activityEntry: {
       definitionId: definition.id,
-      phaseId: instance.currentPhaseId,
-      actionId: params.actionId,
+      stepId: params.stepId,
+      action: 'complete',
       actorId: params.actorId,
-      fromPhaseId: instance.currentPhaseId,
-      toPhaseId: newPhaseId,
       timestamp: params.timestamp,
     },
   };

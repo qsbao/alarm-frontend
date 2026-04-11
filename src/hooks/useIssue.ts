@@ -74,7 +74,6 @@ export function useIssue(id: string | undefined) {
   const linkAlarm = useCallback(
     async (alarmId: string) => {
       if (!id) return;
-      // Update alarm side (auto-ack via alarmLifecycle) + issue side (activity log)
       const currentUser = useCurrentUserStore.getState().currentUser;
       useAlarmStore.getState().linkAlarm(alarmId, id, currentUser);
       const updated = await api.linkAlarm(id, alarmId);
@@ -86,7 +85,6 @@ export function useIssue(id: string | undefined) {
   const unlinkAlarm = useCallback(
     async (alarmId: string) => {
       if (!id) return;
-      // Update alarm side (clear linkedIssueId) + issue side (activity log)
       const currentUser = useCurrentUserStore.getState().currentUser;
       useAlarmStore.getState().unlinkAlarm(alarmId, currentUser);
       const updated = await api.unlinkAlarm(id, alarmId);
@@ -95,10 +93,10 @@ export function useIssue(id: string | undefined) {
     [id, applyIssue],
   );
 
-  const fireWorkflowAction = useCallback(
-    async (actionId: string, actorId: string, payload: Record<string, unknown>) => {
+  const completeWorkflowStep = useCallback(
+    async (stepId: string, actorId: string, payload: Record<string, unknown>) => {
       if (!id) return;
-      const updated = await api.fireWorkflowAction(id, actionId, actorId, payload);
+      const updated = await api.completeStep(id, stepId, actorId, payload);
       await applyIssue(updated, false);
     },
     [id, applyIssue],
@@ -113,6 +111,6 @@ export function useIssue(id: string | undefined) {
     addComment,
     linkAlarm,
     unlinkAlarm,
-    fireWorkflowAction,
+    completeWorkflowStep,
   };
 }

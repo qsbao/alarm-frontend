@@ -3,7 +3,7 @@ import { getDefaultWorkflowId } from './workflowDefaults';
 import type { AlarmType } from '../../types';
 
 describe('getDefaultWorkflowId', () => {
-  const SPC_OOC_ALARM_TYPES: AlarmType[] = [
+  const ALL_ALARM_TYPES: AlarmType[] = [
     'TempSpike',
     'PressureDrop',
     'FlowAnomaly',
@@ -16,9 +16,9 @@ describe('getDefaultWorkflowId', () => {
     'EndpointDrift',
   ];
 
-  it('returns spc_ooc_v1 for all SPC OOC alarm types', () => {
-    for (const type of SPC_OOC_ALARM_TYPES) {
-      expect(getDefaultWorkflowId(type)).toBe('spc_ooc_v1');
+  it('returns generic_linear_v1 for all alarm types', () => {
+    for (const type of ALL_ALARM_TYPES) {
+      expect(getDefaultWorkflowId(type)).toBe('generic_linear_v1');
     }
   });
 

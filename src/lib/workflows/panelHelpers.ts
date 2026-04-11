@@ -1,86 +1,60 @@
 import type { Issue } from '../../types';
-import type { Action, ActionRecord, WorkflowDefinition, WorkflowInstance } from './types';
+import type { Step, StepStatus, WorkflowDefinition, WorkflowInstance } from './types';
 
-export type ActionDisplayStatus = 'done' | 'pending_available' | 'pending_unavailable' | 'optional';
+export interface StepDisplayInfo {
+  step: Step;
+  status: StepStatus;
+  waitingOnLabels: string[]; // labels of preSteps not yet done (for pending rows)
+}
 
-export function getActionDisplayStatus(
-  action: Action,
+/**
+ * Returns display info for each step, ordered by step.order.
+ * Groups: completed/skipped first, ongoing middle, pending last.
+ */
+export function getStepDisplayList(
+  definition: WorkflowDefinition,
+  instance: WorkflowInstance,
+): StepDisplayInfo[] {
+  const items: StepDisplayInfo[] = definition.steps.map((step) => {
+    const state = instance.stepStates[step.id];
+    const status = state?.status ?? 'pending';
+
+    const waitingOnLabels: string[] = [];
+    if (status === 'pending') {
+      for (const preId of step.preSteps) {
+        const preState = instance.stepStates[preId];
+        if (!preState || (preState.status !== 'completed' && preState.status !== 'skipped')) {
+          const preStep = definition.steps.find((s) => s.id === preId);
+          if (preStep) waitingOnLabels.push(preStep.label);
+        }
+      }
+    }
+
+    return { step, status, waitingOnLabels };
+  });
+
+  // Sort: completed/skipped first, ongoing middle, pending last
+  const order: Record<StepStatus, number> = {
+    completed: 0,
+    skipped: 0,
+    ongoing: 1,
+    pending: 2,
+  };
+
+  return items.sort((a, b) => order[a.status] - order[b.status]);
+}
+
+/**
+ * Checks if a user can act on a given step (ongoing + gate passes).
+ */
+export function canUserActOnStep(
+  step: Step,
   instance: WorkflowInstance,
   issue: Issue,
-  phaseId: string,
-): ActionDisplayStatus {
-  const completedIds = new Set(
-    (instance.completedActions[phaseId] ?? []).map((r) => r.actionId),
-  );
-
-  if (completedIds.has(action.id)) return 'done';
-  if (phaseId !== instance.currentPhaseId) return 'pending_unavailable';
-  if (!action.required) return 'optional';
-  return 'pending_available';
-}
-
-/**
- * Finds the actor gated on an action by testing each workflow actor against the gate.
- * Returns the display name via the lookup function, or undefined.
- */
-export function getActorDisplayName(
-  action: Action,
-  instance: WorkflowInstance,
-  lookupUser: (id: string) => string | undefined,
-): string | undefined {
-  const issue = { ownerId: '' } as Issue; // gate only checks instance.actors
-  for (const actor of instance.actors) {
-    if (action.gate({ user: { id: actor.userId }, instance, issue })) {
-      return lookupUser(actor.userId);
-    }
-  }
-  return undefined;
-}
-
-export interface PhaseDisplayState {
-  phaseId: string;
-  label: string;
-  state: 'completed' | 'current' | 'upcoming';
-}
-
-export function getPhaseDisplayState(
-  definition: WorkflowDefinition,
-  instance: WorkflowInstance,
-): PhaseDisplayState[] {
-  if (instance.completedAt) {
-    return definition.phases.map((p) => ({
-      phaseId: p.id,
-      label: p.label,
-      state: 'completed' as const,
-    }));
-  }
-
-  const currentIdx = definition.phases.findIndex((p) => p.id === instance.currentPhaseId);
-
-  return definition.phases.map((p, idx) => ({
-    phaseId: p.id,
-    label: p.label,
-    state: idx < currentIdx ? 'completed' : idx === currentIdx ? 'current' : 'upcoming',
-  }));
-}
-
-/**
- * Returns completed action records from phases before the current phase.
- * For terminal workflows, returns all completed actions across all phases.
- */
-export function getHistoryRecords(
-  definition: WorkflowDefinition,
-  instance: WorkflowInstance,
-): ActionRecord[] {
-  const currentIdx = definition.phases.findIndex((p) => p.id === instance.currentPhaseId);
-  const records: ActionRecord[] = [];
-
-  for (let i = 0; i < definition.phases.length; i++) {
-    if (instance.completedAt || i < currentIdx) {
-      const phaseRecords = instance.completedActions[definition.phases[i].id] ?? [];
-      records.push(...phaseRecords);
-    }
-  }
-
-  return records;
+  userId: string,
+): boolean {
+  const state = instance.stepStates[step.id];
+  if (!state || state.status !== 'ongoing') return false;
+  if (!step.gate) return true;
+  return step.gate({ user: { id: userId }, instance, issue });
 }

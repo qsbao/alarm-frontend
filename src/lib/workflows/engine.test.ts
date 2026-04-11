@@ -1,70 +1,88 @@
 import { describe, expect, it } from 'vitest';
-import { applyAction, attachWorkflow } from './engine';
-import { spcOocDefinition } from './definitions/spcOoc';
+import { attachWorkflow, completeStep, deriveStatus } from './engine';
 import type { Issue } from '../../types';
 import type { WorkflowDefinition, WorkflowInstance } from './types';
 
-/**
- * Minimal definition with mixed-status phases for tests that need to observe
- * status transitions across phases tagged differently. Three phases:
- *   p_new (New) → p_inv (Investigating) → p_done (Closed, zero actions)
- * `back_to_start` in p_inv sends back to p_new.
- */
-const mixedStatusDefinition: WorkflowDefinition = {
-  id: 'test_mixed',
-  name: 'Mixed Status Test',
+// --- Test definitions ---
+
+/** Linear: A → B → C */
+const linearDef: WorkflowDefinition = {
+  id: 'test_linear',
+  name: 'Linear Test',
   version: '1',
-  phases: [
-    {
-      id: 'p_new',
-      label: 'Triage',
-      status: 'New',
-      actions: [
-        {
-          id: 'start',
-          label: 'Start',
-          required: true,
-          gate: () => true,
-          payloadSchema: {},
-        },
-      ],
-    },
-    {
-      id: 'p_inv',
-      label: 'Investigation',
-      status: 'Investigating',
-      actions: [
-        {
-          id: 'finish',
-          label: 'Finish',
-          required: true,
-          gate: () => true,
-          payloadSchema: {},
-        },
-        {
-          id: 'back_to_start',
-          label: 'Back',
-          required: false,
-          sendsBackTo: 'p_new',
-          gate: () => true,
-          payloadSchema: {},
-        },
-      ],
-    },
-    {
-      id: 'p_done',
-      label: 'Done',
-      status: 'Closed',
-      actions: [],
-    },
+  steps: [
+    { id: 'A', label: 'Step A', order: 1, preSteps: [], impliesStatus: 'Investigating' },
+    { id: 'B', label: 'Step B', order: 2, preSteps: ['A'], impliesStatus: 'Resolved' },
+    { id: 'C', label: 'Step C', order: 3, preSteps: ['B'], impliesStatus: 'Closed' },
   ],
   requiredRoles: [],
+};
+
+/**
+ * Diamond DAG:
+ *   A ──┐
+ *       ├──► C → D
+ *   B ──┘
+ */
+const diamondDef: WorkflowDefinition = {
+  id: 'test_diamond',
+  name: 'Diamond Test',
+  version: '1',
+  steps: [
+    { id: 'A', label: 'Step A', order: 1, preSteps: [] },
+    { id: 'B', label: 'Step B', order: 2, preSteps: [] },
+    { id: 'C', label: 'Step C', order: 3, preSteps: ['A', 'B'], impliesStatus: 'Investigating' },
+    { id: 'D', label: 'Step D', order: 4, preSteps: ['C'], impliesStatus: 'Closed' },
+  ],
+  requiredRoles: [],
+};
+
+/** Definition with gate and payload */
+const gatedDef: WorkflowDefinition = {
+  id: 'test_gated',
+  name: 'Gated Test',
+  version: '1',
+  steps: [
+    {
+      id: 'gated_step',
+      label: 'Gated',
+      order: 1,
+      preSteps: [],
+      gate: ({ user, issue }) => user.id === issue.ownerId,
+      payloadSchema: {
+        comment: { kind: 'text', label: 'Comment', required: true, minLength: 1 },
+        reason: {
+          kind: 'enum',
+          label: 'Reason',
+          required: true,
+          options: ['Tool', 'Material', 'Process'],
+        },
+      },
+      impliesStatus: 'Investigating',
+    },
+    { id: 'done', label: 'Done', order: 2, preSteps: ['gated_step'], impliesStatus: 'Closed' },
+  ],
+  requiredRoles: [],
+};
+
+/** Definition with roles */
+const roledDef: WorkflowDefinition = {
+  id: 'test_roled',
+  name: 'Roled Test',
+  version: '1',
+  steps: [
+    { id: 'step1', label: 'Step 1', order: 1, preSteps: [] },
+  ],
+  requiredRoles: [
+    { role: 'owner', resolve: (issue) => issue.ownerId },
+    { role: 'reviewer', resolve: (_issue, mocks) => (mocks as Record<string, string>).reviewer },
+  ],
 };
 
 function makeIssue(overrides: Partial<Issue> = {}): Issue {
   return {
     id: 'iss-001',
-    title: 'SPC OOC on LITHO-07',
+    title: 'Test issue',
     date: '2025-01-15T10:00:00Z',
     alarmType: 'TempSpike',
     riskLevel: 'High',
@@ -74,483 +92,539 @@ function makeIssue(overrides: Partial<Issue> = {}): Issue {
     product: 'A7-Litho',
     ownerId: 'user-tanaka',
     department: 'Litho',
-    description: 'SPC chart out of control',
-    relatedAlarmIds: ['alm-001'],
+    description: 'Test',
+    relatedAlarmIds: [],
     activity: [],
-    ...overrides,
-  };
-}
-
-function makeInstance(overrides: Partial<WorkflowInstance> = {}): WorkflowInstance {
-  return {
-    definitionId: 'spc_ooc_v1',
-    currentPhaseId: 'p1_owner_input',
-    actors: [
-      { userId: 'user-tanaka', role: 'chart_owner' },
-      { userId: 'user-pi', role: 'pi_engineer' },
-      { userId: 'user-l5', role: 'owner_l5_manager' },
-      { userId: 'user-l4', role: 'owner_l4_manager' },
-    ],
-    completedActions: {},
-    actionHistory: [],
     ...overrides,
   };
 }
 
 const ts = '2025-01-15T12:00:00Z';
 
-describe('attachWorkflow', () => {
-  it('creates a workflow instance from a definition', () => {
-    const issue = makeIssue();
-    const mocks = {
-      alarms: [{ id: 'alm-001', chartOwnerId: 'user-tanaka' }],
-      piByDepartment: { Litho: 'user-pi' },
-      managerChain: { 'user-tanaka': { l5: 'user-l5', l4: 'user-l4' } },
-    };
+// --- Tests ---
 
-    const result = attachWorkflow(spcOocDefinition, issue, mocks, ts);
+describe('attachWorkflow', () => {
+  it('creates instance with all steps pending, then activates root steps to ongoing', () => {
+    const issue = makeIssue();
+    const result = attachWorkflow(linearDef, issue, {}, ts);
     expect('error' in result).toBe(false);
     if ('error' in result) return;
 
-    expect(result.instance.definitionId).toBe('spc_ooc_v1');
-    expect(result.instance.currentPhaseId).toBe('p1_owner_input');
-    expect(result.instance.actors).toHaveLength(4);
-    expect(result.instance.completedActions).toEqual({});
-    expect(result.instance.actionHistory).toEqual([]);
+    expect(result.instance.definitionId).toBe('test_linear');
+    expect(result.instance.stepStates['A'].status).toBe('ongoing');
+    expect(result.instance.stepStates['B'].status).toBe('pending');
+    expect(result.instance.stepStates['C'].status).toBe('pending');
     expect(result.instance.completedAt).toBeUndefined();
   });
 
-  it('writes the initial phase status onto the returned issue', () => {
-    // Pre-existing status is irrelevant — engine derives from phases[0]
-    const issue = makeIssue({ status: 'Closed' });
-    const mocks = {
-      alarms: [{ id: 'alm-001', chartOwnerId: 'user-tanaka' }],
-      piByDepartment: { Litho: 'user-pi' },
-      managerChain: { 'user-tanaka': { l5: 'user-l5', l4: 'user-l4' } },
-    };
-
-    const result = attachWorkflow(spcOocDefinition, issue, mocks, ts);
+  it('activates multiple root steps in a diamond DAG', () => {
+    const issue = makeIssue();
+    const result = attachWorkflow(diamondDef, issue, {}, ts);
     expect('error' in result).toBe(false);
     if ('error' in result) return;
 
-    // P1 (p1_owner_input) is tagged Investigating
+    expect(result.instance.stepStates['A'].status).toBe('ongoing');
+    expect(result.instance.stepStates['B'].status).toBe('ongoing');
+    expect(result.instance.stepStates['C'].status).toBe('pending');
+    expect(result.instance.stepStates['D'].status).toBe('pending');
+  });
+
+  it('derives issue status from the first ongoing step with impliesStatus', () => {
+    const issue = makeIssue();
+    const result = attachWorkflow(linearDef, issue, {}, ts);
+    expect('error' in result).toBe(false);
+    if ('error' in result) return;
+
     expect(result.issue.status).toBe('Investigating');
+  });
+
+  it('resolves required roles and stores actors', () => {
+    const issue = makeIssue();
+    const mocks = { reviewer: 'user-reviewer' };
+    const result = attachWorkflow(roledDef, issue, mocks, ts);
+    expect('error' in result).toBe(false);
+    if ('error' in result) return;
+
+    expect(result.instance.actors).toHaveLength(2);
+    expect(result.instance.actors).toEqual([
+      { userId: 'user-tanaka', role: 'owner' },
+      { userId: 'user-reviewer', role: 'reviewer' },
+    ]);
   });
 
   it('returns error when a required role cannot be resolved', () => {
     const issue = makeIssue();
-    const mocks = {
-      alarms: [],
-      piByDepartment: {},
-      managerChain: {},
-    };
-
-    const result = attachWorkflow(spcOocDefinition, issue, mocks, ts);
+    const result = attachWorkflow(roledDef, issue, {}, ts);
     expect('error' in result).toBe(true);
+  });
+
+  it('returns a well-formed activity entry', () => {
+    const issue = makeIssue();
+    const result = attachWorkflow(linearDef, issue, {}, ts);
+    expect('error' in result).toBe(false);
+    if ('error' in result) return;
+
+    expect(result.activityEntry.definitionId).toBe('test_linear');
+    expect(result.activityEntry.action).toBe('attach');
+    expect(result.activityEntry.actorId).toBe('system');
+    expect(result.activityEntry.timestamp).toBe(ts);
   });
 });
 
-describe('applyAction', () => {
-  describe('happy path through SPC OOC', () => {
-    it('completes full workflow: P1 → P2 → P3 → terminal', () => {
+describe('completeStep', () => {
+  describe('DAG activation', () => {
+    it('activates the next step when a linear predecessor completes', () => {
       const issue = makeIssue();
-      let instance = makeInstance();
+      const instance: WorkflowInstance = {
+        definitionId: 'test_linear',
+        stepStates: {
+          A: { status: 'ongoing' },
+          B: { status: 'pending' },
+          C: { status: 'pending' },
+        },
+        actors: [],
+      };
 
-      // P1: chart_owner_comment
-      const r1 = applyAction(spcOocDefinition, instance, issue, {
-        actionId: 'chart_owner_comment',
+      const result = completeStep(linearDef, instance, issue, {
+        stepId: 'A',
         actorId: 'user-tanaka',
         timestamp: ts,
-        payload: { ooc_reason_type: 'Tool', comment: 'Drift detected' },
+        payload: {},
       });
-      expect('error' in r1).toBe(false);
-      if ('error' in r1) return;
-      instance = r1.instance;
-      expect(instance.currentPhaseId).toBe('p2_pi_l5_review');
+      expect('error' in result).toBe(false);
+      if ('error' in result) return;
 
-      // P2: pi_comment
-      const r2 = applyAction(spcOocDefinition, instance, issue, {
-        actionId: 'pi_comment',
-        actorId: 'user-pi',
-        timestamp: ts,
-        payload: { comment: 'Confirmed from PI side' },
-      });
-      expect('error' in r2).toBe(false);
-      if ('error' in r2) return;
-      instance = r2.instance;
-      // Only one of two required actions done — should NOT advance
-      expect(instance.currentPhaseId).toBe('p2_pi_l5_review');
+      expect(result.instance.stepStates['A'].status).toBe('completed');
+      expect(result.instance.stepStates['B'].status).toBe('ongoing');
+      expect(result.instance.stepStates['C'].status).toBe('pending');
+    });
 
-      // P2: l5_approve
-      const r3 = applyAction(spcOocDefinition, instance, issue, {
-        actionId: 'l5_approve',
-        actorId: 'user-l5',
-        timestamp: ts,
-        payload: { comment: 'Approved' },
-      });
-      expect('error' in r3).toBe(false);
-      if ('error' in r3) return;
-      instance = r3.instance;
-      expect(instance.currentPhaseId).toBe('p3_l4_approval');
+    it('does NOT activate a step until ALL preSteps are completed/skipped', () => {
+      const issue = makeIssue();
+      const instance: WorkflowInstance = {
+        definitionId: 'test_diamond',
+        stepStates: {
+          A: { status: 'ongoing' },
+          B: { status: 'ongoing' },
+          C: { status: 'pending' },
+          D: { status: 'pending' },
+        },
+        actors: [],
+      };
 
-      // P3: l4_approve
-      const r4 = applyAction(spcOocDefinition, instance, issue, {
-        actionId: 'l4_approve',
-        actorId: 'user-l4',
+      // Complete only A — C still needs B
+      const result = completeStep(diamondDef, instance, issue, {
+        stepId: 'A',
+        actorId: 'user-tanaka',
         timestamp: ts,
         payload: {},
       });
-      expect('error' in r4).toBe(false);
-      if ('error' in r4) return;
-      instance = r4.instance;
-      expect(instance.completedAt).toBe(ts);
-    });
-  });
+      expect('error' in result).toBe(false);
+      if ('error' in result) return;
 
-  describe('parallel correctness in phase 2', () => {
-    it('firing one required action does not advance phase', () => {
-      const issue = makeIssue();
-      let instance = makeInstance({ currentPhaseId: 'p2_pi_l5_review' });
-
-      const r1 = applyAction(spcOocDefinition, instance, issue, {
-        actionId: 'pi_comment',
-        actorId: 'user-pi',
-        timestamp: ts,
-        payload: { comment: 'PI input' },
-      });
-      expect('error' in r1).toBe(false);
-      if ('error' in r1) return;
-      instance = r1.instance;
-      expect(instance.currentPhaseId).toBe('p2_pi_l5_review');
+      expect(result.instance.stepStates['A'].status).toBe('completed');
+      expect(result.instance.stepStates['C'].status).toBe('pending');
     });
 
-    it('firing both required actions advances phase', () => {
+    it('activates a step when ALL preSteps are completed', () => {
       const issue = makeIssue();
-      let instance = makeInstance({ currentPhaseId: 'p2_pi_l5_review' });
+      const instance: WorkflowInstance = {
+        definitionId: 'test_diamond',
+        stepStates: {
+          A: { status: 'completed', completedAt: ts, completedBy: 'user-tanaka' },
+          B: { status: 'ongoing' },
+          C: { status: 'pending' },
+          D: { status: 'pending' },
+        },
+        actors: [],
+      };
 
-      const r1 = applyAction(spcOocDefinition, instance, issue, {
-        actionId: 'l5_approve',
-        actorId: 'user-l5',
+      // Complete B — now both A and B are done, C should activate
+      const result = completeStep(diamondDef, instance, issue, {
+        stepId: 'B',
+        actorId: 'user-tanaka',
         timestamp: ts,
         payload: {},
       });
-      expect('error' in r1).toBe(false);
-      if ('error' in r1) return;
-      instance = r1.instance;
+      expect('error' in result).toBe(false);
+      if ('error' in result) return;
 
-      const r2 = applyAction(spcOocDefinition, instance, issue, {
-        actionId: 'pi_comment',
-        actorId: 'user-pi',
-        timestamp: ts,
-        payload: { comment: 'PI input' },
-      });
-      expect('error' in r2).toBe(false);
-      if ('error' in r2) return;
-      instance = r2.instance;
-      expect(instance.currentPhaseId).toBe('p3_l4_approval');
+      expect(result.instance.stepStates['C'].status).toBe('ongoing');
+      expect(result.instance.stepStates['D'].status).toBe('pending');
     });
-  });
 
-  describe('send-back loop', () => {
-    it('resets currentPhaseId to target, clears completedActions from target forward, preserves history', () => {
+    it('activates a step when preSteps are a mix of completed and skipped', () => {
       const issue = makeIssue();
-      let instance = makeInstance({ currentPhaseId: 'p2_pi_l5_review' });
+      const instance: WorkflowInstance = {
+        definitionId: 'test_diamond',
+        stepStates: {
+          A: { status: 'completed', completedAt: ts, completedBy: 'user-tanaka' },
+          B: { status: 'skipped', skippedAt: ts, skippedBy: 'user-tanaka' },
+          C: { status: 'pending' },
+          D: { status: 'pending' },
+        },
+        actors: [],
+      };
 
-      // Complete pi_comment first
-      const r1 = applyAction(spcOocDefinition, instance, issue, {
-        actionId: 'pi_comment',
-        actorId: 'user-pi',
+      // C's preSteps are A (completed) and B (skipped) — should activate
+      // We need to trigger activation; let's use attachWorkflow-style activation
+      // Actually, this scenario would happen during a skip or complete. Let's
+      // test it via the engine's activation logic by calling completeStep on A
+      // with B already skipped.
+      const instanceWithBSkipped: WorkflowInstance = {
+        definitionId: 'test_diamond',
+        stepStates: {
+          A: { status: 'ongoing' },
+          B: { status: 'skipped', skippedAt: ts, skippedBy: 'user-tanaka' },
+          C: { status: 'pending' },
+          D: { status: 'pending' },
+        },
+        actors: [],
+      };
+
+      const result = completeStep(diamondDef, instanceWithBSkipped, issue, {
+        stepId: 'A',
+        actorId: 'user-tanaka',
         timestamp: ts,
-        payload: { comment: 'PI input' },
+        payload: {},
       });
-      expect('error' in r1).toBe(false);
-      if ('error' in r1) return;
-      instance = r1.instance;
+      expect('error' in result).toBe(false);
+      if ('error' in result) return;
 
-      // L5 sends back to P1
-      const r2 = applyAction(spcOocDefinition, instance, issue, {
-        actionId: 'l5_request_info',
-        actorId: 'user-l5',
-        timestamp: ts,
-        payload: { reason: 'Need more detail' },
-      });
-      expect('error' in r2).toBe(false);
-      if ('error' in r2) return;
-      instance = r2.instance;
-
-      expect(instance.currentPhaseId).toBe('p1_owner_input');
-      // completedActions from p1 forward should be cleared
-      expect(instance.completedActions['p1_owner_input'] ?? []).toEqual([]);
-      expect(instance.completedActions['p2_pi_l5_review'] ?? []).toEqual([]);
-      // History should preserve all records (pi_comment + l5_request_info)
-      expect(instance.actionHistory).toHaveLength(2);
+      expect(result.instance.stepStates['C'].status).toBe('ongoing');
     });
   });
 
-  describe('gate denial', () => {
+  describe('terminal detection', () => {
+    it('sets completedAt when the last step completes', () => {
+      const issue = makeIssue();
+      const instance: WorkflowInstance = {
+        definitionId: 'test_linear',
+        stepStates: {
+          A: { status: 'completed', completedAt: ts, completedBy: 'user-tanaka' },
+          B: { status: 'completed', completedAt: ts, completedBy: 'user-tanaka' },
+          C: { status: 'ongoing' },
+        },
+        actors: [],
+      };
+
+      const result = completeStep(linearDef, instance, issue, {
+        stepId: 'C',
+        actorId: 'user-tanaka',
+        timestamp: ts,
+        payload: {},
+      });
+      expect('error' in result).toBe(false);
+      if ('error' in result) return;
+
+      expect(result.instance.completedAt).toBe(ts);
+    });
+
+    it('does NOT set completedAt when steps remain', () => {
+      const issue = makeIssue();
+      const instance: WorkflowInstance = {
+        definitionId: 'test_linear',
+        stepStates: {
+          A: { status: 'ongoing' },
+          B: { status: 'pending' },
+          C: { status: 'pending' },
+        },
+        actors: [],
+      };
+
+      const result = completeStep(linearDef, instance, issue, {
+        stepId: 'A',
+        actorId: 'user-tanaka',
+        timestamp: ts,
+        payload: {},
+      });
+      expect('error' in result).toBe(false);
+      if ('error' in result) return;
+
+      expect(result.instance.completedAt).toBeUndefined();
+    });
+  });
+
+  describe('gate validation', () => {
     it('returns error when user does not pass gate', () => {
-      const issue = makeIssue();
-      const instance = makeInstance();
+      const issue = makeIssue({ ownerId: 'user-tanaka' });
+      const instance: WorkflowInstance = {
+        definitionId: 'test_gated',
+        stepStates: { gated_step: { status: 'ongoing' }, done: { status: 'pending' } },
+        actors: [],
+      };
 
-      const result = applyAction(spcOocDefinition, instance, issue, {
-        actionId: 'chart_owner_comment',
+      const result = completeStep(gatedDef, instance, issue, {
+        stepId: 'gated_step',
         actorId: 'user-wrong',
         timestamp: ts,
-        payload: { ooc_reason_type: 'Tool', comment: 'test' },
+        payload: { comment: 'test', reason: 'Tool' },
       });
       expect('error' in result).toBe(true);
       if ('error' in result) {
         expect(result.error).toContain('gate');
       }
     });
+
+    it('succeeds when user passes gate', () => {
+      const issue = makeIssue({ ownerId: 'user-tanaka' });
+      const instance: WorkflowInstance = {
+        definitionId: 'test_gated',
+        stepStates: { gated_step: { status: 'ongoing' }, done: { status: 'pending' } },
+        actors: [],
+      };
+
+      const result = completeStep(gatedDef, instance, issue, {
+        stepId: 'gated_step',
+        actorId: 'user-tanaka',
+        timestamp: ts,
+        payload: { comment: 'test', reason: 'Tool' },
+      });
+      expect('error' in result).toBe(false);
+    });
   });
 
   describe('payload validation', () => {
-    it('returns error when required enum field is missing', () => {
+    it('returns error when required text field is missing', () => {
       const issue = makeIssue();
-      const instance = makeInstance();
+      const instance: WorkflowInstance = {
+        definitionId: 'test_gated',
+        stepStates: { gated_step: { status: 'ongoing' }, done: { status: 'pending' } },
+        actors: [],
+      };
 
-      const result = applyAction(spcOocDefinition, instance, issue, {
-        actionId: 'chart_owner_comment',
+      const result = completeStep(gatedDef, instance, issue, {
+        stepId: 'gated_step',
         actorId: 'user-tanaka',
         timestamp: ts,
-        payload: { comment: 'test' },
+        payload: { reason: 'Tool' }, // missing comment
       });
       expect('error' in result).toBe(true);
     });
 
-    it('returns error when required text field is missing', () => {
+    it('returns error when required enum field is missing', () => {
       const issue = makeIssue();
-      const instance = makeInstance();
+      const instance: WorkflowInstance = {
+        definitionId: 'test_gated',
+        stepStates: { gated_step: { status: 'ongoing' }, done: { status: 'pending' } },
+        actors: [],
+      };
 
-      const result = applyAction(spcOocDefinition, instance, issue, {
-        actionId: 'chart_owner_comment',
+      const result = completeStep(gatedDef, instance, issue, {
+        stepId: 'gated_step',
         actorId: 'user-tanaka',
         timestamp: ts,
-        payload: { ooc_reason_type: 'Tool' },
+        payload: { comment: 'test' }, // missing reason
       });
       expect('error' in result).toBe(true);
     });
 
     it('returns error for invalid enum value', () => {
       const issue = makeIssue();
-      const instance = makeInstance();
+      const instance: WorkflowInstance = {
+        definitionId: 'test_gated',
+        stepStates: { gated_step: { status: 'ongoing' }, done: { status: 'pending' } },
+        actors: [],
+      };
 
-      const result = applyAction(spcOocDefinition, instance, issue, {
-        actionId: 'chart_owner_comment',
+      const result = completeStep(gatedDef, instance, issue, {
+        stepId: 'gated_step',
         actorId: 'user-tanaka',
         timestamp: ts,
-        payload: { ooc_reason_type: 'InvalidValue', comment: 'test' },
+        payload: { comment: 'test', reason: 'InvalidValue' },
       });
       expect('error' in result).toBe(true);
     });
 
-    it('accepts optional fields when omitted', () => {
+    it('stores payload on the completed step state', () => {
       const issue = makeIssue();
-      const instance = makeInstance({ currentPhaseId: 'p3_l4_approval' });
+      const instance: WorkflowInstance = {
+        definitionId: 'test_gated',
+        stepStates: { gated_step: { status: 'ongoing' }, done: { status: 'pending' } },
+        actors: [],
+      };
 
-      const result = applyAction(spcOocDefinition, instance, issue, {
-        actionId: 'l4_approve',
-        actorId: 'user-l4',
+      const result = completeStep(gatedDef, instance, issue, {
+        stepId: 'gated_step',
+        actorId: 'user-tanaka',
         timestamp: ts,
-        payload: {},
+        payload: { comment: 'test', reason: 'Tool' },
       });
       expect('error' in result).toBe(false);
+      if ('error' in result) return;
+
+      expect(result.instance.stepStates['gated_step'].payload).toEqual({
+        comment: 'test',
+        reason: 'Tool',
+      });
     });
   });
 
-  describe('terminal detection', () => {
-    it('sets completedAt when last required action of last phase completes', () => {
+  describe('step not ongoing', () => {
+    it('returns error when step is pending', () => {
       const issue = makeIssue();
-      const instance = makeInstance({ currentPhaseId: 'p3_l4_approval' });
+      const instance: WorkflowInstance = {
+        definitionId: 'test_linear',
+        stepStates: {
+          A: { status: 'ongoing' },
+          B: { status: 'pending' },
+          C: { status: 'pending' },
+        },
+        actors: [],
+      };
 
-      const result = applyAction(spcOocDefinition, instance, issue, {
-        actionId: 'l4_approve',
-        actorId: 'user-l4',
+      const result = completeStep(linearDef, instance, issue, {
+        stepId: 'B',
+        actorId: 'user-tanaka',
         timestamp: ts,
         payload: {},
       });
-      expect('error' in result).toBe(false);
-      if ('error' in result) return;
-      expect(result.instance.completedAt).toBe(ts);
+      expect('error' in result).toBe(true);
     });
 
-    it('does not set completedAt when non-terminal action completes', () => {
+    it('returns error when step is already completed', () => {
       const issue = makeIssue();
-      const instance = makeInstance();
+      const instance: WorkflowInstance = {
+        definitionId: 'test_linear',
+        stepStates: {
+          A: { status: 'completed', completedAt: ts, completedBy: 'user-tanaka' },
+          B: { status: 'ongoing' },
+          C: { status: 'pending' },
+        },
+        actors: [],
+      };
 
-      const result = applyAction(spcOocDefinition, instance, issue, {
-        actionId: 'chart_owner_comment',
+      const result = completeStep(linearDef, instance, issue, {
+        stepId: 'A',
         actorId: 'user-tanaka',
         timestamp: ts,
-        payload: { ooc_reason_type: 'Tool', comment: 'test' },
+        payload: {},
       });
-      expect('error' in result).toBe(false);
-      if ('error' in result) return;
-      expect(result.instance.completedAt).toBeUndefined();
+      expect('error' in result).toBe(true);
+    });
+
+    it('returns error when step does not exist', () => {
+      const issue = makeIssue();
+      const instance: WorkflowInstance = {
+        definitionId: 'test_linear',
+        stepStates: { A: { status: 'ongoing' }, B: { status: 'pending' }, C: { status: 'pending' } },
+        actors: [],
+      };
+
+      const result = completeStep(linearDef, instance, issue, {
+        stepId: 'nonexistent',
+        actorId: 'user-tanaka',
+        timestamp: ts,
+        payload: {},
+      });
+      expect('error' in result).toBe(true);
     });
   });
 
-  describe('auto-advance timing', () => {
-    it('advances phase exactly when all required actions complete', () => {
+  describe('completed workflow', () => {
+    it('returns error when workflow is already completed', () => {
       const issue = makeIssue();
-      const instance = makeInstance();
+      const instance: WorkflowInstance = {
+        definitionId: 'test_linear',
+        stepStates: {
+          A: { status: 'completed', completedAt: ts, completedBy: 'u' },
+          B: { status: 'completed', completedAt: ts, completedBy: 'u' },
+          C: { status: 'completed', completedAt: ts, completedBy: 'u' },
+        },
+        actors: [],
+        completedAt: ts,
+      };
 
-      // Phase 1 has one required action; completing it should advance
-      const result = applyAction(spcOocDefinition, instance, issue, {
-        actionId: 'chart_owner_comment',
+      const result = completeStep(linearDef, instance, issue, {
+        stepId: 'C',
         actorId: 'user-tanaka',
         timestamp: ts,
-        payload: { ooc_reason_type: 'Tool', comment: 'test' },
+        payload: {},
       });
-      expect('error' in result).toBe(false);
-      if ('error' in result) return;
-      expect(result.instance.currentPhaseId).toBe('p2_pi_l5_review');
+      expect('error' in result).toBe(true);
     });
   });
 
   describe('activity entry', () => {
     it('returns a well-formed activity entry', () => {
       const issue = makeIssue();
-      const instance = makeInstance();
+      const instance: WorkflowInstance = {
+        definitionId: 'test_linear',
+        stepStates: { A: { status: 'ongoing' }, B: { status: 'pending' }, C: { status: 'pending' } },
+        actors: [],
+      };
 
-      const result = applyAction(spcOocDefinition, instance, issue, {
-        actionId: 'chart_owner_comment',
+      const result = completeStep(linearDef, instance, issue, {
+        stepId: 'A',
         actorId: 'user-tanaka',
         timestamp: ts,
-        payload: { ooc_reason_type: 'Tool', comment: 'test' },
+        payload: {},
       });
       expect('error' in result).toBe(false);
       if ('error' in result) return;
 
-      expect(result.activityEntry.definitionId).toBe('spc_ooc_v1');
-      expect(result.activityEntry.phaseId).toBe('p1_owner_input');
-      expect(result.activityEntry.actionId).toBe('chart_owner_comment');
+      expect(result.activityEntry.definitionId).toBe('test_linear');
+      expect(result.activityEntry.stepId).toBe('A');
+      expect(result.activityEntry.action).toBe('complete');
       expect(result.activityEntry.actorId).toBe('user-tanaka');
-      expect(result.activityEntry.fromPhaseId).toBe('p1_owner_input');
-      expect(result.activityEntry.toPhaseId).toBe('p2_pi_l5_review');
       expect(result.activityEntry.timestamp).toBe(ts);
     });
   });
+});
 
-  describe('action in wrong phase', () => {
-    it('returns error when action does not belong to current phase', () => {
-      const issue = makeIssue();
-      const instance = makeInstance(); // currentPhaseId = p1
-
-      const result = applyAction(spcOocDefinition, instance, issue, {
-        actionId: 'l5_approve',
-        actorId: 'user-l5',
-        timestamp: ts,
-        payload: {},
-      });
-      expect('error' in result).toBe(true);
-    });
+describe('deriveStatus', () => {
+  it('returns impliesStatus of the highest-order completed step', () => {
+    const instance: WorkflowInstance = {
+      definitionId: 'test_linear',
+      stepStates: {
+        A: { status: 'completed', completedAt: ts, completedBy: 'u' },
+        B: { status: 'ongoing' },
+        C: { status: 'pending' },
+      },
+      actors: [],
+    };
+    expect(deriveStatus(linearDef, instance)).toBe('Investigating');
   });
 
-  describe('issue.status derivation', () => {
-    it('writes the new phase status onto the returned issue when an action advances the phase', () => {
-      const issue = makeIssue({ status: 'New' });
-      const instance = makeInstance();
-
-      const result = applyAction(spcOocDefinition, instance, issue, {
-        actionId: 'chart_owner_comment',
-        actorId: 'user-tanaka',
-        timestamp: ts,
-        payload: { ooc_reason_type: 'Tool', comment: 'test' },
-      });
-      expect('error' in result).toBe(false);
-      if ('error' in result) return;
-
-      // P1 → P2; P2 is tagged Investigating
-      expect(result.issue.status).toBe('Investigating');
-    });
-
-    it('leaves issue.status unchanged when an action completes within a phase without advancing', () => {
-      // Pre-existing status matches current phase tag (Investigating).
-      // Phase 2 has two required actions; firing one alone should not advance.
-      const issue = makeIssue({ status: 'Investigating' });
-      const instance = makeInstance({ currentPhaseId: 'p2_pi_l5_review' });
-
-      const result = applyAction(spcOocDefinition, instance, issue, {
-        actionId: 'pi_comment',
-        actorId: 'user-pi',
-        timestamp: ts,
-        payload: { comment: 'PI input' },
-      });
-      expect('error' in result).toBe(false);
-      if ('error' in result) return;
-
-      expect(result.instance.currentPhaseId).toBe('p2_pi_l5_review');
-      expect(result.issue.status).toBe('Investigating');
-    });
-
-    it('auto-advances into a zero-action terminal phase, sets completedAt, writes terminal status', () => {
-      const issue = makeIssue({ status: 'New' });
-      const instance: WorkflowInstance = {
-        definitionId: 'test_mixed',
-        currentPhaseId: 'p_inv',
-        actors: [],
-        completedActions: {},
-        actionHistory: [],
-      };
-
-      // Firing 'finish' completes the only required action of p_inv → engine
-      // advances to p_done (zero actions, last phase) and must terminate.
-      const result = applyAction(mixedStatusDefinition, instance, issue, {
-        actionId: 'finish',
-        actorId: 'anyone',
-        timestamp: ts,
-        payload: {},
-      });
-      expect('error' in result).toBe(false);
-      if ('error' in result) return;
-
-      expect(result.instance.currentPhaseId).toBe('p_done');
-      expect(result.instance.completedAt).toBe(ts);
-      expect(result.issue.status).toBe('Closed');
-    });
-
-    it('writes the target phase status onto the issue when an action sends back', () => {
-      const issue = makeIssue({ status: 'Investigating' });
-      const instance: WorkflowInstance = {
-        definitionId: 'test_mixed',
-        currentPhaseId: 'p_inv',
-        actors: [],
-        completedActions: {},
-        actionHistory: [],
-      };
-
-      const result = applyAction(mixedStatusDefinition, instance, issue, {
-        actionId: 'back_to_start',
-        actorId: 'anyone',
-        timestamp: ts,
-        payload: {},
-      });
-      expect('error' in result).toBe(false);
-      if ('error' in result) return;
-
-      // p_inv → p_new (sendsBackTo). p_new is tagged New.
-      expect(result.instance.currentPhaseId).toBe('p_new');
-      expect(result.issue.status).toBe('New');
-    });
+  it('returns impliesStatus of the latest completed step when multiple are done', () => {
+    const instance: WorkflowInstance = {
+      definitionId: 'test_linear',
+      stepStates: {
+        A: { status: 'completed', completedAt: ts, completedBy: 'u' },
+        B: { status: 'completed', completedAt: ts, completedBy: 'u' },
+        C: { status: 'ongoing' },
+      },
+      actors: [],
+    };
+    expect(deriveStatus(linearDef, instance)).toBe('Resolved');
   });
 
-  describe('action on completed workflow', () => {
-    it('returns error when workflow is already terminal', () => {
-      const issue = makeIssue();
-      const instance = makeInstance({
-        currentPhaseId: 'p3_l4_approval',
-        completedAt: '2025-01-15T11:00:00Z',
-      });
+  it('falls back to ongoing steps when none are completed', () => {
+    const instance: WorkflowInstance = {
+      definitionId: 'test_linear',
+      stepStates: {
+        A: { status: 'ongoing' },
+        B: { status: 'pending' },
+        C: { status: 'pending' },
+      },
+      actors: [],
+    };
+    expect(deriveStatus(linearDef, instance)).toBe('Investigating');
+  });
 
-      const result = applyAction(spcOocDefinition, instance, issue, {
-        actionId: 'l4_approve',
-        actorId: 'user-l4',
-        timestamp: ts,
-        payload: {},
-      });
-      expect('error' in result).toBe(true);
-    });
+  it('skips steps without impliesStatus', () => {
+    const instance: WorkflowInstance = {
+      definitionId: 'test_diamond',
+      stepStates: {
+        A: { status: 'completed', completedAt: ts, completedBy: 'u' },
+        B: { status: 'ongoing' },
+        C: { status: 'pending' },
+        D: { status: 'pending' },
+      },
+      actors: [],
+    };
+    // A and B have no impliesStatus, no completed steps with impliesStatus
+    // B is ongoing but has no impliesStatus → undefined
+    expect(deriveStatus(diamondDef, instance)).toBeUndefined();
   });
 });
