@@ -49,7 +49,7 @@ export function WorkflowPanel({ issue, onFireAction }: WorkflowPanelProps) {
     ?? (workflow.completedAt ? 'Completed' : '');
 
   return (
-    <div className="card p-5">
+    <div id="workflow-panel" className="card p-5">
       <Header name={definition.name} currentPhaseLabel={currentPhaseLabel} isTerminal={!!workflow.completedAt} />
       <PhaseRibbon phases={phaseStates} />
       {currentPhase && !workflow.completedAt && (
