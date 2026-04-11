@@ -38,28 +38,28 @@ SLEEP_BETWEEN_NO_WORK="${SLEEP_BETWEEN_NO_WORK:-300}"
 PER_ISSUE_TIMEOUT="${PER_ISSUE_TIMEOUT:-3600}"
 MODEL="${MODEL:-}"
 
-# Issue dependency graph from PRD #1. Keep in sync with the PRD if it changes.
+# Issue dependency graph from PRD #15. Keep in sync with the PRD if it changes.
 # (Function-based instead of `declare -A` so it works on macOS bash 3.2.)
 #
-# Linear chain: slice 1 → 2 → 3 → 4 → 5 → 6.
-#   #2 Slice 1: Foundation (data model, mock fixture, queue display)
-#   #3 Slice 2: Triage (user switcher, ack/labels/risk, detail page, drawer)
-#   #4 Slice 3: Filter bar, saved views, URL sync
-#   #5 Slice 4: Alarm → Issue escalation (create + auto-ack)
-#   #6 Slice 5: Bidirectional linking UI on issue page
-#   #7 Slice 6: Dev panel (?dev=1)
+# Diamond, not a linear chain — #19 and #21 can run in parallel after #18.
+#   #17 Slice 1: Workflow engine + SPC OOC definition (pure lib)
+#   #18 Slice 2: Mock data + schema migration            (needs 17)
+#   #19 Slice 3: WorkflowPanel — read-only               (needs 17, 18)
+#   #20 Slice 4: Action firing, forms, mirroring, status (needs 19)
+#   #21 Slice 5: Discovery surface (saved view + badge)  (needs 17, 18)
+#   #22 Slice 6: Dev panel workflow controls             (needs 20)
 blockers_for() {
   case "$1" in
-    2)  echo "" ;;
-    3)  echo "2" ;;
-    4)  echo "3" ;;
-    5)  echo "4" ;;
-    6)  echo "5" ;;
-    7)  echo "6" ;;
+    17) echo "" ;;
+    18) echo "17" ;;
+    19) echo "17 18" ;;
+    20) echo "19" ;;
+    21) echo "17 18" ;;
+    22) echo "20" ;;
     *)  echo "" ;;
   esac
 }
-ALL_ISSUES="2 3 4 5 6 7"
+ALL_ISSUES="17 18 19 21 20 22"
 
 # -------------------------------------------------------------------- helpers
 
@@ -124,8 +124,8 @@ You are working autonomously on GitHub issue #$n in the repository $REPO.
 Step 1. Read the issue:
   gh issue view $n --repo $REPO
 
-Step 2. Read the parent PRD (issue #1) for full architectural context:
-  gh issue view 1 --repo $REPO
+Step 2. Read the parent PRD (issue #15) for full architectural context:
+  gh issue view 15 --repo $REPO
 
 Step 3. Use the tdd skill (red-green-refactor). For each acceptance criterion:
 write a failing test first, watch it fail, write the minimum code to make it
