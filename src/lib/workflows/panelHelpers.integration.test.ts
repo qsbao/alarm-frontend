@@ -8,10 +8,11 @@ import { getDefinition } from './registry';
 import { getStepDisplayList } from './panelHelpers';
 
 describe('panelHelpers × mock issues', () => {
-  it('all issues use generic_linear_v1', () => {
+  it('all issues have a registered workflow definition', () => {
     for (const issue of MOCK_ISSUES) {
       expect(issue.workflow).toBeDefined();
-      expect(issue.workflow!.definitionId).toBe('generic_linear_v1');
+      const def = getDefinition(issue.workflow!.definitionId);
+      expect(def).toBeDefined();
     }
   });
 

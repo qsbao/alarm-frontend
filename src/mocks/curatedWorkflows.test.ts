@@ -1,19 +1,37 @@
 import { describe, expect, it } from 'vitest';
 import { MOCK_ISSUES } from './issues';
+import { getDefinition } from '../lib/workflows/registry';
 
-describe('mock issues with genericLinear workflows', () => {
+describe('mock issues with curated workflows', () => {
   it('every issue has a workflow attached', () => {
     const allWithWorkflow = MOCK_ISSUES.filter((i) => i.workflow != null);
     expect(allWithWorkflow).toHaveLength(MOCK_ISSUES.length);
   });
 
-  it('all issues use the generic_linear_v1 workflow', () => {
+  it('all issues use a registered workflow definition', () => {
     for (const issue of MOCK_ISSUES) {
+      const def = getDefinition(issue.workflow!.definitionId);
+      expect(def).toBeDefined();
+    }
+  });
+
+  it('EndpointDrift issues use spc_ooc_branching_v1', () => {
+    const endpointDrift = MOCK_ISSUES.filter((i) => i.alarmType === 'EndpointDrift');
+    expect(endpointDrift.length).toBeGreaterThan(0);
+    for (const issue of endpointDrift) {
+      expect(issue.workflow!.definitionId).toBe('spc_ooc_branching_v1');
+    }
+  });
+
+  it('non-EndpointDrift issues use generic_linear_v1', () => {
+    const other = MOCK_ISSUES.filter((i) => i.alarmType !== 'EndpointDrift');
+    expect(other.length).toBeGreaterThan(0);
+    for (const issue of other) {
       expect(issue.workflow!.definitionId).toBe('generic_linear_v1');
     }
   });
 
-  it('every workflow has stepStates for all three steps', () => {
+  it('every workflow has stepStates for chart_owner_comment, resolved, and closed', () => {
     for (const issue of MOCK_ISSUES) {
       const wf = issue.workflow!;
       expect(wf.stepStates).toHaveProperty('chart_owner_comment');
