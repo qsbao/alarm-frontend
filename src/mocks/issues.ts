@@ -1,5 +1,6 @@
 import type { ActivityEntry, AlarmType, Issue, RiskLevel } from '../types';
 import { MOCK_ALARMS } from './alarms';
+import { PRODUCT_ROUTES } from './routes';
 
 const ALARM_TYPES: AlarmType[] = [
   'TempSpike',
@@ -16,7 +17,7 @@ const ALARM_TYPES: AlarmType[] = [
 
 const RISK_LEVELS: RiskLevel[] = ['Low', 'Medium', 'High', 'Critical'];
 
-const PRODUCTS = ['A7-Litho', 'B3-Etch', 'C2-CVD', 'D1-PVD', 'E5-CMP', 'F4-Metro'];
+const PRODUCTS = PRODUCT_ROUTES.map((r) => r.product);
 const OWNER_IDS = [
   'user-tanaka',
   'user-chen',
@@ -28,17 +29,6 @@ const OWNER_IDS = [
   'user-garcia',
 ];
 const DEPARTMENTS = ['Litho', 'Etch', 'Diffusion', 'Metrology'];
-
-const OPERATIONS = [
-  'Wafer transfer',
-  'Chamber pump-down',
-  'Recipe step 3',
-  'Idle / standby',
-  'Lot start',
-  'Process clean',
-  'Endpoint detect',
-  'Vent cycle',
-];
 
 const TITLES: Record<AlarmType, string> = {
   TempSpike: 'Temperature spike during process',
@@ -65,10 +55,12 @@ function makeIssue(i: number): Issue {
   const riskLevel = RISK_LEVELS[(i * 2 + 1) % RISK_LEVELS.length];
   // status is a placeholder; the engine writes the real value during workflow attach
   const status = 'New';
-  const product = PRODUCTS[(i * 3) % PRODUCTS.length];
+  const product = PRODUCTS[(i * 7 + 1) % PRODUCTS.length];
   const ownerId = OWNER_IDS[(i * 5) % OWNER_IDS.length];
   const department = DEPARTMENTS[(i * 7) % DEPARTMENTS.length];
-  const operation = OPERATIONS[(i * 11) % OPERATIONS.length];
+  // Pick operation from the product's actual route so every issue aligns to a real route node.
+  const route = PRODUCT_ROUTES.find((r) => r.product === product)!;
+  const operation = route.operations[(i * 11) % route.operations.length].name;
 
   // Spread creation dates across the last 30 days, deterministically.
   const minutesAgoCreated = (i * 311 + 47) % (60 * 24 * 30);

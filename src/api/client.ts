@@ -17,6 +17,8 @@ import {
   isBlocked,
   resetRelations,
 } from '../lib/relations/issueRelations';
+import { listHighlightCandidates as listCandidates } from '../lib/relations/highlightCandidates';
+import { getProductRoute } from '../mocks/routes';
 
 const CURRENT_USER = 'demo.user';
 
@@ -415,6 +417,124 @@ export const api = {
         status: blocker?.status ?? 'Unknown',
       };
     });
+  },
+
+  /**
+   * Returns highlight candidates for a given issue: upstream operations on the
+   * same product's route, each paired with existing open issues.
+   */
+  async listHighlightCandidates(issueId: string) {
+    await delay();
+    const issue = findIssue(issueId);
+    return listCandidates(issue, issues);
+  },
+
+  /**
+   * Creates a new child issue for the target operation, attaches the
+   * genericLinear workflow, and registers it as a blocker on the parent.
+   * Produces activity entries on both parent and child.
+   */
+  async createHighlightedIssue(
+    parentIssueId: string,
+    targetOperationId: string,
+    actorId: string,
+  ): Promise<{ parent: Issue; child: Issue }> {
+    await delay();
+    const parent = findIssue(parentIssueId);
+
+    if (parent.workflow?.stepStates['resolved']?.status === 'completed') {
+      throw new Error('Cannot add highlight after resolved has completed');
+    }
+
+    // Parse "Product:Operation name" from targetOperationId
+    const sepIdx = targetOperationId.indexOf(':');
+    if (sepIdx < 0) throw new Error(`Invalid operation id: ${targetOperationId}`);
+    const productName = targetOperationId.slice(0, sepIdx);
+    const opName = targetOperationId.slice(sepIdx + 1);
+
+    const route = getProductRoute(productName);
+    if (!route) throw new Error(`Unknown product: ${productName}`);
+    const op = route.operations.find((o) => o.name === opName);
+    if (!op) throw new Error(`Operation not on route: ${opName}`);
+
+    // Create child issue
+    const childId = nextIssueId();
+    const seedActivity: ActivityEntry = {
+      id: `${childId}-act-1`,
+      type: 'created',
+      timestamp: new Date().toISOString(),
+      author: actorId,
+    };
+    const child: Issue = {
+      id: childId,
+      title: `Highlight: ${opName} on ${productName}`,
+      date: new Date().toISOString(),
+      alarmType: parent.alarmType,
+      riskLevel: parent.riskLevel,
+      status: 'New',
+      issueTime: new Date().toISOString(),
+      operation: opName,
+      product: productName,
+      ownerId: actorId,
+      department: parent.department,
+      description: `Highlighted upstream operation "${opName}" from ${parent.id}.`,
+      relatedAlarmIds: [],
+      activity: [seedActivity],
+    };
+    issues.push(child);
+
+    // Attach genericLinear workflow
+    const definition = getDefinition('generic_linear_v1')!;
+    const attachResult = attachWorkflow(definition, child, {}, new Date().toISOString());
+    if ('error' in attachResult) throw new Error(attachResult.error);
+    child.workflow = attachResult.instance;
+    child.status = attachResult.issue.status;
+
+    appendActivity(child, 'workflow_transition', {
+      workflowDefinitionId: attachResult.activityEntry.definitionId,
+      workflowStepId: attachResult.activityEntry.stepId,
+      workflowAction: attachResult.activityEntry.action,
+      workflowActorId: actorId,
+    });
+
+    // Register as blocker
+    relAddBlocker(parentIssueId, childId, actorId);
+    appendActivity(parent, 'blocker_added', { blockerIssueId: childId });
+    appendActivity(child, 'blocker_added', { blockerIssueId: parentIssueId });
+
+    return { parent: cloneIssue(parent), child: cloneIssue(child) };
+  },
+
+  /**
+   * Links an existing issue as a blocker on the parent (highlight by linking).
+   * Does not create a new issue. Produces activity entries on both sides.
+   * Idempotent — linking the same issue twice is a no-op.
+   */
+  async linkExistingIssueAsHighlight(
+    parentIssueId: string,
+    existingIssueId: string,
+    actorId: string,
+  ): Promise<Issue> {
+    await delay();
+    const parent = findIssue(parentIssueId);
+    const existing = findIssue(existingIssueId);
+
+    if (parent.workflow?.stepStates['resolved']?.status === 'completed') {
+      throw new Error('Cannot add highlight after resolved has completed');
+    }
+
+    const rel = relAddBlocker(parentIssueId, existingIssueId, actorId);
+    // Only append activity if this is a new relation (createdBy matches actorId and just created)
+    // Since addBlocker is idempotent and returns existing, check if activity already has this entry
+    const alreadyLogged = parent.activity.some(
+      (a) => a.type === 'blocker_added' && a.blockerIssueId === existingIssueId,
+    );
+    if (!alreadyLogged) {
+      appendActivity(parent, 'blocker_added', { blockerIssueId: existingIssueId });
+      appendActivity(existing, 'blocker_added', { blockerIssueId: parentIssueId });
+    }
+
+    return cloneIssue(parent);
   },
 
   /**

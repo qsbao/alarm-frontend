@@ -1,8 +1,9 @@
-import { Check, Circle, Clock, AlertCircle, SkipForward, Link2, Trash2, Plus } from 'lucide-react';
+import { Check, Circle, Clock, AlertCircle, SkipForward, Link2, Trash2, Plus, ChevronDown, ChevronUp } from 'lucide-react';
 import { useState } from 'react';
 import type { Issue } from '../../types';
 import type { BlockerInfo } from '../../hooks/useIssue';
 import type { PayloadFieldSchema, Step, StepStatus } from '../../lib/workflows/types';
+import type { HighlightCandidate } from '../../lib/relations/highlightCandidates';
 import { getDefinition } from '../../lib/workflows/registry';
 import { getStepDisplayList, canUserActOnStep, canSkipStep, canReviveStep, canEditStep } from '../../lib/workflows/panelHelpers';
 import { useCurrentUserStore } from '../../stores/currentUserStore';
@@ -16,6 +17,9 @@ interface WorkflowPanelProps {
   onEditStep?: (stepId: string, actorId: string, payload: Record<string, unknown>) => Promise<void>;
   onAddBlocker?: (blockerIssueId: string) => Promise<void>;
   onRemoveBlocker?: (blockerIssueId: string) => Promise<void>;
+  onFetchHighlightCandidates?: () => Promise<HighlightCandidate[]>;
+  onCreateHighlightedIssue?: (targetOperationId: string) => Promise<void>;
+  onLinkExistingIssueAsHighlight?: (existingIssueId: string) => Promise<void>;
 }
 
 export function WorkflowPanel({
@@ -27,6 +31,9 @@ export function WorkflowPanel({
   onEditStep,
   onAddBlocker,
   onRemoveBlocker,
+  onFetchHighlightCandidates,
+  onCreateHighlightedIssue,
+  onLinkExistingIssueAsHighlight,
 }: WorkflowPanelProps) {
   const workflow = issue.workflow;
   if (!workflow) return null;
@@ -74,6 +81,9 @@ export function WorkflowPanel({
         resolvedCompleted={resolvedCompleted}
         onAddBlocker={onAddBlocker}
         onRemoveBlocker={onRemoveBlocker}
+        onFetchHighlightCandidates={onFetchHighlightCandidates}
+        onCreateHighlightedIssue={onCreateHighlightedIssue}
+        onLinkExistingIssueAsHighlight={onLinkExistingIssueAsHighlight}
       />
     </div>
   );
@@ -401,31 +411,54 @@ function RelatedIssuesSection({
   resolvedCompleted,
   onAddBlocker,
   onRemoveBlocker,
+  onFetchHighlightCandidates,
+  onCreateHighlightedIssue,
+  onLinkExistingIssueAsHighlight,
 }: {
   blockers: BlockerInfo[];
   resolvedCompleted: boolean;
   onAddBlocker?: (blockerIssueId: string) => Promise<void>;
   onRemoveBlocker?: (blockerIssueId: string) => Promise<void>;
+  onFetchHighlightCandidates?: () => Promise<HighlightCandidate[]>;
+  onCreateHighlightedIssue?: (targetOperationId: string) => Promise<void>;
+  onLinkExistingIssueAsHighlight?: (existingIssueId: string) => Promise<void>;
 }) {
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [newBlockerId, setNewBlockerId] = useState('');
-  const [addError, setAddError] = useState<string | null>(null);
-  const [addPending, setAddPending] = useState(false);
+  const [showDialog, setShowDialog] = useState(false);
+  const [candidates, setCandidates] = useState<HighlightCandidate[]>([]);
+  const [loadingCandidates, setLoadingCandidates] = useState(false);
+  const [dialogError, setDialogError] = useState<string | null>(null);
 
-  const handleAdd = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmed = newBlockerId.trim();
-    if (!trimmed) return;
-    setAddError(null);
-    setAddPending(true);
+  const openDialog = async () => {
+    setShowDialog(true);
+    setDialogError(null);
+    setLoadingCandidates(true);
     try {
-      await onAddBlocker?.(trimmed);
-      setNewBlockerId('');
-      setShowAddForm(false);
+      const result = await onFetchHighlightCandidates?.() ?? [];
+      setCandidates(result);
     } catch (err) {
-      setAddError(err instanceof Error ? err.message : 'Failed to add blocker');
+      setDialogError(err instanceof Error ? err.message : 'Failed to load candidates');
     } finally {
-      setAddPending(false);
+      setLoadingCandidates(false);
+    }
+  };
+
+  const handleCreate = async (operationId: string) => {
+    setDialogError(null);
+    try {
+      await onCreateHighlightedIssue?.(operationId);
+      setShowDialog(false);
+    } catch (err) {
+      setDialogError(err instanceof Error ? err.message : 'Failed to create highlighted issue');
+    }
+  };
+
+  const handleLink = async (issueId: string) => {
+    setDialogError(null);
+    try {
+      await onLinkExistingIssueAsHighlight?.(issueId);
+      setShowDialog(false);
+    } catch (err) {
+      setDialogError(err instanceof Error ? err.message : 'Failed to link issue');
     }
   };
 
@@ -436,18 +469,18 @@ function RelatedIssuesSection({
           <Link2 size={12} />
           Related Issues
         </h3>
-        {!resolvedCompleted && !showAddForm && (
+        {!resolvedCompleted && !showDialog && (
           <button
-            onClick={() => setShowAddForm(true)}
+            onClick={openDialog}
             className="text-[10px] font-medium px-2 py-0.5 rounded bg-accent-subtle text-theme-accent hover:bg-accent/20 transition-colors flex items-center gap-1"
           >
             <Plus size={10} />
-            Add blocker
+            Add highlight
           </button>
         )}
       </div>
 
-      {blockers.length === 0 && !showAddForm && (
+      {blockers.length === 0 && !showDialog && (
         <p className="text-[11px] text-theme-muted italic">No blocking issues</p>
       )}
 
@@ -463,40 +496,127 @@ function RelatedIssuesSection({
         </ul>
       )}
 
-      {showAddForm && (
-        <form onSubmit={handleAdd} className="mt-2 p-3 rounded bg-surface-overlay/40 border border-border-subtle/30">
-          <label className="flex flex-col gap-1 mb-2">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted">
-              Blocking Issue ID
-            </span>
-            <input
-              type="text"
-              value={newBlockerId}
-              onChange={(e) => setNewBlockerId(e.target.value)}
-              placeholder="e.g. iss-005"
-              className="input-base text-xs"
-              autoFocus
-            />
-          </label>
-          {addError && (
-            <div className="flex items-center gap-1.5 mb-2 text-[11px] text-red-500">
-              <AlertCircle size={12} />
-              {addError}
-            </div>
-          )}
-          <div className="flex gap-2">
-            <button type="submit" disabled={addPending} className="btn-primary btn-sm text-[11px]">
-              {addPending ? 'Adding...' : 'Add'}
-            </button>
-            <button
-              type="button"
-              onClick={() => { setShowAddForm(false); setAddError(null); }}
-              className="btn-secondary btn-sm text-[11px]"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
+      {showDialog && (
+        <HighlightDialog
+          candidates={candidates}
+          loading={loadingCandidates}
+          error={dialogError}
+          onCreateNew={handleCreate}
+          onLinkExisting={handleLink}
+          onClose={() => setShowDialog(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+function HighlightDialog({
+  candidates,
+  loading,
+  error,
+  onCreateNew,
+  onLinkExisting,
+  onClose,
+}: {
+  candidates: HighlightCandidate[];
+  loading: boolean;
+  error: string | null;
+  onCreateNew: (operationId: string) => Promise<void>;
+  onLinkExisting: (issueId: string) => Promise<void>;
+  onClose: () => void;
+}) {
+  const [actionPending, setActionPending] = useState<string | null>(null);
+  const [expandedOp, setExpandedOp] = useState<string | null>(null);
+
+  const handleAction = async (action: () => Promise<void>, key: string) => {
+    setActionPending(key);
+    try { await action(); } finally { setActionPending(null); }
+  };
+
+  return (
+    <div className="mt-2 p-3 rounded bg-surface-overlay/40 border border-border-subtle/30">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[11px] font-semibold text-theme-secondary">
+          Select upstream operation to highlight
+        </span>
+        <button
+          onClick={onClose}
+          className="text-[10px] text-theme-muted hover:text-theme-primary transition-colors"
+        >
+          Close
+        </button>
+      </div>
+
+      {loading && (
+        <p className="text-[11px] text-theme-muted italic">Loading candidates...</p>
+      )}
+
+      {error && (
+        <div className="flex items-center gap-1.5 mb-2 text-[11px] text-red-500">
+          <AlertCircle size={12} />
+          {error}
+        </div>
+      )}
+
+      {!loading && candidates.length === 0 && !error && (
+        <p className="text-[11px] text-theme-muted italic">No upstream operations available</p>
+      )}
+
+      {!loading && candidates.length > 0 && (
+        <ul className="flex flex-col gap-1.5">
+          {candidates.map((c) => {
+            const isExpanded = expandedOp === c.operation.id;
+            const hasOpenIssues = c.existingOpenIssues.length > 0;
+            return (
+              <li key={c.operation.id} className="rounded bg-surface-overlay/30 border border-border-subtle/20">
+                <div className="flex items-center gap-2 py-1.5 px-2">
+                  <span className="text-xs font-medium text-theme-primary flex-1">
+                    {c.operation.name}
+                  </span>
+                  {hasOpenIssues && (
+                    <button
+                      onClick={() => setExpandedOp(isExpanded ? null : c.operation.id)}
+                      className="text-[10px] text-theme-muted hover:text-theme-primary transition-colors flex items-center gap-0.5"
+                    >
+                      {c.existingOpenIssues.length} open
+                      {isExpanded ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+                    </button>
+                  )}
+                  <button
+                    disabled={actionPending !== null}
+                    onClick={() => handleAction(() => onCreateNew(c.operation.id), `create-${c.operation.id}`)}
+                    className="text-[10px] font-medium px-2 py-0.5 rounded bg-accent-subtle text-theme-accent hover:bg-accent/20 transition-colors"
+                  >
+                    {actionPending === `create-${c.operation.id}` ? 'Creating...' : 'Create new'}
+                  </button>
+                </div>
+                {isExpanded && hasOpenIssues && (
+                  <ul className="px-2 pb-2 flex flex-col gap-1">
+                    {c.existingOpenIssues.map((iss) => (
+                      <li key={iss.id} className="flex items-center gap-2 py-1 px-2 rounded bg-surface-overlay/20">
+                        <span className="text-[11px] text-theme-secondary flex-1 truncate">
+                          {iss.id} — {iss.title}
+                        </span>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                          BLOCKER_STATUS_STYLES[iss.status] ?? 'bg-surface-overlay/40 text-theme-muted/60'
+                        }`}>
+                          {iss.status}
+                        </span>
+                        <button
+                          disabled={actionPending !== null}
+                          onClick={() => handleAction(() => onLinkExisting(iss.id), `link-${iss.id}`)}
+                          className="text-[10px] font-medium px-2 py-0.5 rounded bg-surface-overlay/60 text-theme-muted hover:bg-surface-overlay transition-colors"
+                        >
+                          {actionPending === `link-${iss.id}` ? 'Linking...' : 'Link'}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            );
+          })}
+        </ul>
       )}
     </div>
   );
