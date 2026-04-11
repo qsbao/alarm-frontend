@@ -1,7 +1,12 @@
 import type { ActivityEntry, ActivityType, Alarm, Issue } from '../types';
 import { MOCK_ALARMS } from '../mocks/alarms';
 import { MOCK_ISSUES } from '../mocks/issues';
-import { attachWorkflow, completeStep } from '../lib/workflows/engine';
+import {
+  attachWorkflow,
+  completeStep as engineCompleteStep,
+  skipStep as engineSkipStep,
+  reviveStep as engineReviveStep,
+} from '../lib/workflows/engine';
 import { getDefinition } from '../lib/workflows/registry';
 import type { WorkflowInstance } from '../lib/workflows/types';
 
@@ -197,11 +202,83 @@ export const api = {
     const definition = getDefinition(issue.workflow.definitionId);
     if (!definition) throw new Error(`Unknown workflow definition: ${issue.workflow.definitionId}`);
 
-    const result = completeStep(definition, issue.workflow, issue, {
+    const result = engineCompleteStep(definition, issue.workflow, issue, {
       stepId,
       actorId,
       timestamp: new Date().toISOString(),
       payload,
+    });
+    if ('error' in result) throw new Error(result.error);
+
+    issue.workflow = result.instance;
+    issue.status = result.issue.status;
+
+    appendActivity(issue, 'workflow_transition', {
+      workflowDefinitionId: result.activityEntry.definitionId,
+      workflowStepId: result.activityEntry.stepId,
+      workflowAction: result.activityEntry.action,
+      workflowActorId: result.activityEntry.actorId,
+    });
+
+    return cloneIssue(issue);
+  },
+
+  /**
+   * Skips a workflow step on an issue. Validates skippableIf predicate,
+   * transitions the step to skipped, activates downstream steps, and derives status.
+   */
+  async skipStep(
+    id: string,
+    stepId: string,
+    actorId: string,
+  ): Promise<Issue> {
+    await delay();
+    const issue = findIssue(id);
+    if (!issue.workflow) throw new Error('Issue has no workflow');
+
+    const definition = getDefinition(issue.workflow.definitionId);
+    if (!definition) throw new Error(`Unknown workflow definition: ${issue.workflow.definitionId}`);
+
+    const result = engineSkipStep(definition, issue.workflow, issue, {
+      stepId,
+      actorId,
+      timestamp: new Date().toISOString(),
+    });
+    if ('error' in result) throw new Error(result.error);
+
+    issue.workflow = result.instance;
+    issue.status = result.issue.status;
+
+    appendActivity(issue, 'workflow_transition', {
+      workflowDefinitionId: result.activityEntry.definitionId,
+      workflowStepId: result.activityEntry.stepId,
+      workflowAction: result.activityEntry.action,
+      workflowActorId: result.activityEntry.actorId,
+    });
+
+    return cloneIssue(issue);
+  },
+
+  /**
+   * Revives a skipped workflow step on an issue. Moves the step back to ongoing
+   * without cascading to successors. Disallowed after resolved completes.
+   */
+  async reviveStep(
+    id: string,
+    stepId: string,
+    actorId: string,
+  ): Promise<Issue> {
+    await delay();
+    const issue = findIssue(id);
+    if (!issue.workflow) throw new Error('Issue has no workflow');
+
+    const definition = getDefinition(issue.workflow.definitionId);
+    if (!definition) throw new Error(`Unknown workflow definition: ${issue.workflow.definitionId}`);
+
+    const result = engineReviveStep(definition, issue.workflow, issue, {
+      stepId,
+      actorId,
+      timestamp: new Date().toISOString(),
     });
     if ('error' in result) throw new Error(result.error);
 
