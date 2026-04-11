@@ -63,7 +63,7 @@ export interface WorkflowInstance {
 export interface WorkflowActivityEntry {
   definitionId: string;
   stepId: string;
-  action: 'attach' | 'complete' | 'skip' | 'revive';
+  action: 'attach' | 'complete' | 'skip' | 'revive' | 'edit';
   actorId: UserId;
   timestamp: string;
 }
@@ -115,3 +115,15 @@ export interface ReviveStepError {
 }
 
 export type ReviveStepResult = ReviveStepSuccess | ReviveStepError;
+
+export interface EditStepSuccess {
+  instance: WorkflowInstance;
+  issue: Issue;
+  activityEntry: WorkflowActivityEntry;
+}
+
+export interface EditStepError {
+  error: string;
+}
+
+export type EditStepResult = EditStepSuccess | EditStepError;

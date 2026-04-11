@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { attachWorkflow, completeStep, deriveStatus, skipStep, reviveStep } from './engine';
+import { attachWorkflow, completeStep, deriveStatus, skipStep, reviveStep, editCompletedStep } from './engine';
 import type { Issue } from '../../types';
 import type { WorkflowDefinition, WorkflowInstance } from './types';
 
@@ -956,5 +956,212 @@ describe('deriveStatus', () => {
     // A and B have no impliesStatus, no completed steps with impliesStatus
     // B is ongoing but has no impliesStatus → undefined
     expect(deriveStatus(diamondDef, instance)).toBeUndefined();
+  });
+});
+
+describe('editCompletedStep', () => {
+  it('re-runs gate against the current user and rejects on failure', () => {
+    const issue = makeIssue({ ownerId: 'user-tanaka' });
+    const instance: WorkflowInstance = {
+      definitionId: 'test_gated',
+      stepStates: {
+        gated_step: {
+          status: 'completed',
+          completedAt: ts,
+          completedBy: 'user-tanaka',
+          payload: { comment: 'original', reason: 'Tool' },
+        },
+        done: { status: 'ongoing' },
+      },
+      actors: [],
+    };
+
+    const result = editCompletedStep(gatedDef, instance, issue, {
+      stepId: 'gated_step',
+      actorId: 'user-wrong',
+      timestamp: ts,
+      payload: { comment: 'edited', reason: 'Material' },
+    });
+    expect('error' in result).toBe(true);
+    if ('error' in result) {
+      expect(result.error).toContain('gate');
+    }
+  });
+
+  it('re-runs gate against the current user (not the original completer) and accepts', () => {
+    // Gate checks user.id === issue.ownerId. Owner is tanaka.
+    // Original completer was tanaka, now tanaka edits — should pass.
+    const issue = makeIssue({ ownerId: 'user-tanaka' });
+    const instance: WorkflowInstance = {
+      definitionId: 'test_gated',
+      stepStates: {
+        gated_step: {
+          status: 'completed',
+          completedAt: ts,
+          completedBy: 'user-tanaka',
+          payload: { comment: 'original', reason: 'Tool' },
+        },
+        done: { status: 'ongoing' },
+      },
+      actors: [],
+    };
+
+    const result = editCompletedStep(gatedDef, instance, issue, {
+      stepId: 'gated_step',
+      actorId: 'user-tanaka',
+      timestamp: ts,
+      payload: { comment: 'edited', reason: 'Material' },
+    });
+    expect('error' in result).toBe(false);
+    if ('error' in result) return;
+
+    expect(result.instance.stepStates['gated_step'].payload).toEqual({
+      comment: 'edited',
+      reason: 'Material',
+    });
+  });
+
+  it('validates payload against payloadSchema', () => {
+    const issue = makeIssue({ ownerId: 'user-tanaka' });
+    const instance: WorkflowInstance = {
+      definitionId: 'test_gated',
+      stepStates: {
+        gated_step: {
+          status: 'completed',
+          completedAt: ts,
+          completedBy: 'user-tanaka',
+          payload: { comment: 'original', reason: 'Tool' },
+        },
+        done: { status: 'ongoing' },
+      },
+      actors: [],
+    };
+
+    // Missing required field
+    const result = editCompletedStep(gatedDef, instance, issue, {
+      stepId: 'gated_step',
+      actorId: 'user-tanaka',
+      timestamp: ts,
+      payload: { reason: 'Tool' }, // missing comment
+    });
+    expect('error' in result).toBe(true);
+  });
+
+  it('rejects edit when step is not completed', () => {
+    const issue = makeIssue();
+    const instance: WorkflowInstance = {
+      definitionId: 'test_linear',
+      stepStates: {
+        A: { status: 'ongoing' },
+        B: { status: 'pending' },
+        C: { status: 'pending' },
+      },
+      actors: [],
+    };
+
+    const result = editCompletedStep(linearDef, instance, issue, {
+      stepId: 'A',
+      actorId: 'user-tanaka',
+      timestamp: ts,
+      payload: {},
+    });
+    expect('error' in result).toBe(true);
+  });
+
+  it('does NOT cascade defaultSkipIf re-evaluation downstream', () => {
+    // B has defaultSkipIf(riskLevel === 'Low'). B was activated as ongoing (high risk).
+    // Now edit A. B should stay ongoing — no re-evaluation.
+    const issue = makeIssue({ riskLevel: 'Low' });
+    const instance: WorkflowInstance = {
+      definitionId: 'test_autoskip',
+      stepStates: {
+        A: { status: 'completed', completedAt: ts, completedBy: 'user-tanaka' },
+        B: { status: 'ongoing' }, // activated when risk was High
+        C: { status: 'pending' },
+      },
+      actors: [],
+    };
+
+    const result = editCompletedStep(autoSkipDef, instance, issue, {
+      stepId: 'A',
+      actorId: 'user-tanaka',
+      timestamp: ts,
+      payload: {},
+    });
+    expect('error' in result).toBe(false);
+    if ('error' in result) return;
+
+    // B must stay ongoing — no cascade
+    expect(result.instance.stepStates['B'].status).toBe('ongoing');
+    expect(result.instance.stepStates['C'].status).toBe('pending');
+  });
+
+  it('produces a distinct activity entry with action=edit', () => {
+    const issue = makeIssue({ ownerId: 'user-tanaka' });
+    const instance: WorkflowInstance = {
+      definitionId: 'test_gated',
+      stepStates: {
+        gated_step: {
+          status: 'completed',
+          completedAt: ts,
+          completedBy: 'user-tanaka',
+          payload: { comment: 'original', reason: 'Tool' },
+        },
+        done: { status: 'ongoing' },
+      },
+      actors: [],
+    };
+
+    const result = editCompletedStep(gatedDef, instance, issue, {
+      stepId: 'gated_step',
+      actorId: 'user-tanaka',
+      timestamp: ts,
+      payload: { comment: 'edited', reason: 'Material' },
+    });
+    expect('error' in result).toBe(false);
+    if ('error' in result) return;
+
+    expect(result.activityEntry.action).toBe('edit');
+    expect(result.activityEntry.stepId).toBe('gated_step');
+    expect(result.activityEntry.actorId).toBe('user-tanaka');
+    expect(result.activityEntry.timestamp).toBe(ts);
+    expect(result.activityEntry.definitionId).toBe('test_gated');
+  });
+
+  it('preserves completedAt and completedBy from the original completion', () => {
+    const issue = makeIssue({ ownerId: 'user-tanaka' });
+    const originalTs = '2025-01-15T10:00:00Z';
+    const editTs = '2025-01-15T14:00:00Z';
+    const instance: WorkflowInstance = {
+      definitionId: 'test_gated',
+      stepStates: {
+        gated_step: {
+          status: 'completed',
+          completedAt: originalTs,
+          completedBy: 'user-tanaka',
+          payload: { comment: 'original', reason: 'Tool' },
+        },
+        done: { status: 'ongoing' },
+      },
+      actors: [],
+    };
+
+    const result = editCompletedStep(gatedDef, instance, issue, {
+      stepId: 'gated_step',
+      actorId: 'user-tanaka',
+      timestamp: editTs,
+      payload: { comment: 'edited', reason: 'Material' },
+    });
+    expect('error' in result).toBe(false);
+    if ('error' in result) return;
+
+    // Status stays completed, original completedAt/By preserved
+    expect(result.instance.stepStates['gated_step'].status).toBe('completed');
+    expect(result.instance.stepStates['gated_step'].completedAt).toBe(originalTs);
+    expect(result.instance.stepStates['gated_step'].completedBy).toBe('user-tanaka');
+    expect(result.instance.stepStates['gated_step'].payload).toEqual({
+      comment: 'edited',
+      reason: 'Material',
+    });
   });
 });
