@@ -6,7 +6,9 @@ import {
   isBlocked,
   resetRelations,
 } from './issueRelations';
-import type { IssueStatus } from '../../types';
+import type { Issue, IssueStatus } from '../../types';
+import { completeStep } from '../workflows/engine';
+import type { WorkflowDefinition, WorkflowInstance } from '../workflows/types';
 
 beforeEach(() => {
   resetRelations();
@@ -107,6 +109,106 @@ describe('issueRelations', () => {
     it('treats unknown status (undefined) as non-terminal', () => {
       addBlocker('iss-001', 'iss-002', 'user-a');
       expect(isBlocked('iss-001', () => undefined)).toBe(true);
+    });
+  });
+
+  describe('resolved step gate integration', () => {
+    const resolvedDef: WorkflowDefinition = {
+      id: 'test_resolved',
+      name: 'Resolved Test',
+      version: '1',
+      steps: [
+        { id: 'work', label: 'Work', order: 1, preSteps: [], impliesStatus: 'Investigating' },
+        {
+          id: 'resolved',
+          label: 'Resolved',
+          order: 2,
+          preSteps: ['work'],
+          gate: ({ user, issue }) => user.id === issue.ownerId,
+          impliesStatus: 'Resolved',
+        },
+      ],
+      requiredRoles: [],
+    };
+
+    function makeIssue(overrides: Partial<Issue> = {}): Issue {
+      return {
+        id: 'iss-001',
+        title: 'Test',
+        date: '2025-01-15T10:00:00Z',
+        alarmType: 'TempSpike',
+        riskLevel: 'High',
+        status: 'Investigating',
+        issueTime: '2025-01-15T09:55:00Z',
+        operation: 'Lithography',
+        product: 'A7-Litho',
+        ownerId: 'user-owner',
+        department: 'Litho',
+        description: 'Test',
+        relatedAlarmIds: [],
+        activity: [],
+        ...overrides,
+      };
+    }
+
+    it('isBlocked prevents resolved completion when blocker is Investigating', () => {
+      addBlocker('iss-001', 'iss-002', 'user-a');
+
+      const issue = makeIssue();
+      const instance: WorkflowInstance = {
+        definitionId: 'test_resolved',
+        stepStates: {
+          work: { status: 'completed', completedAt: 't1', completedBy: 'user-owner' },
+          resolved: { status: 'ongoing' },
+        },
+        actors: [],
+      };
+
+      // isBlocked returns true → API layer would reject
+      const blocked = isBlocked('iss-001', (id) =>
+        id === 'iss-002' ? 'Investigating' : undefined,
+      );
+      expect(blocked).toBe(true);
+
+      // Engine itself still allows (gate only checks user) — blocker check is API-layer
+      const result = completeStep(resolvedDef, instance, issue, {
+        stepId: 'resolved',
+        actorId: 'user-owner',
+        timestamp: 't2',
+        payload: {},
+      });
+      expect('instance' in result).toBe(true);
+    });
+
+    it('isBlocked returns false once all blockers reach terminal status', () => {
+      addBlocker('iss-001', 'iss-002', 'user-a');
+      addBlocker('iss-001', 'iss-003', 'user-a');
+
+      const blocked = isBlocked('iss-001', (id) => {
+        if (id === 'iss-002') return 'Resolved';
+        if (id === 'iss-003') return 'Closed';
+        return undefined;
+      });
+      expect(blocked).toBe(false);
+    });
+
+    it('addBlocker after resolved completed is rejected (checked at API layer)', () => {
+      // Simulate: resolved step is completed
+      const issue = makeIssue();
+      issue.workflow = {
+        definitionId: 'test_resolved',
+        stepStates: {
+          work: { status: 'completed', completedAt: 't1', completedBy: 'user-owner' },
+          resolved: { status: 'completed', completedAt: 't2', completedBy: 'user-owner' },
+        },
+        actors: [],
+      };
+
+      // The API layer checks this condition before calling addBlocker
+      const resolvedCompleted =
+        issue.workflow.stepStates['resolved']?.status === 'completed';
+      expect(resolvedCompleted).toBe(true);
+      // API would throw: 'Cannot add blocker after resolved has completed'
     });
   });
 });

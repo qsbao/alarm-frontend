@@ -10,6 +10,13 @@ import {
 } from '../lib/workflows/engine';
 import { getDefinition } from '../lib/workflows/registry';
 import type { WorkflowInstance } from '../lib/workflows/types';
+import {
+  addBlocker as relAddBlocker,
+  removeBlocker as relRemoveBlocker,
+  getBlockers,
+  isBlocked,
+  resetRelations,
+} from '../lib/relations/issueRelations';
 
 const CURRENT_USER = 'demo.user';
 
@@ -203,6 +210,15 @@ export const api = {
     const definition = getDefinition(issue.workflow.definitionId);
     if (!definition) throw new Error(`Unknown workflow definition: ${issue.workflow.definitionId}`);
 
+    // Blocker gate: resolved step cannot complete while blockers are unresolved
+    if (stepId === 'resolved') {
+      const blocked = isBlocked(id, (blockerId) => {
+        const blocker = issues.find((i) => i.id === blockerId);
+        return blocker?.status;
+      });
+      if (blocked) throw new Error('Cannot complete resolved: issue has unresolved blockers');
+    }
+
     const result = engineCompleteStep(definition, issue.workflow, issue, {
       stepId,
       actorId,
@@ -335,6 +351,73 @@ export const api = {
   },
 
   /**
+   * Adds a blocker relation: toIssueId blocks fromIssueId.
+   * Rejected if the parent's resolved step has already completed.
+   * Produces activity entries on both issues.
+   */
+  async addBlocker(
+    fromIssueId: string,
+    toIssueId: string,
+    actorId: string,
+  ): Promise<Issue> {
+    await delay();
+    const parent = findIssue(fromIssueId);
+    const blocker = findIssue(toIssueId);
+
+    // Cannot add blocker after resolved has completed
+    if (parent.workflow?.stepStates['resolved']?.status === 'completed') {
+      throw new Error('Cannot add blocker after resolved has completed');
+    }
+
+    relAddBlocker(fromIssueId, toIssueId, actorId);
+
+    appendActivity(parent, 'blocker_added', { blockerIssueId: toIssueId });
+    appendActivity(blocker, 'blocker_added', { blockerIssueId: fromIssueId });
+
+    return cloneIssue(parent);
+  },
+
+  /**
+   * Removes a blocker relation (hard delete).
+   * Produces activity entries on both issues.
+   */
+  async removeBlocker(
+    fromIssueId: string,
+    toIssueId: string,
+    actorId: string,
+  ): Promise<Issue> {
+    await delay();
+    const parent = findIssue(fromIssueId);
+    const blocker = findIssue(toIssueId);
+
+    const removed = relRemoveBlocker(fromIssueId, toIssueId);
+    if (!removed) throw new Error('Blocker relation not found');
+
+    appendActivity(parent, 'blocker_removed', { blockerIssueId: toIssueId });
+    appendActivity(blocker, 'blocker_removed', { blockerIssueId: fromIssueId });
+
+    return cloneIssue(parent);
+  },
+
+  /**
+   * Returns blocker relations for a given issue, enriched with blocker status.
+   */
+  async getBlockers(
+    issueId: string,
+  ): Promise<Array<{ issueId: string; title: string; status: string }>> {
+    await delay();
+    const blockers = getBlockers(issueId);
+    return blockers.map((r) => {
+      const blocker = issues.find((i) => i.id === r.toIssueId);
+      return {
+        issueId: r.toIssueId,
+        title: blocker?.title ?? 'Unknown',
+        status: blocker?.status ?? 'Unknown',
+      };
+    });
+  },
+
+  /**
    * Resets all issues to their initial mock state.
    * Used by the dev panel.
    */
@@ -347,6 +430,7 @@ export const api = {
     }));
     issues.length = 0;
     issues.push(...freshIssues);
+    resetRelations();
   },
 
   async listAlarms(): Promise<Alarm[]> {
