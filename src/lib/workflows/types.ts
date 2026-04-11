@@ -22,6 +22,8 @@ export interface Step {
   gate?: (ctx: { user: { id: UserId }; instance: WorkflowInstance; issue: Issue }) => boolean;
   payloadSchema?: PayloadSchema;
   impliesStatus?: IssueStatus;
+  defaultSkipIf?: (issue: Issue) => boolean;
+  skippableIf?: (issue: Issue) => boolean;
 }
 
 export interface RoleResolver {
@@ -61,7 +63,7 @@ export interface WorkflowInstance {
 export interface WorkflowActivityEntry {
   definitionId: string;
   stepId: string;
-  action: 'attach' | 'complete';
+  action: 'attach' | 'complete' | 'skip' | 'revive';
   actorId: UserId;
   timestamp: string;
 }
@@ -89,3 +91,27 @@ export interface CompleteStepError {
 }
 
 export type CompleteStepResult = CompleteStepSuccess | CompleteStepError;
+
+export interface SkipStepSuccess {
+  instance: WorkflowInstance;
+  issue: Issue;
+  activityEntry: WorkflowActivityEntry;
+}
+
+export interface SkipStepError {
+  error: string;
+}
+
+export type SkipStepResult = SkipStepSuccess | SkipStepError;
+
+export interface ReviveStepSuccess {
+  instance: WorkflowInstance;
+  issue: Issue;
+  activityEntry: WorkflowActivityEntry;
+}
+
+export interface ReviveStepError {
+  error: string;
+}
+
+export type ReviveStepResult = ReviveStepSuccess | ReviveStepError;
