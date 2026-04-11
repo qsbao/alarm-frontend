@@ -3,7 +3,7 @@ import type { WorkflowDefinition } from '../types';
 /**
  * Generic linear workflow: chart_owner_comment → resolved → closed.
  * Used for simple issues and stub issues created via highlighting.
- * `resolved` and `closed` are owner-only. `closed` accepts an optional comment.
+ * `resolved` and `closed` are owner-only. Both accept an optional comment.
  */
 export const genericLinearDefinition: WorkflowDefinition = {
   id: 'generic_linear_v1',
@@ -23,6 +23,13 @@ export const genericLinearDefinition: WorkflowDefinition = {
       order: 2,
       preSteps: ['chart_owner_comment'],
       gate: ({ user, issue }) => user.id === issue.ownerId,
+      payloadSchema: {
+        comment: {
+          kind: 'text',
+          label: 'Comment',
+          required: false,
+        },
+      },
       impliesStatus: 'Resolved',
     },
     {

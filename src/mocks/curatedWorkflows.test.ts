@@ -15,16 +15,18 @@ describe('mock issues with curated workflows', () => {
     }
   });
 
-  it('EndpointDrift issues use spc_ooc_branching_v1', () => {
-    const endpointDrift = MOCK_ISSUES.filter((i) => i.alarmType === 'EndpointDrift');
-    expect(endpointDrift.length).toBeGreaterThan(0);
-    for (const issue of endpointDrift) {
+  const SPC_OOC_ALARM_TYPES = ['EndpointDrift', 'ParticleCount', 'GasFlowDeviation'];
+
+  it('SPC OOC alarm types use spc_ooc_branching_v1', () => {
+    const spcOoc = MOCK_ISSUES.filter((i) => SPC_OOC_ALARM_TYPES.includes(i.alarmType));
+    expect(spcOoc.length).toBeGreaterThan(0);
+    for (const issue of spcOoc) {
       expect(issue.workflow!.definitionId).toBe('spc_ooc_branching_v1');
     }
   });
 
-  it('non-EndpointDrift issues use generic_linear_v1', () => {
-    const other = MOCK_ISSUES.filter((i) => i.alarmType !== 'EndpointDrift');
+  it('non-SPC-OOC issues use generic_linear_v1', () => {
+    const other = MOCK_ISSUES.filter((i) => !SPC_OOC_ALARM_TYPES.includes(i.alarmType));
     expect(other.length).toBeGreaterThan(0);
     for (const issue of other) {
       expect(issue.workflow!.definitionId).toBe('generic_linear_v1');

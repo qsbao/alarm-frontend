@@ -16,12 +16,16 @@ describe('getDefaultWorkflowId', () => {
     'EndpointDrift',
   ];
 
-  it('returns spc_ooc_branching_v1 for EndpointDrift', () => {
-    expect(getDefaultWorkflowId('EndpointDrift')).toBe('spc_ooc_branching_v1');
+  const SPC_OOC_TYPES: AlarmType[] = ['EndpointDrift', 'ParticleCount', 'GasFlowDeviation'];
+
+  it('returns spc_ooc_branching_v1 for SPC OOC alarm types', () => {
+    for (const type of SPC_OOC_TYPES) {
+      expect(getDefaultWorkflowId(type)).toBe('spc_ooc_branching_v1');
+    }
   });
 
   it('returns generic_linear_v1 for non-SPC-OOC alarm types', () => {
-    const nonSpcOoc = ALL_ALARM_TYPES.filter((t) => t !== 'EndpointDrift');
+    const nonSpcOoc = ALL_ALARM_TYPES.filter((t) => !SPC_OOC_TYPES.includes(t));
     for (const type of nonSpcOoc) {
       expect(getDefaultWorkflowId(type)).toBe('generic_linear_v1');
     }

@@ -51,6 +51,13 @@ export const spcOocBranchingDefinition: WorkflowDefinition = {
       order: 6,
       preSteps: ['meeting'],
       gate: ({ user, issue }) => user.id === issue.ownerId,
+      payloadSchema: {
+        comment: {
+          kind: 'text',
+          label: 'Comment',
+          required: false,
+        },
+      },
       impliesStatus: 'Resolved',
     },
     {

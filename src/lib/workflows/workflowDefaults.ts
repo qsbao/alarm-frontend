@@ -1,6 +1,10 @@
 import type { AlarmType } from '../../types';
 
-const SPC_OOC_ALARM_TYPES: AlarmType[] = ['EndpointDrift'];
+const SPC_OOC_ALARM_TYPES: AlarmType[] = [
+  'EndpointDrift',
+  'ParticleCount',
+  'GasFlowDeviation',
+];
 
 /**
  * Maps an alarm type to the default workflow definition id.
