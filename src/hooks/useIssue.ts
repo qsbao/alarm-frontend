@@ -100,6 +100,15 @@ export function useIssue(id: string | undefined) {
     [id, applyIssue],
   );
 
+  const fireWorkflowAction = useCallback(
+    async (actionId: string, actorId: string, payload: Record<string, unknown>) => {
+      if (!id) return;
+      const updated = await api.fireWorkflowAction(id, actionId, actorId, payload);
+      await applyIssue(updated, false);
+    },
+    [id, applyIssue],
+  );
+
   return {
     issue,
     alarms,
@@ -110,5 +119,6 @@ export function useIssue(id: string | undefined) {
     addComment,
     linkAlarm,
     unlinkAlarm,
+    fireWorkflowAction,
   };
 }
