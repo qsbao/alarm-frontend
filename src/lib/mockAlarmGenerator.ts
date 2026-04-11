@@ -183,6 +183,7 @@ function makeDeliberateAlarm(i: number, now: number): Alarm {
     operation,
     owner: routing.owner,
     department: routing.department,
+    chartOwnerId: routing.chartOwnerId,
     status: slot.status,
     humanRisk,
     labels,
@@ -260,6 +261,7 @@ function makeVarietyAlarm(i: number, now: number): Alarm {
     operation,
     owner: routing.owner,
     department: routing.department,
+    chartOwnerId: routing.chartOwnerId,
     status,
     humanRisk,
     labels,
@@ -298,6 +300,7 @@ export function generateRandomAlarm(now: number): Alarm {
     operation,
     owner: routing.owner,
     department: routing.department,
+    chartOwnerId: routing.chartOwnerId,
     status: 'Open',
     labels: [],
     activity: [

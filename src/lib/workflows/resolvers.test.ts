@@ -18,7 +18,7 @@ function makeIssue(overrides: Partial<Issue> = {}): Issue {
     issueTime: '2025-01-15T09:55:00Z',
     operation: 'Lithography',
     product: 'A7-Litho',
-    owner: 'H. Tanaka',
+    ownerId: 'user-tanaka',
     department: 'Litho',
     description: 'Test',
     relatedAlarmIds: ['alm-001'],
@@ -38,7 +38,7 @@ const mockPiByDepartment: Record<string, string> = {
 };
 
 const mockManagerChain: Record<string, { l5: string; l4: string }> = {
-  'H. Tanaka': { l5: 'user-mgr-l5', l4: 'user-mgr-l4' },
+  'user-tanaka': { l5: 'user-mgr-l5', l4: 'user-mgr-l4' },
 };
 
 describe('resolveChartOwner', () => {
@@ -97,7 +97,7 @@ describe('resolveOwnerL5Manager', () => {
   });
 
   it('returns undefined when owner is missing from chain', () => {
-    const issue = makeIssue({ owner: 'Unknown Person' });
+    const issue = makeIssue({ ownerId: 'unknown-user' });
     const result = resolveOwnerL5Manager(issue, { managerChain: mockManagerChain });
     expect(result).toBeUndefined();
   });
@@ -117,7 +117,7 @@ describe('resolveOwnerL4Manager', () => {
   });
 
   it('returns undefined when owner is missing from chain', () => {
-    const issue = makeIssue({ owner: 'Unknown Person' });
+    const issue = makeIssue({ ownerId: 'unknown-user' });
     const result = resolveOwnerL4Manager(issue, { managerChain: mockManagerChain });
     expect(result).toBeUndefined();
   });

@@ -21,27 +21,27 @@ const baseAlarm: Alarm = {
 describe('alarmPermissions', () => {
   describe('canAck', () => {
     it('returns true when user department matches alarm department', () => {
-      const user: User = { name: 'L. Rossi', department: 'Litho' };
+      const user: User = { id: 'user-rossi', name: 'L. Rossi', department: 'Litho' };
       expect(alarmPermissions.canAck(user, baseAlarm)).toBe(true);
     });
 
     it('returns false when user department differs from alarm department', () => {
-      const user: User = { name: 'M. Chen', department: 'Etch' };
+      const user: User = { id: 'user-chen', name: 'M. Chen', department: 'Etch' };
       expect(alarmPermissions.canAck(user, baseAlarm)).toBe(false);
     });
 
     it('returns false for unknown user (no department)', () => {
-      const user: User = { name: 'Unknown', department: '' };
+      const user: User = { id: 'user-unknown', name: 'Unknown', department: '' };
       expect(alarmPermissions.canAck(user, baseAlarm)).toBe(false);
     });
 
     it('allows same-department ack even if user is not the alarm owner', () => {
-      const user: User = { name: 'R. Garcia', department: 'Litho' };
+      const user: User = { id: 'user-garcia', name: 'R. Garcia', department: 'Litho' };
       expect(alarmPermissions.canAck(user, baseAlarm)).toBe(true);
     });
 
     it('denies cross-department even if names match', () => {
-      const user: User = { name: 'H. Tanaka', department: 'Etch' };
+      const user: User = { id: 'user-tanaka', name: 'H. Tanaka', department: 'Etch' };
       expect(alarmPermissions.canAck(user, baseAlarm)).toBe(false);
     });
   });

@@ -18,15 +18,15 @@ const RISK_LEVELS: RiskLevel[] = ['Low', 'Medium', 'High', 'Critical'];
 const STATUSES: IssueStatus[] = ['New', 'Investigating', 'Resolved', 'Closed'];
 
 const PRODUCTS = ['A7-Litho', 'B3-Etch', 'C2-CVD', 'D1-PVD', 'E5-CMP', 'F4-Metro'];
-const OWNERS = [
-  'H. Tanaka',
-  'M. Chen',
-  'S. Patel',
-  'K. Müller',
-  'L. Rossi',
-  'J. Smith',
-  'A. Kim',
-  'R. Garcia',
+const OWNER_IDS = [
+  'user-tanaka',
+  'user-chen',
+  'user-patel',
+  'user-muller',
+  'user-rossi',
+  'user-smith',
+  'user-kim',
+  'user-garcia',
 ];
 const DEPARTMENTS = ['Litho', 'Etch', 'Diffusion', 'Metrology'];
 
@@ -66,7 +66,7 @@ function makeIssue(i: number): Issue {
   const riskLevel = RISK_LEVELS[(i * 2 + 1) % RISK_LEVELS.length];
   const status = STATUSES[Math.floor(i / 10) % STATUSES.length];
   const product = PRODUCTS[(i * 3) % PRODUCTS.length];
-  const owner = OWNERS[(i * 5) % OWNERS.length];
+  const ownerId = OWNER_IDS[(i * 5) % OWNER_IDS.length];
   const department = DEPARTMENTS[(i * 7) % DEPARTMENTS.length];
   const operation = OPERATIONS[(i * 11) % OPERATIONS.length];
 
@@ -105,7 +105,7 @@ function makeIssue(i: number): Issue {
     issueTime,
     operation,
     product,
-    owner,
+    ownerId,
     department,
     description:
       `Operator observed ${TITLES[alarmType].toLowerCase()} during "${operation}" on ${product}. ` +
@@ -116,4 +116,9 @@ function makeIssue(i: number): Issue {
   };
 }
 
-export const MOCK_ISSUES: Issue[] = Array.from({ length: 40 }, (_, i) => makeIssue(i));
+import { applyCuratedWorkflows } from './curatedWorkflows';
+
+const _issues: Issue[] = Array.from({ length: 40 }, (_, i) => makeIssue(i));
+applyCuratedWorkflows(_issues, MOCK_ALARMS);
+
+export const MOCK_ISSUES: Issue[] = _issues;

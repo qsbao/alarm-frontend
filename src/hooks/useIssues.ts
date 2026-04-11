@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../api/client';
+import { getUserById } from '../mocks/users';
 import { useIssueStore } from '../stores/issueStore';
 import type { Issue, RiskLevel } from '../types';
 
@@ -44,7 +45,8 @@ export function useIssues() {
       if (statusFilter !== 'all' && i.status !== statusFilter) return false;
       if (alarmTypeFilter !== 'all' && i.alarmType !== alarmTypeFilter) return false;
       if (q) {
-        const hay = `${i.title} ${i.owner} ${i.product} ${i.id}`.toLowerCase();
+        const ownerName = getUserById(i.ownerId)?.name ?? i.ownerId;
+        const hay = `${i.title} ${ownerName} ${i.product} ${i.id}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;

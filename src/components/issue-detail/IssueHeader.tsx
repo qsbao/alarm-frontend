@@ -2,12 +2,13 @@ import { ArrowLeft, Building2, Calendar, Check, Clock, Package, Pencil, User, Wr
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { Issue } from '../../types';
+import { getUserById } from '../../mocks/users';
 import { RiskBadge } from '../issues/RiskBadge';
 import { StatusBadge } from '../issues/StatusBadge';
 
 interface IssueHeaderProps {
   issue: Issue;
-  onAssign: (owner: string) => Promise<void> | void;
+  onAssign: (ownerId: string) => Promise<void> | void;
 }
 
 function formatDateTime(iso: string): string {
@@ -34,23 +35,24 @@ function Chip({
 }
 
 export function IssueHeader({ issue, onAssign }: IssueHeaderProps) {
+  const ownerName = getUserById(issue.ownerId)?.name ?? issue.ownerId;
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(issue.owner);
+  const [draft, setDraft] = useState(ownerName);
   const [saving, setSaving] = useState(false);
 
   const startEdit = () => {
-    setDraft(issue.owner);
+    setDraft(ownerName);
     setEditing(true);
   };
 
   const cancel = () => {
     setEditing(false);
-    setDraft(issue.owner);
+    setDraft(ownerName);
   };
 
   const save = async () => {
     const next = draft.trim();
-    if (!next || next === issue.owner) {
+    if (!next || next === ownerName) {
       cancel();
       return;
     }
@@ -120,7 +122,7 @@ export function IssueHeader({ issue, onAssign }: IssueHeaderProps) {
 
       <div className="mt-4 flex flex-wrap gap-2">
         <Chip icon={Package} label="product" value={issue.product} />
-        <Chip icon={User} label="owner" value={issue.owner} />
+        <Chip icon={User} label="owner" value={ownerName} />
         <Chip icon={Building2} label="department" value={issue.department} />
         <Chip icon={Clock} label="issue_time" value={formatDateTime(issue.issueTime)} />
         <Chip icon={Wrench} label="operation" value={issue.operation} />

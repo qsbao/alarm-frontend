@@ -1,4 +1,5 @@
 import type { Alarm, HumanRisk, Issue, RiskLevel, User } from '../types';
+import { getUserByName } from '../mocks/users';
 
 const HUMAN_RISK_TO_RISK_LEVEL: Record<HumanRisk, RiskLevel> = {
   high: 'High',
@@ -13,6 +14,9 @@ export function buildIssueFromAlarm(alarm: Alarm, _currentUser: User, now: strin
     ? HUMAN_RISK_TO_RISK_LEVEL[alarm.humanRisk]
     : alarm.severity;
 
+  const ownerUser = getUserByName(alarm.owner);
+  const ownerId = ownerUser?.id ?? alarm.owner;
+
   return {
     title: alarm.message,
     description:
@@ -26,7 +30,7 @@ export function buildIssueFromAlarm(alarm: Alarm, _currentUser: User, now: strin
     issueTime: alarm.time,
     operation: alarm.operation,
     product: alarm.product,
-    owner: alarm.owner,
+    ownerId,
     department: alarm.department,
     relatedAlarmIds: [alarm.id],
   };

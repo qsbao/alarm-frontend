@@ -16,7 +16,7 @@ function makeIssue(workflow?: WorkflowInstance): Issue & { workflow?: WorkflowIn
     issueTime: '2025-01-15T09:55:00Z',
     operation: 'Lithography',
     product: 'A7-Litho',
-    owner: 'H. Tanaka',
+    ownerId: 'user-tanaka',
     department: 'Litho',
     description: 'Test',
     relatedAlarmIds: [],

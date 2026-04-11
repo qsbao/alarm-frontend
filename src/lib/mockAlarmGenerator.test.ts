@@ -100,6 +100,7 @@ describe('mockAlarmGenerator', () => {
       expect(alarm.operation).toBeTruthy();
       expect(alarm.owner).toBeTruthy();
       expect(alarm.department).toBeTruthy();
+      expect(alarm.chartOwnerId).toBeTruthy();
       expect(alarm.status).toMatch(/^(Open|Acked)$/);
       expect(Array.isArray(alarm.labels)).toBe(true);
       expect(Array.isArray(alarm.activity)).toBe(true);
@@ -126,6 +127,7 @@ describe('mockAlarmGenerator', () => {
       expect(alarm.operation).toBeTruthy();
       expect(alarm.owner).toBeTruthy();
       expect(alarm.department).toBeTruthy();
+      expect(alarm.chartOwnerId).toBeTruthy();
       expect(alarm.status).toBe('Open');
       expect(alarm.recoveryTime).toBeUndefined();
       expect(alarm.labels).toEqual([]);

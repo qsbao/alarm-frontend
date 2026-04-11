@@ -24,7 +24,7 @@ export function CreateIssueFromAlarmModal({
   const [riskLevel, setRiskLevel] = useState<RiskLevel>(initial.riskLevel);
   const [product, setProduct] = useState(initial.product);
   const [operation, setOperation] = useState(initial.operation);
-  const [owner, setOwner] = useState(initial.owner);
+  const [ownerId, setOwnerId] = useState(initial.ownerId);
   const [department, setDepartment] = useState(initial.department);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -39,7 +39,7 @@ export function CreateIssueFromAlarmModal({
       issueTime: initial.issueTime,
       operation,
       product,
-      owner,
+      ownerId,
       department,
       relatedAlarmIds: [alarm.id],
     });
@@ -133,8 +133,8 @@ export function CreateIssueFromAlarmModal({
               <span className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted">Owner</span>
               <input
                 type="text"
-                value={owner}
-                onChange={(e) => setOwner(e.target.value)}
+                value={ownerId}
+                onChange={(e) => setOwnerId(e.target.value)}
                 className="input-base text-xs"
               />
             </label>

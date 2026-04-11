@@ -26,7 +26,7 @@ export function resolveOwnerL5Manager(
 ): UserId | undefined {
   const chain = mocks.managerChain as Record<string, { l5: string; l4: string }> | undefined;
   if (!chain) return undefined;
-  return chain[issue.owner]?.l5;
+  return chain[issue.ownerId]?.l5;
 }
 
 export function resolveOwnerL4Manager(
@@ -35,5 +35,5 @@ export function resolveOwnerL4Manager(
 ): UserId | undefined {
   const chain = mocks.managerChain as Record<string, { l5: string; l4: string }> | undefined;
   if (!chain) return undefined;
-  return chain[issue.owner]?.l4;
+  return chain[issue.ownerId]?.l4;
 }

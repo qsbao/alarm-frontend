@@ -1,4 +1,5 @@
 export interface User {
+  id: string;
   name: string;
   department: string;
 }
@@ -65,6 +66,7 @@ export interface Alarm {
   operation: string; // Where context
   owner: string; // Who — set at fire-time, immutable
   department: string; // Who — set at fire-time, immutable
+  chartOwnerId?: string; // UserId — engineer responsible for the SPC chart
   // Mutable triage layer
   status: AlarmStatus;
   humanRisk?: HumanRisk;
@@ -105,12 +107,13 @@ export interface Issue {
   operation: string; // e.g. "Wafer transfer"
   // dimension columns
   product: string; // e.g. "A7-Litho"
-  owner: string; // e.g. "H. Tanaka"
+  ownerId: string; // UserId — e.g. "user-tanaka"
   department: string; // e.g. "Litho"
   // detail-only fields
   description: string;
   relatedAlarmIds: string[];
   activity: ActivityEntry[]; // ascending; render reversed
+  workflow?: import('./lib/workflows/types').WorkflowInstance;
 }
 
 export const ALL_ALARM_STATUSES: AlarmStatus[] = ['Open', 'Acked'];

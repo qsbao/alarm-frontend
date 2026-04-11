@@ -25,8 +25,8 @@ function makeAlarm(overrides: Partial<Alarm> = {}): Alarm {
   };
 }
 
-const lithoUser: User = { name: 'L. Rossi', department: 'Litho' };
-const etchUser: User = { name: 'M. Chen', department: 'Etch' };
+const lithoUser: User = { id: 'user-rossi', name: 'L. Rossi', department: 'Litho' };
+const etchUser: User = { id: 'user-chen', name: 'M. Chen', department: 'Etch' };
 
 describe('alarmLifecycle', () => {
   describe('ack', () => {
