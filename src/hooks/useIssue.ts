@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api/client';
+import { refreshEvents } from '../lib/refreshEvents';
 import { useAlarmStore } from '../stores/alarmStore';
 import { useCurrentUserStore } from '../stores/currentUserStore';
 import type { Alarm, Issue, IssueStatus } from '../types';
@@ -34,6 +35,9 @@ export function useIssue(id: string | undefined) {
   useEffect(() => {
     reload();
   }, [reload]);
+
+  // Re-fetch when external mutations (e.g. dev panel) signal a change.
+  useEffect(() => refreshEvents.subscribe(() => reload()), [reload]);
 
   // After a mutation, sync the local issue + reload its alarms (only when the
   // alarm set could have changed).
