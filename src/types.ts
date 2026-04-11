@@ -66,6 +66,7 @@ export interface Alarm {
   operation: string; // Where context
   owner: string; // Who — set at fire-time, immutable
   department: string; // Who — set at fire-time, immutable
+  chartOwnerId?: string; // UserId — engineer responsible for the SPC chart
   // Mutable triage layer
   status: AlarmStatus;
   humanRisk?: HumanRisk;

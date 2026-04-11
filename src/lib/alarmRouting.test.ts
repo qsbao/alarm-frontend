@@ -8,10 +8,13 @@ describe('alarmRouting', () => {
       const result = alarmRouting.route(alarmType);
       expect(result).toHaveProperty('owner');
       expect(result).toHaveProperty('department');
+      expect(result).toHaveProperty('chartOwnerId');
       expect(typeof result.owner).toBe('string');
       expect(typeof result.department).toBe('string');
+      expect(typeof result.chartOwnerId).toBe('string');
       expect(result.owner.length).toBeGreaterThan(0);
       expect(result.department.length).toBeGreaterThan(0);
+      expect(result.chartOwnerId.length).toBeGreaterThan(0);
     }
   });
 
