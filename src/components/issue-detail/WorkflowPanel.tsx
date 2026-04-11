@@ -3,15 +3,17 @@ import { useState } from 'react';
 import type { Issue } from '../../types';
 import type { PayloadFieldSchema, Step, StepStatus } from '../../lib/workflows/types';
 import { getDefinition } from '../../lib/workflows/registry';
-import { getStepDisplayList, canUserActOnStep } from '../../lib/workflows/panelHelpers';
+import { getStepDisplayList, canUserActOnStep, canSkipStep, canReviveStep } from '../../lib/workflows/panelHelpers';
 import { useCurrentUserStore } from '../../stores/currentUserStore';
 
 interface WorkflowPanelProps {
   issue: Issue;
   onCompleteStep?: (stepId: string, actorId: string, payload: Record<string, unknown>) => Promise<void>;
+  onSkipStep?: (stepId: string, actorId: string) => Promise<void>;
+  onReviveStep?: (stepId: string, actorId: string) => Promise<void>;
 }
 
-export function WorkflowPanel({ issue, onCompleteStep }: WorkflowPanelProps) {
+export function WorkflowPanel({ issue, onCompleteStep, onSkipStep, onReviveStep }: WorkflowPanelProps) {
   const workflow = issue.workflow;
   if (!workflow) return null;
 
@@ -45,6 +47,8 @@ export function WorkflowPanel({ issue, onCompleteStep }: WorkflowPanelProps) {
             waitingOnLabels={waitingOnLabels}
             issue={issue}
             onCompleteStep={onCompleteStep}
+            onSkipStep={onSkipStep}
+            onReviveStep={onReviveStep}
           />
         ))}
       </ul>
@@ -65,18 +69,26 @@ function StepRow({
   waitingOnLabels,
   issue,
   onCompleteStep,
+  onSkipStep,
+  onReviveStep,
 }: {
   step: Step;
   status: StepStatus;
   waitingOnLabels: string[];
   issue: Issue;
   onCompleteStep?: (stepId: string, actorId: string, payload: Record<string, unknown>) => Promise<void>;
+  onSkipStep?: (stepId: string, actorId: string) => Promise<void>;
+  onReviveStep?: (stepId: string, actorId: string) => Promise<void>;
 }) {
   const [showForm, setShowForm] = useState(false);
+  const [skipPending, setSkipPending] = useState(false);
+  const [revivePending, setRevivePending] = useState(false);
   const currentUser = useCurrentUserStore((s) => s.currentUser);
   const workflow = issue.workflow!;
 
   const userCanAct = status === 'ongoing' && canUserActOnStep(step, workflow, issue, currentUser.id);
+  const userCanSkip = status === 'ongoing' && canSkipStep(step, workflow, issue);
+  const userCanRevive = status === 'skipped' && canReviveStep(step, workflow);
   const Icon = STATUS_ICON[status];
 
   return (
@@ -103,6 +115,32 @@ function StepRow({
             className="text-[10px] font-medium px-2 py-0.5 rounded bg-accent-subtle text-theme-accent hover:bg-accent/20 transition-colors"
           >
             Act
+          </button>
+        )}
+
+        {status === 'ongoing' && userCanSkip && !showForm && (
+          <button
+            disabled={skipPending}
+            onClick={async () => {
+              setSkipPending(true);
+              try { await onSkipStep?.(step.id, currentUser.id); } finally { setSkipPending(false); }
+            }}
+            className="text-[10px] font-medium px-2 py-0.5 rounded bg-surface-overlay/60 text-theme-muted hover:bg-surface-overlay transition-colors"
+          >
+            {skipPending ? 'Skipping...' : 'Skip'}
+          </button>
+        )}
+
+        {status === 'skipped' && userCanRevive && (
+          <button
+            disabled={revivePending}
+            onClick={async () => {
+              setRevivePending(true);
+              try { await onReviveStep?.(step.id, currentUser.id); } finally { setRevivePending(false); }
+            }}
+            className="text-[10px] font-medium px-2 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 transition-colors"
+          >
+            {revivePending ? 'Reviving...' : 'Revive'}
           </button>
         )}
 

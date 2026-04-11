@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { spcOocBranchingDefinition } from './spcOocBranching';
-import { attachWorkflow, completeStep } from '../engine';
+import { attachWorkflow, completeStep, skipStep, reviveStep } from '../engine';
 import { getStepDisplayList } from '../panelHelpers';
 import type { Issue } from '../../../types';
 
@@ -227,6 +227,100 @@ describe('spcOocBranching scenario: branching happy path', () => {
       stepId: 'resolved', actorId: 'user-other', timestamp: ts, payload: {},
     });
     expect('error' in result).toBe(true);
+  });
+});
+
+describe('spcOocBranching: meeting skip and revive', () => {
+  function advanceToMeetingOngoing(issue: Issue) {
+    const def = spcOocBranchingDefinition;
+    const attach = attachWorkflow(def, issue, {}, ts);
+    if ('error' in attach) throw new Error(attach.error);
+
+    let inst = attach.instance;
+    let iss = attach.issue;
+    for (const stepId of ['chart_owner_comment', 'l5_review', 'pi_comment', 'l4_review']) {
+      const r = completeStep(def, inst, iss, {
+        stepId, actorId: 'user-tanaka', timestamp: ts, payload: {},
+      });
+      if ('error' in r) throw new Error(r.error);
+      inst = r.instance;
+      iss = r.issue;
+    }
+    return { instance: inst, issue: iss };
+  }
+
+  it('meeting is skippable on a low-risk issue', () => {
+    const issue = makeIssue({ riskLevel: 'Low' });
+    const { instance } = advanceToMeetingOngoing(issue);
+    expect(instance.stepStates['meeting'].status).toBe('ongoing');
+
+    const result = skipStep(spcOocBranchingDefinition, instance, issue, {
+      stepId: 'meeting', actorId: 'user-tanaka', timestamp: ts,
+    });
+    expect('error' in result).toBe(false);
+    if ('error' in result) return;
+
+    expect(result.instance.stepStates['meeting'].status).toBe('skipped');
+    expect(result.instance.stepStates['resolved'].status).toBe('ongoing');
+  });
+
+  it('meeting is NOT skippable on a high-risk issue', () => {
+    const issue = makeIssue({ riskLevel: 'High' });
+    const { instance } = advanceToMeetingOngoing(issue);
+
+    const result = skipStep(spcOocBranchingDefinition, instance, issue, {
+      stepId: 'meeting', actorId: 'user-tanaka', timestamp: ts,
+    });
+    expect('error' in result).toBe(true);
+  });
+
+  it('reviving meeting does NOT rewind resolved that already advanced', () => {
+    const issue = makeIssue({ riskLevel: 'Low' });
+    const { instance } = advanceToMeetingOngoing(issue);
+
+    // Skip meeting → resolved becomes ongoing
+    const skipResult = skipStep(spcOocBranchingDefinition, instance, issue, {
+      stepId: 'meeting', actorId: 'user-tanaka', timestamp: ts,
+    });
+    if ('error' in skipResult) throw new Error(skipResult.error);
+    expect(skipResult.instance.stepStates['resolved'].status).toBe('ongoing');
+
+    // Revive meeting → resolved should stay ongoing
+    const reviveResult = reviveStep(spcOocBranchingDefinition, skipResult.instance, issue, {
+      stepId: 'meeting', actorId: 'user-tanaka', timestamp: ts,
+    });
+    expect('error' in reviveResult).toBe(false);
+    if ('error' in reviveResult) return;
+
+    expect(reviveResult.instance.stepStates['meeting'].status).toBe('ongoing');
+    expect(reviveResult.instance.stepStates['resolved'].status).toBe('ongoing');
+  });
+
+  it('revive disallowed once resolved has completed', () => {
+    const issue = makeIssue({ riskLevel: 'Low' });
+    const def = spcOocBranchingDefinition;
+    const { instance } = advanceToMeetingOngoing(issue);
+
+    // Skip meeting
+    const r1 = skipStep(def, instance, issue, {
+      stepId: 'meeting', actorId: 'user-tanaka', timestamp: ts,
+    });
+    if ('error' in r1) throw new Error(r1.error);
+
+    // Complete resolved
+    const r2 = completeStep(def, r1.instance, r1.issue, {
+      stepId: 'resolved', actorId: 'user-tanaka', timestamp: ts, payload: {},
+    });
+    if ('error' in r2) throw new Error(r2.error);
+
+    // Try to revive meeting — should fail
+    const result = reviveStep(def, r2.instance, r2.issue, {
+      stepId: 'meeting', actorId: 'user-tanaka', timestamp: ts,
+    });
+    expect('error' in result).toBe(true);
+    if ('error' in result) {
+      expect(result.error).toContain('resolved');
+    }
   });
 });
 

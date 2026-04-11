@@ -17,6 +17,8 @@ export function IssueDetailPage() {
     linkAlarm,
     unlinkAlarm,
     completeWorkflowStep,
+    skipWorkflowStep,
+    reviveWorkflowStep,
   } = useIssue(id);
 
   if (loading && !issue) {
@@ -45,7 +47,12 @@ export function IssueDetailPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           <div className="lg:col-span-2 flex flex-col gap-5">
-            <WorkflowPanel issue={issue} onCompleteStep={completeWorkflowStep} />
+            <WorkflowPanel
+              issue={issue}
+              onCompleteStep={completeWorkflowStep}
+              onSkipStep={skipWorkflowStep}
+              onReviveStep={reviveWorkflowStep}
+            />
 
             <div className="card p-5">
               <h2 className="text-xs font-semibold uppercase tracking-wide text-theme-muted mb-3">

@@ -102,6 +102,24 @@ export function useIssue(id: string | undefined) {
     [id, applyIssue],
   );
 
+  const skipWorkflowStep = useCallback(
+    async (stepId: string, actorId: string) => {
+      if (!id) return;
+      const updated = await api.skipStep(id, stepId, actorId);
+      await applyIssue(updated, false);
+    },
+    [id, applyIssue],
+  );
+
+  const reviveWorkflowStep = useCallback(
+    async (stepId: string, actorId: string) => {
+      if (!id) return;
+      const updated = await api.reviveStep(id, stepId, actorId);
+      await applyIssue(updated, false);
+    },
+    [id, applyIssue],
+  );
+
   return {
     issue,
     alarms,
@@ -112,5 +130,7 @@ export function useIssue(id: string | undefined) {
     linkAlarm,
     unlinkAlarm,
     completeWorkflowStep,
+    skipWorkflowStep,
+    reviveWorkflowStep,
   };
 }

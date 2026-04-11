@@ -3,6 +3,8 @@ import type {
   AttachWorkflowResult,
   CompleteStepResult,
   PayloadSchema,
+  ReviveStepResult,
+  SkipStepResult,
   StepState,
   UserId,
   WorkflowDefinition,
@@ -41,11 +43,15 @@ function validatePayload(
 
 /**
  * Activates pending steps whose preSteps are all completed or skipped.
+ * Evaluates `defaultSkipIf` exactly once on activation — if true, the step
+ * goes straight to `skipped` instead of `ongoing`.
  * Mutates `stepStates` in place for simplicity; callers should pass a copy.
  */
 function activateSteps(
   definition: WorkflowDefinition,
   stepStates: Record<string, StepState>,
+  issue: Issue,
+  timestamp: string,
 ): void {
   let changed = true;
   while (changed) {
@@ -60,7 +66,15 @@ function activateSteps(
       });
 
       if (allPreDone) {
-        stepStates[step.id] = { status: 'ongoing' };
+        if (step.defaultSkipIf && step.defaultSkipIf(issue)) {
+          stepStates[step.id] = {
+            status: 'skipped',
+            skippedAt: timestamp,
+            skippedBy: 'system',
+          };
+        } else {
+          stepStates[step.id] = { status: 'ongoing' };
+        }
         changed = true;
       }
     }
@@ -130,7 +144,7 @@ export function attachWorkflow(
   }
 
   // Activate root steps (no preSteps)
-  activateSteps(definition, stepStates);
+  activateSteps(definition, stepStates, issue, timestamp);
 
   const instance: WorkflowInstance = {
     definitionId: definition.id,
@@ -216,7 +230,7 @@ export function completeStep(
   };
 
   // Activate downstream steps
-  activateSteps(definition, newStepStates);
+  activateSteps(definition, newStepStates, issue, params.timestamp);
 
   const terminal = isTerminal(newStepStates);
   const newInstance: WorkflowInstance = {
@@ -239,6 +253,139 @@ export function completeStep(
       definitionId: definition.id,
       stepId: params.stepId,
       action: 'complete',
+      actorId: params.actorId,
+      timestamp: params.timestamp,
+    },
+  };
+}
+
+export function skipStep(
+  definition: WorkflowDefinition,
+  instance: WorkflowInstance,
+  issue: Issue,
+  params: {
+    stepId: string;
+    actorId: UserId;
+    timestamp: string;
+  },
+): SkipStepResult {
+  if (instance.completedAt) {
+    return { error: 'Workflow is already completed' };
+  }
+
+  const step = definition.steps.find((s) => s.id === params.stepId);
+  if (!step) {
+    return { error: `Step not found: ${params.stepId}` };
+  }
+
+  const stepState = instance.stepStates[params.stepId];
+  if (!stepState || stepState.status !== 'ongoing') {
+    return { error: `Step ${params.stepId} is not ongoing (current status: ${stepState?.status ?? 'unknown'})` };
+  }
+
+  if (!step.skippableIf) {
+    return { error: `Step ${params.stepId} is not skippable` };
+  }
+
+  if (!step.skippableIf(issue)) {
+    return { error: `Step ${params.stepId} cannot be skipped for this issue` };
+  }
+
+  const newStepStates: Record<string, StepState> = {};
+  for (const [id, state] of Object.entries(instance.stepStates)) {
+    newStepStates[id] = { ...state };
+  }
+  newStepStates[params.stepId] = {
+    status: 'skipped',
+    skippedAt: params.timestamp,
+    skippedBy: params.actorId,
+  };
+
+  activateSteps(definition, newStepStates, issue, params.timestamp);
+
+  const terminal = isTerminal(newStepStates);
+  const newInstance: WorkflowInstance = {
+    ...instance,
+    stepStates: newStepStates,
+    ...(terminal ? { completedAt: params.timestamp } : {}),
+  };
+
+  const status = deriveStatus(definition, newInstance);
+  const updatedIssue: Issue = {
+    ...issue,
+    workflow: newInstance,
+    ...(status ? { status } : {}),
+  };
+
+  return {
+    instance: newInstance,
+    issue: updatedIssue,
+    activityEntry: {
+      definitionId: definition.id,
+      stepId: params.stepId,
+      action: 'skip',
+      actorId: params.actorId,
+      timestamp: params.timestamp,
+    },
+  };
+}
+
+export function reviveStep(
+  definition: WorkflowDefinition,
+  instance: WorkflowInstance,
+  issue: Issue,
+  params: {
+    stepId: string;
+    actorId: UserId;
+    timestamp: string;
+  },
+): ReviveStepResult {
+  if (instance.completedAt) {
+    return { error: 'Workflow is already completed' };
+  }
+
+  const step = definition.steps.find((s) => s.id === params.stepId);
+  if (!step) {
+    return { error: `Step not found: ${params.stepId}` };
+  }
+
+  const stepState = instance.stepStates[params.stepId];
+  if (!stepState || stepState.status !== 'skipped') {
+    return { error: `Step ${params.stepId} is not skipped (current status: ${stepState?.status ?? 'unknown'})` };
+  }
+
+  // Disallow revive once resolved has completed
+  const resolvedState = instance.stepStates['resolved'];
+  if (resolvedState && resolvedState.status === 'completed') {
+    return { error: 'Cannot revive after resolved has completed' };
+  }
+
+  // Move step back to ongoing — no cascade to successors
+  const newStepStates: Record<string, StepState> = {};
+  for (const [id, state] of Object.entries(instance.stepStates)) {
+    newStepStates[id] = { ...state };
+  }
+  newStepStates[params.stepId] = { status: 'ongoing' };
+
+  const newInstance: WorkflowInstance = {
+    ...instance,
+    stepStates: newStepStates,
+  };
+
+  const status = deriveStatus(definition, newInstance);
+  const updatedIssue: Issue = {
+    ...issue,
+    workflow: newInstance,
+    ...(status ? { status } : {}),
+  };
+
+  return {
+    instance: newInstance,
+    issue: updatedIssue,
+    activityEntry: {
+      definitionId: definition.id,
+      stepId: params.stepId,
+      action: 'revive',
       actorId: params.actorId,
       timestamp: params.timestamp,
     },

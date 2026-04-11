@@ -58,3 +58,24 @@ export function canUserActOnStep(
   if (!step.gate) return true;
   return step.gate({ user: { id: userId }, instance, issue });
 }
+
+/**
+ * Checks if a step can be manually skipped (ongoing + has skippableIf + predicate passes).
+ */
+export function canSkipStep(step: Step, instance: WorkflowInstance, issue: Issue): boolean {
+  const state = instance.stepStates[step.id];
+  if (!state || state.status !== 'ongoing') return false;
+  if (!step.skippableIf) return false;
+  return step.skippableIf(issue);
+}
+
+/**
+ * Checks if a step can be revived (skipped + resolved not yet completed).
+ */
+export function canReviveStep(step: Step, instance: WorkflowInstance): boolean {
+  const state = instance.stepStates[step.id];
+  if (!state || state.status !== 'skipped') return false;
+  const resolvedState = instance.stepStates['resolved'];
+  if (resolvedState && resolvedState.status === 'completed') return false;
+  return true;
+}
