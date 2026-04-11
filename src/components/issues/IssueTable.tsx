@@ -51,6 +51,7 @@ export function IssueTable() {
               <PlainHeader label="alarm_type" />
               <SortableHeader label="risk_level" columnKey="risk_level" />
               <PlainHeader label="issue_status" />
+              <PlainHeader label="ongoing_steps" />
               <PlainHeader label="" />
               <PlainHeader label="title" />
               <PlainHeader label="issue_time" />
@@ -63,7 +64,7 @@ export function IssueTable() {
           <tbody>
             {pageItems.length === 0 ? (
               <tr>
-                <td colSpan={11} className="px-4 py-12 text-center text-sm text-theme-muted">
+                <td colSpan={12} className="px-4 py-12 text-center text-sm text-theme-muted">
                   No issues match the current filters.
                 </td>
               </tr>

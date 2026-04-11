@@ -21,6 +21,23 @@ export const ISSUE_BUILTIN_VIEWS: IssueSavedView[] = [
   },
 ];
 
+/**
+ * Creates a saved-view predicate that matches issues with a specific
+ * step in `ongoing` status. No gate evaluation — purely status-based.
+ */
+export function makeHasOngoingStepView(stepId: string): IssueSavedView {
+  return {
+    name: `Has ongoing: ${stepId}`,
+    builtin: false,
+    predicate: (issue) => {
+      const workflow = issue.workflow;
+      if (!workflow || workflow.completedAt) return false;
+      const state = workflow.stepStates[stepId];
+      return state?.status === 'ongoing';
+    },
+  };
+}
+
 export function getIssueSavedViews(): IssueSavedView[] {
   return [...ISSUE_BUILTIN_VIEWS];
 }

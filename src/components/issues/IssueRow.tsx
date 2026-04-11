@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import type { Issue } from '../../types';
 import { getUserById } from '../../mocks/users';
 import { useCurrentUserStore } from '../../stores/currentUserStore';
-import { awaitingMyAction } from '../../lib/workflows/discovery';
+import { awaitingMyAction, getOngoingStepLabels } from '../../lib/workflows/discovery';
 import { getDefinition } from '../../lib/workflows/registry';
 import { RiskBadge } from './RiskBadge';
 import { StatusBadge } from './StatusBadge';
+import { OngoingStepsBadge } from './OngoingStepsBadge';
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -22,6 +23,7 @@ export function IssueRow({ issue }: { issue: Issue }) {
   const navigate = useNavigate();
   const currentUser = useCurrentUserStore((s) => s.currentUser);
   const awaiting = awaitingMyAction(issue, currentUser, getDefinition);
+  const ongoingLabels = getOngoingStepLabels(issue, getDefinition);
 
   return (
     <tr
@@ -39,6 +41,9 @@ export function IssueRow({ issue }: { issue: Issue }) {
       </td>
       <td className="px-3 py-2 text-sm whitespace-nowrap">
         <StatusBadge status={issue.status} />
+      </td>
+      <td className="px-3 py-2 text-sm whitespace-nowrap">
+        <OngoingStepsBadge labels={ongoingLabels} />
       </td>
       <td className="px-3 py-2 text-sm whitespace-nowrap">
         {awaiting && (
