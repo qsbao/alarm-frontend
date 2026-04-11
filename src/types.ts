@@ -77,7 +77,6 @@ export interface Alarm {
 
 export type ActivityType =
   | 'created'
-  | 'status_change'
   | 'assignment'
   | 'comment'
   | 'alarm_linked'
@@ -89,8 +88,6 @@ export interface ActivityEntry {
   type: ActivityType;
   timestamp: string; // ISO 8601
   author: string;
-  fromStatus?: IssueStatus;
-  toStatus?: IssueStatus;
   assignedTo?: string;
   text?: string;
   alarmId?: string;
@@ -166,11 +163,3 @@ export interface AlarmFilters {
   labels?: AlarmLabel[];
   active?: 'active' | 'recovered';
 }
-
-/** Valid status transitions for the issue workflow stepper. */
-export const STATUS_TRANSITIONS: Record<IssueStatus, IssueStatus[]> = {
-  New: ['Investigating'],
-  Investigating: ['New', 'Resolved'],
-  Resolved: ['Investigating', 'Closed'],
-  Closed: ['Investigating'],
-};

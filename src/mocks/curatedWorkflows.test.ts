@@ -3,24 +3,27 @@ import { MOCK_ISSUES } from './issues';
 import type { WorkflowInstance } from '../lib/workflows/types';
 
 describe('curated mock issues with workflows', () => {
-  const withWorkflow = MOCK_ISSUES.filter((i) => i.workflow != null);
-  const without = MOCK_ISSUES.filter((i) => i.workflow == null);
+  const allWithWorkflow = MOCK_ISSUES.filter((i) => i.workflow != null);
+  const withWorkflow = MOCK_ISSUES.filter(
+    (i) => i.workflow?.definitionId === 'spc_ooc_v1',
+  );
+  const generic = MOCK_ISSUES.filter(
+    (i) => i.workflow?.definitionId === 'generic_issue_v1',
+  );
 
-  it('exactly 8 issues have workflows attached', () => {
+  it('every issue has a workflow attached', () => {
+    expect(allWithWorkflow).toHaveLength(MOCK_ISSUES.length);
+  });
+
+  it('exactly 8 issues use the spc_ooc_v1 workflow', () => {
     expect(withWorkflow).toHaveLength(8);
   });
 
-  it('the other 32 issues have no workflow', () => {
-    expect(without).toHaveLength(32);
+  it('the other 32 issues use the generic_issue_v1 workflow', () => {
+    expect(generic).toHaveLength(32);
   });
 
-  it('all workflows use the spc_ooc_v1 definition', () => {
-    for (const issue of withWorkflow) {
-      expect(issue.workflow!.definitionId).toBe('spc_ooc_v1');
-    }
-  });
-
-  it('all workflows have 4 actors', () => {
+  it('all SPC OOC workflows have 4 actors', () => {
     for (const issue of withWorkflow) {
       expect(issue.workflow!.actors).toHaveLength(4);
       const roles = issue.workflow!.actors.map((a) => a.role);
@@ -83,12 +86,19 @@ describe('curated mock issues with workflows', () => {
     });
   });
 
-  it('workflows with status Investigating or Resolved have correct issue status', () => {
+  it('SPC OOC issues all have status Investigating or Closed', () => {
     for (const issue of withWorkflow) {
-      // Issues with non-terminal workflows should be at least Investigating
-      if (!issue.workflow!.completedAt) {
-        expect(issue.status).not.toBe('New');
-      }
+      expect(['Investigating', 'Closed']).toContain(issue.status);
     }
+  });
+
+  it('generic workflow distribution covers New, Investigating, and Closed', () => {
+    const counts: Record<string, number> = { New: 0, Investigating: 0, Closed: 0 };
+    for (const issue of generic) {
+      counts[issue.status] = (counts[issue.status] ?? 0) + 1;
+    }
+    expect(counts.New).toBeGreaterThan(0);
+    expect(counts.Investigating).toBeGreaterThan(0);
+    expect(counts.Closed).toBeGreaterThan(0);
   });
 });

@@ -3,7 +3,7 @@ import { api } from '../api/client';
 import { refreshEvents } from '../lib/refreshEvents';
 import { useAlarmStore } from '../stores/alarmStore';
 import { useCurrentUserStore } from '../stores/currentUserStore';
-import type { Alarm, Issue, IssueStatus } from '../types';
+import type { Alarm, Issue } from '../types';
 
 export function useIssue(id: string | undefined) {
   const [issue, setIssue] = useState<Issue | undefined>(undefined);
@@ -52,15 +52,6 @@ export function useIssue(id: string | undefined) {
       }
     }
   }, []);
-
-  const changeStatus = useCallback(
-    async (next: IssueStatus) => {
-      if (!id) return;
-      const updated = await api.updateIssueStatus(id, next);
-      await applyIssue(updated, false);
-    },
-    [id, applyIssue],
-  );
 
   const assignOwner = useCallback(
     async (owner: string) => {
@@ -118,7 +109,6 @@ export function useIssue(id: string | undefined) {
     alarms,
     loading,
     reload,
-    changeStatus,
     assignOwner,
     addComment,
     linkAlarm,

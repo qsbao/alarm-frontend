@@ -1,4 +1,4 @@
-import type { Issue } from '../../types';
+import type { Issue, IssueStatus } from '../../types';
 
 export type UserId = string;
 
@@ -24,6 +24,7 @@ export interface Action {
 export interface Phase {
   id: string;
   label: string;
+  status: IssueStatus;
   actions: Action[];
 }
 
@@ -75,6 +76,7 @@ export interface WorkflowActivityEntry {
 
 export interface ApplyActionSuccess {
   instance: WorkflowInstance;
+  issue: Issue;
   activityEntry: WorkflowActivityEntry;
 }
 
@@ -86,6 +88,7 @@ export type ApplyActionResult = ApplyActionSuccess | ApplyActionError;
 
 export interface AttachWorkflowSuccess {
   instance: WorkflowInstance;
+  issue: Issue;
   activityEntry: WorkflowActivityEntry;
 }
 

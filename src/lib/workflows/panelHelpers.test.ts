@@ -182,6 +182,7 @@ describe('getPhaseDisplayState', () => {
       { phaseId: 'p1_owner_input', label: 'Owner Input', state: 'completed' },
       { phaseId: 'p2_pi_l5_review', label: 'PI + L5 Review', state: 'current' },
       { phaseId: 'p3_l4_approval', label: 'L4 Approval', state: 'upcoming' },
+      { phaseId: 'p4_closed', label: 'Closed', state: 'upcoming' },
     ]);
   });
 

@@ -1,5 +1,4 @@
 import {
-  ArrowRight,
   GitBranch,
   Link as LinkIcon,
   MessageSquare,
@@ -13,7 +12,6 @@ import { getDefinition } from '../../lib/workflows/registry';
 
 const ICON_MAP: Record<ActivityType, typeof Plus> = {
   created: Plus,
-  status_change: ArrowRight,
   assignment: UserCheck,
   comment: MessageSquare,
   alarm_linked: LinkIcon,
@@ -41,16 +39,6 @@ function describe(entry: ActivityEntry): React.ReactNode {
       return (
         <>
           <span className="text-theme-primary font-medium">{entry.author}</span> created the issue
-        </>
-      );
-    case 'status_change':
-      return (
-        <>
-          <span className="text-theme-primary font-medium">{entry.author}</span> changed status
-          {' '}
-          <span className="text-theme-secondary">{entry.fromStatus}</span>
-          {' → '}
-          <span className="text-theme-accent font-medium">{entry.toStatus}</span>
         </>
       );
     case 'assignment':
