@@ -1,4 +1,4 @@
-import type { ActivityEntry, AlarmType, Issue, IssueStatus, RiskLevel } from '../types';
+import type { ActivityEntry, AlarmType, Issue, RiskLevel } from '../types';
 import { MOCK_ALARMS } from './alarms';
 
 const ALARM_TYPES: AlarmType[] = [
@@ -15,7 +15,6 @@ const ALARM_TYPES: AlarmType[] = [
 ];
 
 const RISK_LEVELS: RiskLevel[] = ['Low', 'Medium', 'High', 'Critical'];
-const STATUSES: IssueStatus[] = ['New', 'Investigating', 'Resolved', 'Closed'];
 
 const PRODUCTS = ['A7-Litho', 'B3-Etch', 'C2-CVD', 'D1-PVD', 'E5-CMP', 'F4-Metro'];
 const OWNER_IDS = [
@@ -64,7 +63,8 @@ function pad(n: number, w = 3) {
 function makeIssue(i: number): Issue {
   const alarmType = ALARM_TYPES[i % ALARM_TYPES.length];
   const riskLevel = RISK_LEVELS[(i * 2 + 1) % RISK_LEVELS.length];
-  const status = STATUSES[Math.floor(i / 10) % STATUSES.length];
+  // status is a placeholder; the engine writes the real value during workflow attach
+  const status = 'New';
   const product = PRODUCTS[(i * 3) % PRODUCTS.length];
   const ownerId = OWNER_IDS[(i * 5) % OWNER_IDS.length];
   const department = DEPARTMENTS[(i * 7) % DEPARTMENTS.length];

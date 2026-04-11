@@ -2,8 +2,25 @@ import { describe, expect, it } from 'vitest';
 import { spcOocDefinition } from './spcOoc';
 
 describe('spcOoc definition smoke tests', () => {
-  it('has 3 phases', () => {
-    expect(spcOocDefinition.phases).toHaveLength(3);
+  it('has 4 phases', () => {
+    expect(spcOocDefinition.phases).toHaveLength(4);
+  });
+
+  it('every phase declares a status tag', () => {
+    for (const phase of spcOocDefinition.phases) {
+      expect(phase.status).toBeDefined();
+    }
+  });
+
+  it('the terminal phase is tagged Closed', () => {
+    const last = spcOocDefinition.phases[spcOocDefinition.phases.length - 1];
+    expect(last.status).toBe('Closed');
+  });
+
+  it('all non-terminal phases are tagged Investigating', () => {
+    for (let i = 0; i < spcOocDefinition.phases.length - 1; i++) {
+      expect(spcOocDefinition.phases[i].status).toBe('Investigating');
+    }
   });
 
   it('has 4 required roles', () => {

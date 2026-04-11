@@ -8,6 +8,7 @@ export const spcOocDefinition: WorkflowDefinition = {
     {
       id: 'p1_owner_input',
       label: 'Owner Input',
+      status: 'Investigating',
       actions: [
         {
           id: 'chart_owner_comment',
@@ -35,6 +36,7 @@ export const spcOocDefinition: WorkflowDefinition = {
     {
       id: 'p2_pi_l5_review',
       label: 'PI + L5 Review',
+      status: 'Investigating',
       actions: [
         {
           id: 'pi_comment',
@@ -86,6 +88,7 @@ export const spcOocDefinition: WorkflowDefinition = {
     {
       id: 'p3_l4_approval',
       label: 'L4 Approval',
+      status: 'Investigating',
       actions: [
         {
           id: 'l4_approve',
@@ -118,6 +121,12 @@ export const spcOocDefinition: WorkflowDefinition = {
           },
         },
       ],
+    },
+    {
+      id: 'p4_closed',
+      label: 'Closed',
+      status: 'Closed',
+      actions: [],
     },
   ],
   requiredRoles: [

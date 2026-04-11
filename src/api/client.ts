@@ -1,9 +1,8 @@
-import type { ActivityEntry, ActivityType, Alarm, Issue, IssueStatus } from '../types';
+import type { ActivityEntry, ActivityType, Alarm, Issue } from '../types';
 import { MOCK_ALARMS } from '../mocks/alarms';
 import { MOCK_ISSUES } from '../mocks/issues';
 import { applyAction, attachWorkflow } from '../lib/workflows/engine';
 import { getDefinition } from '../lib/workflows/registry';
-import { checkWorkflowBlock } from '../lib/workflows/statusCoupling';
 import type { WorkflowInstance } from '../lib/workflows/types';
 import { MANAGER_CHAIN } from '../mocks/managerChain';
 import { PI_BY_DEPARTMENT } from '../mocks/piByDepartment';
@@ -44,16 +43,6 @@ function cloneWorkflow(wf: WorkflowInstance | undefined): WorkflowInstance | und
     ),
     actionHistory: wf.actionHistory.map((r) => ({ ...r, payload: { ...r.payload } })),
   };
-}
-
-export class WorkflowBlockError extends Error {
-  constructor(
-    public readonly workflowName: string,
-    public readonly currentPhaseId: string,
-  ) {
-    super(`Cannot transition: workflow "${workflowName}" is in phase "${currentPhaseId}" and must complete first`);
-    this.name = 'WorkflowBlockError';
-  }
 }
 
 function cloneIssue(issue: Issue): Issue {
@@ -116,22 +105,6 @@ export const api = {
     return cloneIssue(issue);
   },
 
-  async updateIssueStatus(id: string, next: IssueStatus): Promise<Issue> {
-    await delay();
-    const issue = findIssue(id);
-
-    // Workflow coupling: block Resolved/Closed while workflow is non-terminal
-    const block = checkWorkflowBlock(issue, next);
-    if (block) {
-      throw new WorkflowBlockError(block.workflowName, block.currentPhaseId);
-    }
-
-    const from = issue.status;
-    issue.status = next;
-    appendActivity(issue, 'status_change', { fromStatus: from, toStatus: next });
-    return cloneIssue(issue);
-  },
-
   async assignIssueOwner(id: string, ownerId: string): Promise<Issue> {
     await delay();
     const issue = findIssue(id);
@@ -188,8 +161,8 @@ export const api = {
   },
 
   /**
-   * Attaches a workflow to an issue. Auto-advances New → Investigating atomically.
-   * Returns the updated issue. Appends workflow_transition + optional status_change activity.
+   * Attaches a workflow to an issue. The engine writes the initial phase's
+   * status onto the issue. Appends a workflow_transition activity entry.
    */
   async attachWorkflowToIssue(
     id: string,
@@ -212,6 +185,7 @@ export const api = {
     if ('error' in result) throw new Error(result.error);
 
     issue.workflow = result.instance;
+    issue.status = result.issue.status;
 
     // Append workflow_transition activity via the chokepoint
     appendActivity(issue, 'workflow_transition', {
@@ -222,13 +196,6 @@ export const api = {
       workflowFromPhaseId: result.activityEntry.fromPhaseId,
       workflowToPhaseId: result.activityEntry.toPhaseId,
     });
-
-    // Auto-advance New → Investigating atomically
-    if (issue.status === 'New') {
-      const from = issue.status;
-      issue.status = 'Investigating';
-      appendActivity(issue, 'status_change', { fromStatus: from, toStatus: 'Investigating' });
-    }
 
     return cloneIssue(issue);
   },
@@ -258,8 +225,9 @@ export const api = {
     });
     if ('error' in result) throw new Error(result.error);
 
-    // Mutate the stored issue's workflow
+    // Mutate the stored issue's workflow + status (engine derives status from phase tag)
     issue.workflow = result.instance;
+    issue.status = result.issue.status;
 
     // Append workflow_transition activity via the chokepoint
     appendActivity(issue, 'workflow_transition', {

@@ -45,6 +45,16 @@ function validatePayload(
   return null;
 }
 
+function withWorkflowStatus(
+  issue: Issue,
+  definition: WorkflowDefinition,
+  instance: WorkflowInstance,
+): Issue {
+  const phase = definition.phases.find((p) => p.id === instance.currentPhaseId);
+  const nextStatus = phase?.status ?? issue.status;
+  return { ...issue, workflow: instance, status: nextStatus };
+}
+
 export function attachWorkflow(
   definition: WorkflowDefinition,
   issue: Issue,
@@ -71,6 +81,7 @@ export function attachWorkflow(
 
   return {
     instance,
+    issue: withWorkflowStatus(issue, definition, instance),
     activityEntry: {
       definitionId: definition.id,
       phaseId: definition.phases[0].id,
@@ -149,13 +160,15 @@ export function applyAction(
       // phases from target forward: cleared
     }
 
+    const sentBackInstance: WorkflowInstance = {
+      ...instance,
+      currentPhaseId: action.sendsBackTo,
+      completedActions: newCompleted,
+      actionHistory: newHistory,
+    };
     return {
-      instance: {
-        ...instance,
-        currentPhaseId: action.sendsBackTo,
-        completedActions: newCompleted,
-        actionHistory: newHistory,
-      },
+      instance: sentBackInstance,
+      issue: withWorkflowStatus(issue, definition, sentBackInstance),
       activityEntry: {
         definitionId: definition.id,
         phaseId: instance.currentPhaseId,
@@ -175,35 +188,38 @@ export function applyAction(
     [instance.currentPhaseId]: [...phaseActions, record],
   };
 
-  // Check if all required actions in current phase are now complete
-  const completedIds = new Set(
-    newCompletedActions[instance.currentPhaseId]?.map((r) => r.actionId) ?? [],
-  );
-  const allRequiredDone = currentPhase.actions
-    .filter((a) => a.required)
-    .every((a) => completedIds.has(a.id));
-
-  let newPhaseId = instance.currentPhaseId;
+  // Walk forward through phases as long as the current phase's required
+  // actions are all complete. A phase with zero required actions auto-clears.
+  let phaseIdx = definition.phases.findIndex((p) => p.id === instance.currentPhaseId);
   let completedAt: string | undefined;
-
-  if (allRequiredDone) {
-    const currentIdx = definition.phases.findIndex((p) => p.id === instance.currentPhaseId);
-    if (currentIdx < definition.phases.length - 1) {
-      newPhaseId = definition.phases[currentIdx + 1].id;
+  while (phaseIdx >= 0) {
+    const phase = definition.phases[phaseIdx];
+    const completedIds = new Set(
+      (newCompletedActions[phase.id] ?? []).map((r) => r.actionId),
+    );
+    const allRequiredDone = phase.actions
+      .filter((a) => a.required)
+      .every((a) => completedIds.has(a.id));
+    if (!allRequiredDone) break;
+    if (phaseIdx < definition.phases.length - 1) {
+      phaseIdx += 1;
     } else {
-      // Last phase — terminal
       completedAt = params.timestamp;
+      break;
     }
   }
+  const newPhaseId = definition.phases[phaseIdx].id;
 
+  const advancedInstance: WorkflowInstance = {
+    ...instance,
+    currentPhaseId: newPhaseId,
+    completedActions: newCompletedActions,
+    actionHistory: newHistory,
+    ...(completedAt ? { completedAt } : {}),
+  };
   return {
-    instance: {
-      ...instance,
-      currentPhaseId: newPhaseId,
-      completedActions: newCompletedActions,
-      actionHistory: newHistory,
-      ...(completedAt ? { completedAt } : {}),
-    },
+    instance: advancedInstance,
+    issue: withWorkflowStatus(issue, definition, advancedInstance),
     activityEntry: {
       definitionId: definition.id,
       phaseId: instance.currentPhaseId,

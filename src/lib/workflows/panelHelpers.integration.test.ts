@@ -16,9 +16,11 @@ import { getUserById } from '../../mocks/users';
 const lookupUser = (id: string) => getUserById(id)?.name;
 
 describe('panelHelpers × curated issues', () => {
-  const withWorkflow = MOCK_ISSUES.filter((i) => i.workflow != null);
+  const withWorkflow = MOCK_ISSUES.filter(
+    (i) => i.workflow?.definitionId === 'spc_ooc_v1',
+  );
 
-  it('exactly 8 curated issues have workflows', () => {
+  it('exactly 8 curated SPC OOC issues exist', () => {
     expect(withWorkflow).toHaveLength(8);
   });
 
@@ -76,8 +78,10 @@ describe('panelHelpers × curated issues', () => {
     });
   }
 
-  it('32 non-workflow issues have no workflow', () => {
-    const without = MOCK_ISSUES.filter((i) => i.workflow == null);
-    expect(without).toHaveLength(32);
+  it('32 issues use the generic_issue_v1 workflow', () => {
+    const generic = MOCK_ISSUES.filter(
+      (i) => i.workflow?.definitionId === 'generic_issue_v1',
+    );
+    expect(generic).toHaveLength(32);
   });
 });

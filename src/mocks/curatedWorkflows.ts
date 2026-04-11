@@ -1,7 +1,12 @@
 /**
- * Post-processes 8 of 40 mock issues to attach SPC OOC workflows
- * at various phase states via the engine. All workflows are constructed
- * through attachWorkflow/applyAction to remain valid as the engine evolves.
+ * Post-processes all 40 mock issues to attach workflows.
+ *
+ * 8 issues are curated with the SPC OOC workflow at various phase states.
+ * The remaining 32 issues are attached to the generic issue workflow,
+ * distributed across triage / in_progress / closed phases.
+ *
+ * All workflows are constructed through attachWorkflow/applyAction so the
+ * mock data stays valid as the engine evolves.
  *
  * Deliberate alarm type order (indices 0-9):
  *   0:TempSpike  1:PressureDrop  2:ChamberLeak  3:VoltageSag  4:FlowAnomaly
@@ -12,11 +17,18 @@
  *   5:user-muller  6:user-chen  7:user-garcia  8:user-park  9:user-patel
  */
 import type { Alarm, Issue } from '../types';
-import type { WorkflowInstance } from '../lib/workflows/types';
+import type { WorkflowDefinition, WorkflowInstance } from '../lib/workflows/types';
 import { attachWorkflow, applyAction } from '../lib/workflows/engine';
 import { spcOocDefinition } from '../lib/workflows/definitions/spcOoc';
+import { genericIssueDefinition } from '../lib/workflows/definitions/genericIssue';
 import { MANAGER_CHAIN } from './managerChain';
 import { PI_BY_DEPARTMENT } from './piByDepartment';
+
+/** Reads the status tag of the workflow's current phase. */
+function statusFromWorkflow(definition: WorkflowDefinition, instance: WorkflowInstance) {
+  const phase = definition.phases.find((p) => p.id === instance.currentPhaseId);
+  return phase!.status;
+}
 
 // Indices of the 8 issues to curate
 const CURATED_INDICES = [1, 3, 4, 7, 8, 11, 15, 16];
@@ -166,7 +178,6 @@ export function applyCuratedWorkflows(issues: Issue[], alarms: Alarm[]): void {
     issue.department = spec.department;
     issue.ownerId = spec.ownerId;
     issue.relatedAlarmIds = [alarms[spec.alarmIdx].id];
-    issue.status = 'Investigating';
 
     // Build mocks for role resolution
     const mocks = {
@@ -184,10 +195,46 @@ export function applyCuratedWorkflows(issues: Issue[], alarms: Alarm[]): void {
     // Build to target state
     const workflow = spec.build(attachResult.instance, issue);
     issue.workflow = workflow;
+    issue.status = statusFromWorkflow(spcOocDefinition, workflow);
+  }
 
-    // Terminal workflows can have status Resolved
-    if (workflow.completedAt) {
-      issue.status = 'Resolved';
+  // Attach the generic issue workflow to every remaining issue, distributed
+  // across phases so the issue list shows a mix of New / Investigating / Closed.
+  const curatedSet = new Set(CURATED_INDICES);
+  for (let i = 0; i < issues.length; i++) {
+    if (curatedSet.has(i)) continue;
+    const issue = issues[i];
+    const attached = attachWorkflow(genericIssueDefinition, issue, {}, ts);
+    if ('error' in attached) {
+      throw new Error(`Failed to attach generic workflow to ${issue.id}: ${attached.error}`);
     }
+    let instance = attached.instance;
+
+    // Mod 3 distribution: 0 → triage (New), 1 → in_progress (Investigating), 2 → closed (Closed)
+    const stage = i % 3;
+
+    if (stage >= 1) {
+      const r1 = applyAction(genericIssueDefinition, instance, issue, {
+        actionId: 'start_investigation',
+        actorId: 'system',
+        timestamp: ts,
+        payload: {},
+      });
+      if ('error' in r1) throw new Error(`generic start failed for ${issue.id}: ${r1.error}`);
+      instance = r1.instance;
+    }
+    if (stage >= 2) {
+      const r2 = applyAction(genericIssueDefinition, instance, issue, {
+        actionId: 'close',
+        actorId: 'system',
+        timestamp: ts,
+        payload: { resolution: 'Auto-resolved during seed' },
+      });
+      if ('error' in r2) throw new Error(`generic close failed for ${issue.id}: ${r2.error}`);
+      instance = r2.instance;
+    }
+
+    issue.workflow = instance;
+    issue.status = statusFromWorkflow(genericIssueDefinition, instance);
   }
 }
