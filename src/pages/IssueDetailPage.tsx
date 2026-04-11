@@ -18,6 +18,7 @@ export function IssueDetailPage() {
     addComment,
     linkAlarm,
     unlinkAlarm,
+    fireWorkflowAction,
   } = useIssue(id);
 
   if (loading && !issue) {
@@ -48,7 +49,7 @@ export function IssueDetailPage() {
           <div className="lg:col-span-2 flex flex-col gap-5">
             <WorkflowStepper status={issue.status} onChange={changeStatus} />
 
-            <WorkflowPanel issue={issue} />
+            <WorkflowPanel issue={issue} onFireAction={fireWorkflowAction} />
 
             <div className="card p-5">
               <h2 className="text-xs font-semibold uppercase tracking-wide text-theme-muted mb-3">
