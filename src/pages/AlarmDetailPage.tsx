@@ -399,11 +399,18 @@ export function AlarmDetailPage() {
     fetchLinkedIssue(alarm?.linkedIssueId);
   }, [alarm?.linkedIssueId, fetchLinkedIssue]);
 
-  const handleCreateIssue = async (draft: IssueDraft) => {
+  const handleCreateIssue = async (draft: IssueDraft, workflowDefinitionId: string | undefined) => {
     if (!alarm) return;
     const created = await api.createIssue(draft);
     linkAlarm(alarm.id, created.id, currentUser);
-    setLinkedIssue(created);
+
+    // Attach workflow if selected (auto-advances New → Investigating)
+    let finalIssue = created;
+    if (workflowDefinitionId) {
+      finalIssue = await api.attachWorkflowToIssue(created.id, workflowDefinitionId, currentUser.id);
+    }
+
+    setLinkedIssue(finalIssue);
     setShowModal(false);
   };
 

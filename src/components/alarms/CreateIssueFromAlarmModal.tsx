@@ -3,11 +3,13 @@ import { useState } from 'react';
 import type { Alarm, AlarmType, RiskLevel, User } from '../../types';
 import { ALL_ALARM_TYPES, ALL_RISK_LEVELS } from '../../types';
 import { buildIssueFromAlarm, type IssueDraft } from '../../lib/issueFromAlarm';
+import { getDefaultWorkflowId } from '../../lib/workflows/workflowDefaults';
+import { getAllDefinitions } from '../../lib/workflows/registry';
 
 interface CreateIssueFromAlarmModalProps {
   alarm: Alarm;
   currentUser: User;
-  onSubmit: (draft: IssueDraft) => void;
+  onSubmit: (draft: IssueDraft, workflowDefinitionId: string | undefined) => void;
   onClose: () => void;
 }
 
@@ -26,23 +28,31 @@ export function CreateIssueFromAlarmModal({
   const [operation, setOperation] = useState(initial.operation);
   const [ownerId, setOwnerId] = useState(initial.ownerId);
   const [department, setDepartment] = useState(initial.department);
+  const [workflowId, setWorkflowId] = useState<string>(
+    getDefaultWorkflowId(alarm.type) ?? '',
+  );
+
+  const allDefinitions = getAllDefinitions();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({
-      title,
-      description,
-      date: initial.date,
-      alarmType,
-      riskLevel,
-      status: 'New',
-      issueTime: initial.issueTime,
-      operation,
-      product,
-      ownerId,
-      department,
-      relatedAlarmIds: [alarm.id],
-    });
+    onSubmit(
+      {
+        title,
+        description,
+        date: initial.date,
+        alarmType,
+        riskLevel,
+        status: 'New',
+        issueTime: initial.issueTime,
+        operation,
+        product,
+        ownerId,
+        department,
+        relatedAlarmIds: [alarm.id],
+      },
+      workflowId || undefined,
+    );
   };
 
   return (
@@ -149,6 +159,20 @@ export function CreateIssueFromAlarmModal({
               />
             </label>
           </div>
+
+          <label className="flex flex-col gap-1">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted">Workflow</span>
+            <select
+              value={workflowId}
+              onChange={(e) => setWorkflowId(e.target.value)}
+              className="input-base text-xs"
+            >
+              <option value="">None</option>
+              {allDefinitions.map((d) => (
+                <option key={d.id} value={d.id}>{d.name} (v{d.version})</option>
+              ))}
+            </select>
+          </label>
 
           <div className="text-[10px] text-theme-muted">
             Linked alarm: <span className="font-mono">{alarm.id}</span>
