@@ -1,8 +1,11 @@
-import { Check } from 'lucide-react';
-import { ALL_ISSUE_STATUSES, STATUS_TRANSITIONS, type IssueStatus } from '../../types';
+import { AlertCircle, Check } from 'lucide-react';
+import { useState } from 'react';
+import { ALL_ISSUE_STATUSES, STATUS_TRANSITIONS, type Issue, type IssueStatus } from '../../types';
+import { WorkflowBlockError } from '../../api/client';
+import { getDefinition } from '../../lib/workflows/registry';
 
 interface WorkflowStepperProps {
-  status: IssueStatus;
+  issue: Issue;
   onChange: (next: IssueStatus) => Promise<void> | void;
 }
 
@@ -13,9 +16,30 @@ const TRANSITION_LABELS: Record<IssueStatus, string> = {
   Closed: 'Close',
 };
 
-export function WorkflowStepper({ status, onChange }: WorkflowStepperProps) {
+export function WorkflowStepper({ issue, onChange }: WorkflowStepperProps) {
+  const status = issue.status;
   const currentIndex = ALL_ISSUE_STATUSES.indexOf(status);
   const transitions = STATUS_TRANSITIONS[status];
+  const [blockMessage, setBlockMessage] = useState<string | null>(null);
+
+  const handleTransition = async (next: IssueStatus) => {
+    setBlockMessage(null);
+    try {
+      await onChange(next);
+    } catch (err) {
+      if (err instanceof WorkflowBlockError) {
+        const def = getDefinition(err.workflowName);
+        const defName = def?.name ?? err.workflowName;
+        const phase = def?.phases.find((p) => p.id === err.currentPhaseId);
+        const phaseName = phase?.label ?? err.currentPhaseId;
+        setBlockMessage(
+          `Cannot mark ${next}: workflow "${defName}" is in phase "${phaseName}" and must complete first.`,
+        );
+      } else {
+        throw err;
+      }
+    }
+  };
 
   return (
     <div className="card p-5">
@@ -66,13 +90,20 @@ export function WorkflowStepper({ status, onChange }: WorkflowStepperProps) {
             return (
               <button
                 key={next}
-                onClick={() => onChange(next)}
+                onClick={() => handleTransition(next)}
                 className={`${Btn} btn-sm`}
               >
                 {TRANSITION_LABELS[next]}
               </button>
             );
           })}
+        </div>
+      )}
+
+      {blockMessage && (
+        <div className="mt-3 flex items-start gap-2 text-xs text-amber-600 dark:text-amber-400 bg-amber-500/10 rounded-md px-3 py-2">
+          <AlertCircle size={14} className="shrink-0 mt-0.5" />
+          <span>{blockMessage}</span>
         </div>
       )}
     </div>
