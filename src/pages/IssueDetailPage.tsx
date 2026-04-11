@@ -1,3 +1,4 @@
+import { CheckCircle } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { ActivityTimeline } from '../components/issue-detail/ActivityTimeline';
 import { AlarmList } from '../components/issue-detail/AlarmList';
@@ -48,6 +49,15 @@ export function IssueDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           <div className="lg:col-span-2 flex flex-col gap-5">
             <WorkflowStepper issue={issue} onChange={changeStatus} />
+
+            {issue.workflow?.completedAt && issue.status !== 'Resolved' && issue.status !== 'Closed' && (
+              <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-green-500/10 border border-green-500/20">
+                <CheckCircle size={16} className="text-green-600 dark:text-green-400 shrink-0" />
+                <span className="text-xs text-green-700 dark:text-green-300">
+                  Workflow complete — consider marking this issue as Resolved.
+                </span>
+              </div>
+            )}
 
             <WorkflowPanel issue={issue} onFireAction={fireWorkflowAction} />
 
