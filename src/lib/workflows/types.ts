@@ -2,6 +2,8 @@ import type { Issue, IssueStatus } from '../../types';
 
 export type UserId = string;
 
+export type StepStatus = 'pending' | 'ongoing' | 'completed' | 'skipped';
+
 export interface PayloadFieldSchema {
   kind: 'enum' | 'text';
   label: string;
@@ -12,20 +14,14 @@ export interface PayloadFieldSchema {
 
 export type PayloadSchema = Record<string, PayloadFieldSchema>;
 
-export interface Action {
+export interface Step {
   id: string;
   label: string;
-  required: boolean;
-  gate: (ctx: { user: { id: UserId }; instance: WorkflowInstance; issue: Issue }) => boolean;
-  payloadSchema: PayloadSchema;
-  sendsBackTo?: string; // phaseId
-}
-
-export interface Phase {
-  id: string;
-  label: string;
-  status: IssueStatus;
-  actions: Action[];
+  order: number; // display only — does not influence DAG
+  preSteps: string[]; // step ids that must be completed/skipped before this step activates
+  gate?: (ctx: { user: { id: UserId }; instance: WorkflowInstance; issue: Issue }) => boolean;
+  payloadSchema?: PayloadSchema;
+  impliesStatus?: IssueStatus;
 }
 
 export interface RoleResolver {
@@ -37,17 +33,17 @@ export interface WorkflowDefinition {
   id: string;
   name: string;
   version: string;
-  phases: Phase[];
+  steps: Step[];
   requiredRoles: RoleResolver[];
 }
 
-export interface ActionRecord {
-  id: string;
-  actionId: string;
-  phaseId: string;
-  actorId: UserId;
-  timestamp: string;
-  payload: Record<string, unknown>;
+export interface StepState {
+  status: StepStatus;
+  payload?: Record<string, unknown>;
+  completedAt?: string;
+  completedBy?: UserId;
+  skippedAt?: string;
+  skippedBy?: UserId;
 }
 
 export interface WorkflowActor {
@@ -57,34 +53,18 @@ export interface WorkflowActor {
 
 export interface WorkflowInstance {
   definitionId: string;
-  currentPhaseId: string;
+  stepStates: Record<string, StepState>;
   actors: WorkflowActor[];
-  completedActions: Record<string, ActionRecord[]>; // keyed by phaseId
-  actionHistory: ActionRecord[]; // full history including rework duplicates
-  completedAt?: string; // ISO 8601 — set on terminal
+  completedAt?: string; // ISO 8601 — set when all steps are completed/skipped
 }
 
 export interface WorkflowActivityEntry {
   definitionId: string;
-  phaseId: string;
-  actionId: string;
+  stepId: string;
+  action: 'attach' | 'complete';
   actorId: UserId;
-  fromPhaseId: string;
-  toPhaseId: string;
   timestamp: string;
 }
-
-export interface ApplyActionSuccess {
-  instance: WorkflowInstance;
-  issue: Issue;
-  activityEntry: WorkflowActivityEntry;
-}
-
-export interface ApplyActionError {
-  error: string;
-}
-
-export type ApplyActionResult = ApplyActionSuccess | ApplyActionError;
 
 export interface AttachWorkflowSuccess {
   instance: WorkflowInstance;
@@ -97,3 +77,15 @@ export interface AttachWorkflowError {
 }
 
 export type AttachWorkflowResult = AttachWorkflowSuccess | AttachWorkflowError;
+
+export interface CompleteStepSuccess {
+  instance: WorkflowInstance;
+  issue: Issue;
+  activityEntry: WorkflowActivityEntry;
+}
+
+export interface CompleteStepError {
+  error: string;
+}
+
+export type CompleteStepResult = CompleteStepSuccess | CompleteStepError;
