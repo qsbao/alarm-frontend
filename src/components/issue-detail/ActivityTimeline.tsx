@@ -1,6 +1,7 @@
 import {
   ArrowRightLeft,
   GitBranch,
+  GitMerge,
   Link as LinkIcon,
   Link2,
   MessageSquare,
@@ -21,6 +22,8 @@ const ICON_MAP: Record<ActivityType, typeof Plus> = {
   workflow_transition: GitBranch,
   alarm_moved_in: ArrowRightLeft,
   alarm_moved_out: ArrowRightLeft,
+  alarms_merged_in: GitMerge,
+  alarms_merged_out: GitMerge,
   blocker_added: Link2,
   blocker_removed: Unlink,
 };
@@ -125,6 +128,22 @@ function describe(entry: ActivityEntry): React.ReactNode {
           <span className="text-theme-primary font-medium">{entry.author}</span> moved alarm{' '}
           <span className="font-mono text-theme-secondary">{entry.alarmId}</span> from{' '}
           <span className="font-mono text-theme-secondary">{entry.fromIssueId}</span>
+        </>
+      );
+    case 'alarms_merged_in':
+      return (
+        <>
+          <span className="text-theme-primary font-medium">{entry.author}</span> merged{' '}
+          {entry.alarmIds?.length ?? 0} alarm(s) in from{' '}
+          <span className="font-mono text-theme-secondary">{entry.fromIssueId}</span>
+        </>
+      );
+    case 'alarms_merged_out':
+      return (
+        <>
+          <span className="text-theme-primary font-medium">{entry.author}</span> merged{' '}
+          {entry.alarmIds?.length ?? 0} alarm(s) out to{' '}
+          <span className="font-mono text-theme-secondary">{entry.toIssueId}</span>
         </>
       );
     case 'blocker_added':

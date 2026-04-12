@@ -6,6 +6,7 @@ import {
   getActiveIssueForAlarm,
   getHistoricalAlarmsForIssue,
   moveAlarm,
+  mergeAlarmsForIssues,
   resetIssueAlarms,
   type IssueAlarm,
 } from './issueAlarms';
@@ -197,6 +198,50 @@ describe('issueAlarms', () => {
         expect(result.fromIssueId).toBe('iss-001');
         expect(result.toIssueId).toBe('iss-002');
       }
+    });
+  });
+
+  describe('mergeAlarmsForIssues', () => {
+    it('marks source rows as historical and creates new active rows on target', () => {
+      attachAlarm('iss-001', 'alm-001', 'user-a');
+      attachAlarm('iss-001', 'alm-002', 'user-a');
+
+      const result = mergeAlarmsForIssues(['iss-001'], 'iss-010', 'user-b', '2025-06-01T12:00:00Z');
+
+      // Source rows are now historical
+      expect(getActiveAlarmsForIssue('iss-001')).toHaveLength(0);
+      const hist = getHistoricalAlarmsForIssue('iss-001');
+      expect(hist).toHaveLength(2);
+      expect(hist.every((r) => r.mergedBy === 'user-b')).toBe(true);
+      expect(hist.every((r) => r.mergedToIssueId === 'iss-010')).toBe(true);
+
+      // Target has new active rows
+      const targetActive = getActiveAlarmsForIssue('iss-010');
+      expect(targetActive).toHaveLength(2);
+      expect(targetActive.map((r) => r.alarmId).sort()).toEqual(['alm-001', 'alm-002']);
+
+      // Result contains merged alarm IDs per source
+      expect(result).toHaveLength(1);
+      expect(result[0].sourceIssueId).toBe('iss-001');
+      expect(result[0].alarmIds.sort()).toEqual(['alm-001', 'alm-002']);
+    });
+
+    it('handles multi-source merge', () => {
+      attachAlarm('iss-001', 'alm-001', 'user-a');
+      attachAlarm('iss-002', 'alm-002', 'user-a');
+      attachAlarm('iss-002', 'alm-003', 'user-a');
+
+      const result = mergeAlarmsForIssues(['iss-001', 'iss-002'], 'iss-010', 'user-b', '2025-06-01T12:00:00Z');
+
+      expect(getActiveAlarmsForIssue('iss-010')).toHaveLength(3);
+      expect(result).toHaveLength(2);
+    });
+
+    it('handles source with no alarms gracefully', () => {
+      const result = mergeAlarmsForIssues(['iss-empty'], 'iss-010', 'user-b', '2025-06-01T12:00:00Z');
+
+      expect(result).toHaveLength(1);
+      expect(result[0].alarmIds).toEqual([]);
     });
   });
 

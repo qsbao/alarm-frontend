@@ -106,6 +106,7 @@ const ACT_ICON_MAP: Record<AlarmActivityType, typeof Plus> = {
   label_removed: Minus,
   risk_changed: Gauge,
   moved_between_issues: ArrowRightLeft,
+  merged_to_issue: ArrowRightLeft,
 };
 
 function describeActivity(entry: AlarmActivityEntry): React.ReactNode {
@@ -176,6 +177,14 @@ function describeActivity(entry: AlarmActivityEntry): React.ReactNode {
       return (
         <>
           <span className="text-theme-primary font-medium">{entry.author}</span> moved alarm from{' '}
+          <span className="font-mono text-theme-secondary">{entry.fromIssueId}</span> to{' '}
+          <span className="font-mono text-theme-secondary">{entry.toIssueId}</span>
+        </>
+      );
+    case 'merged_to_issue':
+      return (
+        <>
+          <span className="text-theme-primary font-medium">{entry.author}</span> merged alarm from{' '}
           <span className="font-mono text-theme-secondary">{entry.fromIssueId}</span> to{' '}
           <span className="font-mono text-theme-secondary">{entry.toIssueId}</span>
         </>

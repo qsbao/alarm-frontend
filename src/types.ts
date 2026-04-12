@@ -37,7 +37,8 @@ export type AlarmActivityType =
   | 'label_added'
   | 'label_removed'
   | 'risk_changed'
-  | 'moved_between_issues';
+  | 'moved_between_issues'
+  | 'merged_to_issue';
 
 export interface AlarmActivityEntry {
   id: string;
@@ -85,6 +86,8 @@ export type ActivityType =
   | 'alarm_unlinked'
   | 'alarm_moved_in'
   | 'alarm_moved_out'
+  | 'alarms_merged_in'
+  | 'alarms_merged_out'
   | 'workflow_transition'
   | 'blocker_added'
   | 'blocker_removed';
@@ -104,9 +107,10 @@ export interface ActivityEntry {
   workflowActorId?: string;
   // blocker fields
   blockerIssueId?: string;
-  // move fields
+  // move / merge fields
   fromIssueId?: string;
   toIssueId?: string;
+  alarmIds?: string[];
 }
 
 export interface Issue {

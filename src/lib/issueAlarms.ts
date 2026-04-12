@@ -88,6 +88,40 @@ export function moveAlarm(alarmId: string, targetIssueId: string, opts: MoveAlar
   return { ok: true, fromIssueId, toIssueId: targetIssueId };
 }
 
+export interface MergeAlarmResult {
+  sourceIssueId: string;
+  alarmIds: string[];
+}
+
+export function mergeAlarmsForIssues(
+  sourceIds: string[],
+  targetId: string,
+  by: string,
+  now: string,
+): MergeAlarmResult[] {
+  return sourceIds.map((sourceId) => {
+    const activeRows = getActiveAlarmsForIssue(sourceId);
+    const alarmIds = activeRows.map((r) => r.alarmId);
+
+    for (const row of activeRows) {
+      row.mergedAt = now;
+      row.mergedBy = by;
+      row.mergedToIssueId = targetId;
+
+      const newRow: IssueAlarm = {
+        id: `ia-${nextId++}`,
+        issueId: targetId,
+        alarmId: row.alarmId,
+        attachedAt: now,
+        attachedBy: by,
+      };
+      rows.push(newRow);
+    }
+
+    return { sourceIssueId: sourceId, alarmIds };
+  });
+}
+
 export function resetIssueAlarms(): void {
   rows = [];
   nextId = 1;

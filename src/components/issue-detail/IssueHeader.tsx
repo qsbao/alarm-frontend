@@ -1,4 +1,4 @@
-import { ArrowLeft, Building2, Calendar, Check, Clock, Package, Pencil, User, Wrench, X } from 'lucide-react';
+import { ArrowLeft, Building2, Calendar, Check, Clock, GitMerge, Package, Pencil, User, Wrench, X } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { Issue } from '../../types';
@@ -9,6 +9,7 @@ import { StatusBadge } from '../issues/StatusBadge';
 interface IssueHeaderProps {
   issue: Issue;
   onAssign: (ownerId: string) => Promise<void> | void;
+  onMerge?: () => void;
 }
 
 function formatDateTime(iso: string): string {
@@ -34,7 +35,7 @@ function Chip({
   );
 }
 
-export function IssueHeader({ issue, onAssign }: IssueHeaderProps) {
+export function IssueHeader({ issue, onAssign, onMerge }: IssueHeaderProps) {
   const ownerName = getUserById(issue.ownerId)?.name ?? issue.ownerId;
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(ownerName);
@@ -89,6 +90,23 @@ export function IssueHeader({ issue, onAssign }: IssueHeaderProps) {
         </div>
 
         <div className="flex items-center gap-2">
+          {issue.status !== 'Merged' && onMerge && (
+            <div className="relative group">
+              <button
+                onClick={issue.status === 'Triage' ? onMerge : undefined}
+                disabled={issue.status !== 'Triage'}
+                className="btn-secondary btn-sm"
+              >
+                <GitMerge size={13} />
+                Merge into...
+              </button>
+              {issue.status !== 'Triage' && (
+                <div className="absolute right-0 top-full mt-1 z-10 hidden group-hover:block w-56 px-3 py-2 text-xs text-theme-secondary bg-surface-overlay border border-border-subtle rounded-lg shadow-lg">
+                  Only Triage issues can be merged. Use <em>moveAlarm</em> to transfer individual alarms instead.
+                </div>
+              )}
+            </div>
+          )}
           {editing ? (
             <>
               <input
