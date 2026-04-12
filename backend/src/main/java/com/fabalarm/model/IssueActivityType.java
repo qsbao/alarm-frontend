@@ -6,5 +6,7 @@ public enum IssueActivityType {
     comment,
     alarm_linked,
     alarm_unlinked,
-    alarm_moved
+    alarm_moved,
+    merged_out,
+    merged_in
 }

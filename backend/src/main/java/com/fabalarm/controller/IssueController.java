@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/issues")
@@ -119,6 +120,48 @@ public class IssueController {
         return ResponseEntity.ok(result);
     }
 
+    @Operation(summary = "Merge issues", description = "Merges source issues into a target issue")
+    @PostMapping("/{id}/merge")
+    public ResponseEntity<?> mergeIssues(@PathVariable String id, @RequestBody Map<String, Object> body) {
+        @SuppressWarnings("unchecked")
+        List<String> sourceIds = (List<String>) body.get("sourceIds");
+        if (sourceIds == null || sourceIds.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "sourceIds is required"));
+        }
+        User user = CurrentUserHolder.get();
+        try {
+            Issue target = issueService.mergeIssues(sourceIds, id, user);
+            return ResponseEntity.ok(toDto(target));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @Operation(summary = "Get merged-into target", description = "Returns the target issue ID if this issue was merged")
+    @GetMapping("/{id}/merged-into")
+    public ResponseEntity<?> getMergedInto(@PathVariable String id) {
+        if (issueService.findById(id).isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        Optional<String> targetId = issueService.getMergedInto(id);
+        if (targetId.isPresent() && targetId.get() != null) {
+            return ResponseEntity.ok(Map.of("targetIssueId", targetId.get()));
+        }
+        return ResponseEntity.ok(Collections.emptyMap());
+    }
+
+    @Operation(summary = "List merge candidates", description = "Returns eligible issues for merge (same dept, Triage status)")
+    @GetMapping("/{id}/merge-candidates")
+    public ResponseEntity<?> getMergeCandidates(@PathVariable String id) {
+        if (issueService.findById(id).isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        List<Issue> candidates = issueService.getMergeCandidates(id);
+        return ResponseEntity.ok(candidates.stream().map(this::toDto).collect(Collectors.toList()));
+    }
+
     private Map<String, Object> toDto(Issue i) {
         Map<String, Object> dto = new LinkedHashMap<>();
         dto.put("id", i.getId());
@@ -133,6 +176,7 @@ public class IssueController {
         dto.put("ownerId", i.getOwnerId());
         dto.put("department", i.getDepartment());
         dto.put("description", i.getDescription() != null ? i.getDescription() : "");
+        if (i.getMergedIntoIssueId() != null) dto.put("mergedIntoIssueId", i.getMergedIntoIssueId());
         return dto;
     }
 

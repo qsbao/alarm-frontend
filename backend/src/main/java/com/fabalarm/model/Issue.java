@@ -47,6 +47,9 @@ public class Issue {
     @Column(length = 2000)
     private String description;
 
+    @Column(name = "merged_into_issue_id", length = 20)
+    private String mergedIntoIssueId;
+
     public Issue() {}
 
     // Getters and setters
@@ -86,4 +89,7 @@ public class Issue {
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+
+    public String getMergedIntoIssueId() { return mergedIntoIssueId; }
+    public void setMergedIntoIssueId(String mergedIntoIssueId) { this.mergedIntoIssueId = mergedIntoIssueId; }
 }
