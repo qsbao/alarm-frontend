@@ -14,6 +14,7 @@ interface IssueStore {
   sortDir: SortDir;
   page: number; // 1-based
   pageSize: number;
+  selectedIds: Set<string>;
 
   setSearch: (s: string) => void;
   setRiskFilter: (r: RiskLevel | 'all') => void;
@@ -22,6 +23,8 @@ interface IssueStore {
   setActiveViewName: (name: string | null) => void;
   setSort: (key: SortKey) => void;
   setPage: (p: number) => void;
+  toggleSelected: (id: string) => void;
+  clearSelection: () => void;
   reset: () => void;
 }
 
@@ -46,23 +49,31 @@ const INITIAL: Pick<
   sortDir: 'desc',
   page: 1,
   pageSize: 20,
+  selectedIds: new Set<string>(),
 };
 
 export const useIssueStore = create<IssueStore>((set) => ({
   ...INITIAL,
-  setSearch: (s) => set({ search: s, page: 1 }),
-  setRiskFilter: (r) => set({ riskFilter: r, page: 1 }),
-  setStatusFilter: (s) => set({ statusFilter: s, page: 1 }),
-  setAlarmTypeFilter: (t) => set({ alarmTypeFilter: t, page: 1 }),
-  setActiveViewName: (name) => set({ activeViewName: name, page: 1 }),
+  setSearch: (s) => set({ search: s, page: 1, selectedIds: new Set() }),
+  setRiskFilter: (r) => set({ riskFilter: r, page: 1, selectedIds: new Set() }),
+  setStatusFilter: (s) => set({ statusFilter: s, page: 1, selectedIds: new Set() }),
+  setAlarmTypeFilter: (t) => set({ alarmTypeFilter: t, page: 1, selectedIds: new Set() }),
+  setActiveViewName: (name) => set({ activeViewName: name, page: 1, selectedIds: new Set() }),
   setSort: (key) =>
     set((state) => {
-      // Click same column → flip direction. Click new column → reset to desc.
       if (state.sortKey === key) {
-        return { sortDir: state.sortDir === 'asc' ? 'desc' : 'asc' };
+        return { sortDir: state.sortDir === 'asc' ? 'desc' : 'asc', selectedIds: new Set() };
       }
-      return { sortKey: key, sortDir: 'desc' };
+      return { sortKey: key, sortDir: 'desc', selectedIds: new Set() };
     }),
-  setPage: (p) => set({ page: Math.max(1, p) }),
-  reset: () => set({ ...INITIAL }),
+  setPage: (p) => set({ page: Math.max(1, p), selectedIds: new Set() }),
+  toggleSelected: (id) =>
+    set((state) => {
+      const next = new Set(state.selectedIds);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return { selectedIds: next };
+    }),
+  clearSelection: () => set({ selectedIds: new Set() }),
+  reset: () => set({ ...INITIAL, selectedIds: new Set() }),
 }));
