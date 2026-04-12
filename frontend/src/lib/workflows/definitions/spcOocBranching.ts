@@ -6,7 +6,8 @@ import type { WorkflowDefinition } from '../types';
  * DAG:
  *   chart_owner_comment
  *     ├── l5_review → l4_review ──┐
- *     └── pi_comment ─────────────┼── meeting → resolved → closed
+ *     ├── pi_comment ─────────────┤
+ *     └── attach_report ──────────┼── meeting → resolved → closed
  */
 export const spcOocBranchingDefinition: WorkflowDefinition = {
   id: 'spc_ooc_branching_v1',
@@ -39,16 +40,30 @@ export const spcOocBranchingDefinition: WorkflowDefinition = {
       preSteps: ['chart_owner_comment'],
     },
     {
+      id: 'attach_report',
+      label: 'Attach Investigation Report',
+      order: 5,
+      preSteps: ['chart_owner_comment'],
+      skippableIf: () => true,
+      payloadSchema: {
+        reportId: {
+          kind: 'report-reference',
+          label: 'Report ID',
+          required: false,
+        },
+      },
+    },
+    {
       id: 'meeting',
       label: 'Meeting',
-      order: 5,
-      preSteps: ['l4_review', 'pi_comment'],
+      order: 6,
+      preSteps: ['l4_review', 'pi_comment', 'attach_report'],
       skippableIf: (issue) => issue.riskLevel === 'Low',
     },
     {
       id: 'resolved',
       label: 'Resolved',
-      order: 6,
+      order: 7,
       preSteps: ['meeting'],
       gate: ({ user, issue }) => user.id === issue.ownerId,
       payloadSchema: {
@@ -63,7 +78,7 @@ export const spcOocBranchingDefinition: WorkflowDefinition = {
     {
       id: 'closed',
       label: 'Closed',
-      order: 7,
+      order: 8,
       preSteps: ['resolved'],
       gate: ({ user, issue }) => user.id === issue.ownerId,
       payloadSchema: {
