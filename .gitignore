@@ -4,3 +4,11 @@ dist/
 .claude/
 .DS_Store
 *.log
+
+# Backend
+backend/target/
+backend/*.iml
+.idea/
+
+# Generated API client
+frontend/src/api/generated.d.ts

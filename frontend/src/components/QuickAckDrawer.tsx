@@ -1,0 +1,209 @@
+import { Check, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import type { Alarm, AlarmLabel, HumanRisk } from '../types';
+import { ALL_ALARM_LABELS, ALL_HUMAN_RISKS } from '../types';
+import { useAlarmStore } from '../stores/alarmStore';
+import { useCurrentUserStore } from '../stores/currentUserStore';
+import { alarmPermissions } from '../lib/alarmPermissions';
+import { isActive } from '../lib/alarmFiltering';
+import { useMockClockStore } from '../stores/mockClockStore';
+
+const SEVERITY_COLOR: Record<string, string> = {
+  Critical: 'bg-red-500/15 text-red-400 border-red-500/30',
+  High: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
+  Medium: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+  Low: 'bg-slate-500/15 text-slate-400 border-slate-500/30',
+};
+
+const STATUS_COLOR: Record<string, string> = {
+  Open: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
+  Acked: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+};
+
+const RISK_LABELS: Record<HumanRisk, string> = {
+  high: 'High',
+  middle: 'Middle',
+  low: 'Low',
+};
+
+const RISK_COLOR: Record<HumanRisk, string> = {
+  high: 'bg-red-500/15 text-red-400 border-red-500/30',
+  middle: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+  low: 'bg-slate-500/15 text-slate-400 border-slate-500/30',
+};
+
+interface QuickAckDrawerProps {
+  alarmId: string;
+  onClose: () => void;
+}
+
+export function QuickAckDrawer({ alarmId, onClose }: QuickAckDrawerProps) {
+  const alarm = useAlarmStore((s) => s.alarms.find((a) => a.id === alarmId));
+  const { ackAlarm, setAlarmLabel, setAlarmRisk } = useAlarmStore();
+  const currentUser = useCurrentUserStore((s) => s.currentUser);
+  const [comment, setComment] = useState('');
+  const now = useMockClockStore((s) => s.now);
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose();
+    }
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
+  // Reset comment when alarm changes
+  useEffect(() => {
+    setComment('');
+  }, [alarmId]);
+
+  if (!alarm) return null;
+
+  const canAck = alarmPermissions.canAck(currentUser, alarm);
+  const active = isActive(alarm, now);
+
+  const handleAck = () => {
+    ackAlarm(alarm.id, currentUser, comment || undefined);
+    setComment('');
+    onClose();
+  };
+
+  const handleLabelToggle = (label: AlarmLabel) => {
+    const action = alarm.labels.includes(label) ? 'remove' : 'add';
+    setAlarmLabel(alarm.id, currentUser, action, label);
+  };
+
+  const handleRiskChange = (risk: HumanRisk) => {
+    setAlarmRisk(alarm.id, currentUser, risk);
+  };
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div className="fixed inset-0 bg-black/30 z-40" onClick={onClose} />
+
+      {/* Drawer */}
+      <div className="fixed top-0 right-0 h-full w-[420px] max-w-full bg-surface-base border-l border-border-default z-50 flex flex-col shadow-2xl animate-slideIn">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-3 border-b border-border-subtle">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-theme-primary">Quick Triage</span>
+            <span className="badge font-mono text-[10px]">{alarm.id}</span>
+          </div>
+          <button onClick={onClose} className="btn-ghost btn-xs">
+            <X size={14} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-4">
+          {/* Alarm Summary */}
+          <div>
+            <div className="text-sm text-theme-primary font-medium mb-2">{alarm.message}</div>
+            <div className="flex items-center gap-2 flex-wrap mb-2">
+              <span className="badge text-[10px]">{alarm.type}</span>
+              <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border ${SEVERITY_COLOR[alarm.severity]}`}>
+                {alarm.severity}
+              </span>
+              <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border ${STATUS_COLOR[alarm.status]}`}>
+                {alarm.status}
+              </span>
+              <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border ${
+                active
+                  ? 'bg-rose-500/15 text-rose-400 border-rose-500/30'
+                  : 'bg-slate-500/15 text-slate-400 border-slate-500/30'
+              }`}>
+                {active ? 'Active' : 'Recovered'}
+              </span>
+            </div>
+            <div className="text-xs text-theme-secondary space-y-0.5">
+              <div><span className="text-theme-muted">Machine:</span> <span className="font-mono">{alarm.machineId}</span>{alarm.chamberId && ` / ${alarm.chamberId}`}</div>
+              <div><span className="text-theme-muted">Owner:</span> {alarm.owner} <span className="text-theme-muted">({alarm.department})</span></div>
+            </div>
+          </div>
+
+          {/* Ack section */}
+          {alarm.status === 'Open' && (
+            <div className="flex flex-col gap-2 border-t border-border-subtle/40 pt-4">
+              <h3 className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted">Acknowledge</h3>
+              <textarea
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                placeholder="Add a comment (optional)..."
+                className="input-base text-xs resize-none"
+                rows={2}
+              />
+              <div className="relative group inline-block">
+                <button
+                  onClick={handleAck}
+                  disabled={!canAck}
+                  className="btn-primary btn-sm w-full"
+                >
+                  <Check size={13} />
+                  Acknowledge
+                </button>
+                {!canAck && (
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-surface-raised border border-border-default rounded text-[10px] text-theme-secondary whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-50">
+                    You must be in the {alarm.department} department to acknowledge this alarm
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {alarm.status === 'Acked' && (
+            <div className="border-t border-border-subtle/40 pt-4">
+              <div className="text-xs text-theme-muted italic">This alarm has been acknowledged.</div>
+            </div>
+          )}
+
+          {/* Labels */}
+          <div className="border-t border-border-subtle/40 pt-4">
+            <h3 className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted mb-2">Labels</h3>
+            <div className="flex flex-wrap gap-1.5">
+              {ALL_ALARM_LABELS.map((label) => {
+                const active = alarm.labels.includes(label);
+                return (
+                  <button
+                    key={label}
+                    onClick={() => handleLabelToggle(label)}
+                    className={`px-2 py-0.5 rounded text-[10px] font-medium border transition-colors ${
+                      active
+                        ? 'bg-accent-subtle text-theme-accent border-theme-accent/30'
+                        : 'bg-surface-overlay/40 text-theme-muted border-border-subtle/40 hover:text-theme-secondary'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Risk picker */}
+          <div className="border-t border-border-subtle/40 pt-4">
+            <h3 className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted mb-2">Human Risk</h3>
+            <div className="flex gap-1.5">
+              {ALL_HUMAN_RISKS.map((risk) => {
+                const isActive = alarm.humanRisk === risk;
+                return (
+                  <button
+                    key={risk}
+                    onClick={() => handleRiskChange(risk)}
+                    className={`px-2.5 py-1 rounded text-[10px] font-medium border transition-colors ${
+                      isActive
+                        ? RISK_COLOR[risk]
+                        : 'bg-surface-overlay/40 text-theme-muted border-border-subtle/40 hover:text-theme-secondary'
+                    }`}
+                  >
+                    {RISK_LABELS[risk]}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}

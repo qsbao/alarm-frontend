@@ -6,7 +6,9 @@
 
 ## Project Setup
 
-- This is a **pnpm workspace** monorepo (`frontend`, `backend`, `shared`)
-- Use `pnpm add <pkg> --filter @skill-ide/frontend` to add frontend dependencies (not `npm install`)
+- This is a **pnpm workspace** monorepo (`frontend/`, `backend/`)
+- Frontend: `pnpm add <pkg> --filter @fab-alarm/frontend` (not `npm install`)
+- Backend: Java 17 + Spring Boot + Maven in `backend/` (use `./mvnw` wrapper, set `JAVA_HOME` to JDK 17)
 - Do not `cd` into subdirectories for git or pnpm commands; use `--dir` or `--filter` flags from the root
 - Prefer relative paths in CLI commands where possible
+- OpenAPI types auto-generated: run `pnpm generate-api` from root (requires backend running on :8080)
