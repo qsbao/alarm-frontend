@@ -1,8 +1,7 @@
 import { AlertTriangle, GitMerge, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Alarm, Issue } from '../../types';
-import { api } from '../../api/client';
-import { getActiveAlarmsForIssue } from '../../lib/issueAlarms';
+import { backend } from '../../api/backendClient';
 import { StatusBadge } from '../issues/StatusBadge';
 import { getUserById } from '../../mocks/users';
 
@@ -32,8 +31,29 @@ export function MergeDialog({ sources, onConfirm, onCancel, currentUserDepartmen
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const list = await api.listMergeTargetCandidates(sourceIds, currentUserDepartment);
-      if (!cancelled) {
+      const { data } = await backend.GET('/api/issues', {});
+      if (!cancelled && data) {
+        const excludeSet = new Set(sourceIds);
+        const list = (data as unknown as Array<Record<string, any>>)
+          .filter((i) => i.department === currentUserDepartment
+            && !excludeSet.has(i.id as string)
+            && i.status !== 'Merged')
+          .sort((a, b) => new Date(b.date as string).getTime() - new Date(a.date as string).getTime())
+          .map((i) => ({
+            id: i.id as string,
+            title: i.title as string,
+            date: i.date as string,
+            alarmType: i.alarmType as Issue['alarmType'],
+            riskLevel: i.riskLevel as Issue['riskLevel'],
+            status: i.status as Issue['status'],
+            issueTime: i.issueTime as string,
+            operation: i.operation as string,
+            product: i.product as string,
+            ownerId: i.ownerId as string,
+            department: i.department as string,
+            description: (i.description ?? '') as string,
+            activity: [],
+          }));
         setCandidates(list);
         setLoading(false);
       }
@@ -49,8 +69,10 @@ export function MergeDialog({ sources, onConfirm, onCancel, currentUserDepartmen
   // Update target alarm count when selection changes
   useEffect(() => {
     if (selectedTargetId) {
-      const rows = getActiveAlarmsForIssue(selectedTargetId);
-      setTargetAlarmCount(rows.length);
+      backend.GET('/api/issues/{id}/alarms', { params: { path: { id: selectedTargetId } } })
+        .then(({ data }) => {
+          setTargetAlarmCount(data ? (data as unknown as unknown[]).length : 0);
+        });
     } else {
       setTargetAlarmCount(0);
     }
