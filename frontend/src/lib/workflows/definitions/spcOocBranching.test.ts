@@ -7,8 +7,8 @@ describe('spcOocBranchingDefinition', () => {
     expect(spcOocBranchingDefinition.name).toBe('SPC OOC Branching');
   });
 
-  it('has eight steps matching the PRD step graph', () => {
-    expect(spcOocBranchingDefinition.steps).toHaveLength(8);
+  it('has nine steps matching the PRD step graph', () => {
+    expect(spcOocBranchingDefinition.steps).toHaveLength(9);
     const ids = spcOocBranchingDefinition.steps.map((s) => s.id);
     expect(ids).toEqual([
       'chart_owner_comment',
@@ -16,6 +16,7 @@ describe('spcOocBranchingDefinition', () => {
       'l4_review',
       'pi_comment',
       'attach_report',
+      'verify_calibration',
       'meeting',
       'resolved',
       'closed',
@@ -31,7 +32,8 @@ describe('spcOocBranchingDefinition', () => {
     expect(byId['l4_review'].preSteps).toEqual(['l5_review']);
     expect(byId['pi_comment'].preSteps).toEqual(['chart_owner_comment']);
     expect(byId['attach_report'].preSteps).toEqual(['chart_owner_comment']);
-    expect(byId['meeting'].preSteps).toEqual(['l4_review', 'pi_comment', 'attach_report']);
+    expect(byId['verify_calibration'].preSteps).toEqual(['chart_owner_comment']);
+    expect(byId['meeting'].preSteps).toEqual(['l4_review', 'pi_comment', 'attach_report', 'verify_calibration']);
     expect(byId['resolved'].preSteps).toEqual(['meeting']);
     expect(byId['closed'].preSteps).toEqual(['resolved']);
   });
@@ -40,6 +42,18 @@ describe('spcOocBranchingDefinition', () => {
     const step = spcOocBranchingDefinition.steps.find((s) => s.id === 'attach_report')!;
     expect(step.skippableIf).toBeDefined();
     expect(step.skippableIf!({} as any)).toBe(true);
+  });
+
+  it('verify_calibration is skippable', () => {
+    const step = spcOocBranchingDefinition.steps.find((s) => s.id === 'verify_calibration')!;
+    expect(step.skippableIf).toBeDefined();
+    expect(step.skippableIf!({} as any)).toBe(true);
+  });
+
+  it('verify_calibration has calibration-reference payload schema', () => {
+    const step = spcOocBranchingDefinition.steps.find((s) => s.id === 'verify_calibration')!;
+    expect(step.payloadSchema).toBeDefined();
+    expect(step.payloadSchema!['calibrationId'].kind).toBe('calibration-reference');
   });
 
   it('attach_report has report-reference payload schema', () => {

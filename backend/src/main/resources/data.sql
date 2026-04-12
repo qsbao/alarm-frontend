@@ -330,6 +330,7 @@ INSERT INTO workflow_step (instance_id, step_id, status) VALUES (2, 'l5_review',
 INSERT INTO workflow_step (instance_id, step_id, status) VALUES (2, 'l4_review', 'pending');
 INSERT INTO workflow_step (instance_id, step_id, status) VALUES (2, 'pi_comment', 'ongoing');
 INSERT INTO workflow_step (instance_id, step_id, status) VALUES (2, 'attach_report', 'ongoing');
+INSERT INTO workflow_step (instance_id, step_id, status) VALUES (2, 'verify_calibration', 'ongoing');
 INSERT INTO workflow_step (instance_id, step_id, status) VALUES (2, 'meeting', 'pending');
 INSERT INTO workflow_step (instance_id, step_id, status) VALUES (2, 'resolved', 'pending');
 INSERT INTO workflow_step (instance_id, step_id, status) VALUES (2, 'closed', 'pending');
@@ -347,6 +348,7 @@ INSERT INTO workflow_step (instance_id, step_id, status) VALUES (4, 'l5_review',
 INSERT INTO workflow_step (instance_id, step_id, status) VALUES (4, 'l4_review', 'pending');
 INSERT INTO workflow_step (instance_id, step_id, status) VALUES (4, 'pi_comment', 'ongoing');
 INSERT INTO workflow_step (instance_id, step_id, status, actor_id, completed_at, payload) VALUES (4, 'attach_report', 'completed', 'user-chen', '2026-04-10T16:00:00Z', '{"reportId":"RPT-1001"}');
+INSERT INTO workflow_step (instance_id, step_id, status, actor_id, completed_at, payload) VALUES (4, 'verify_calibration', 'completed', 'user-chen', '2026-04-10T16:15:00Z', '{"calibrationId":"CAL-001"}');
 INSERT INTO workflow_step (instance_id, step_id, status) VALUES (4, 'meeting', 'pending');
 INSERT INTO workflow_step (instance_id, step_id, status) VALUES (4, 'resolved', 'pending');
 INSERT INTO workflow_step (instance_id, step_id, status) VALUES (4, 'closed', 'pending');
