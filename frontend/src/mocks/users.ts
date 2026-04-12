@@ -24,6 +24,16 @@ export const MOCK_USERS: User[] = [
   { id: 'user-fischer', name: 'E. Fischer', department: 'Facilities' },
   // Additional engineers for variety
   { id: 'user-park', name: 'C. Park', department: 'Etch' },
+  // Additional engineers (batch 2)
+  { id: 'user-oconnor', name: "M. O'Connor", department: 'Litho' },
+  { id: 'user-silva', name: 'A. Silva', department: 'Litho' },
+  { id: 'user-ito', name: 'K. Ito', department: 'Etch' },
+  { id: 'user-johnson', name: 'T. Johnson', department: 'Etch' },
+  { id: 'user-martinez', name: 'R. Martinez', department: 'Facilities' },
+  { id: 'user-brown', name: 'D. Brown', department: 'Facilities' },
+  { id: 'user-watanabe', name: 'S. Watanabe', department: 'Litho' },
+  { id: 'user-zhang', name: 'L. Zhang', department: 'Etch' },
+  { id: 'user-taylor', name: 'J. Taylor', department: 'Facilities' },
 ];
 
 const byId = new Map(MOCK_USERS.map((u) => [u.id, u]));

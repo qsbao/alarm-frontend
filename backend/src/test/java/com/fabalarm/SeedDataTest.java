@@ -14,8 +14,8 @@ class SeedDataTest {
     private UserRepository userRepository;
 
     @Test
-    void seedDataLoads18Users() {
-        assertEquals(18, userRepository.count());
+    void seedDataLoads27Users() {
+        assertEquals(27, userRepository.count());
     }
 
     @Test

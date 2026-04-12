@@ -1,4 +1,4 @@
--- Seed data: 18 mock users across 3 departments
+-- Seed data: 27 mock users across 3 departments
 -- Source: frontend/src/mocks/users.ts
 
 -- Engineers
@@ -28,3 +28,14 @@ INSERT INTO users (id, name, department) VALUES ('user-fischer', 'E. Fischer', '
 
 -- Additional engineers
 INSERT INTO users (id, name, department) VALUES ('user-park', 'C. Park', 'Etch');
+
+-- Additional engineers (batch 2) — 9 more to reach 27
+INSERT INTO users (id, name, department) VALUES ('user-oconnor', 'M. O''Connor', 'Litho');
+INSERT INTO users (id, name, department) VALUES ('user-silva', 'A. Silva', 'Litho');
+INSERT INTO users (id, name, department) VALUES ('user-ito', 'K. Ito', 'Etch');
+INSERT INTO users (id, name, department) VALUES ('user-johnson', 'T. Johnson', 'Etch');
+INSERT INTO users (id, name, department) VALUES ('user-martinez', 'R. Martinez', 'Facilities');
+INSERT INTO users (id, name, department) VALUES ('user-brown', 'D. Brown', 'Facilities');
+INSERT INTO users (id, name, department) VALUES ('user-watanabe', 'S. Watanabe', 'Litho');
+INSERT INTO users (id, name, department) VALUES ('user-zhang', 'L. Zhang', 'Etch');
+INSERT INTO users (id, name, department) VALUES ('user-taylor', 'J. Taylor', 'Facilities');

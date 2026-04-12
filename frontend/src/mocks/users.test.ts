@@ -14,9 +14,8 @@ describe('MOCK_USERS', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it('has 16–20 users to populate manager chains and PI assignments', () => {
-    expect(MOCK_USERS.length).toBeGreaterThanOrEqual(16);
-    expect(MOCK_USERS.length).toBeLessThanOrEqual(20);
+  it('has 27 users matching backend seed data', () => {
+    expect(MOCK_USERS.length).toBe(27);
   });
 
   it('preserves the original 8 users (by name)', () => {
