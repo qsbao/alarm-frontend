@@ -5,6 +5,7 @@ import {
   getActiveAlarmsForIssue,
   getActiveIssueForAlarm,
   getHistoricalAlarmsForIssue,
+  moveAlarm,
   resetIssueAlarms,
   type IssueAlarm,
 } from './issueAlarms';
@@ -111,6 +112,91 @@ describe('issueAlarms', () => {
 
       expect(getActiveAlarmsForIssue('iss-001').map((r) => r.alarmId)).toEqual(['alm-002']);
       expect(getHistoricalAlarmsForIssue('iss-001').map((r) => r.alarmId)).toEqual(['alm-001']);
+    });
+  });
+
+  describe('moveAlarm', () => {
+    it('atomically reassigns alarm — no transient unlinked state', () => {
+      attachAlarm('iss-001', 'alm-001', 'user-a');
+
+      const result = moveAlarm('alm-001', 'iss-002', {
+        by: 'user-a',
+        sourceDepartment: 'Litho',
+        targetDepartment: 'Litho',
+        userDepartment: 'Litho',
+      });
+
+      expect(result.ok).toBe(true);
+
+      // After move: alarm is active on iss-002, not on iss-001
+      expect(getActiveAlarmsForIssue('iss-002')).toHaveLength(1);
+      expect(getActiveAlarmsForIssue('iss-002')[0].alarmId).toBe('alm-001');
+      expect(getActiveAlarmsForIssue('iss-001')).toHaveLength(0);
+
+      // Historical record exists on iss-001
+      const hist = getHistoricalAlarmsForIssue('iss-001');
+      expect(hist).toHaveLength(1);
+      expect(hist[0].mergedToIssueId).toBe('iss-002');
+    });
+
+    it('rejects when source issue is outside user department', () => {
+      attachAlarm('iss-001', 'alm-001', 'user-a');
+
+      const result = moveAlarm('alm-001', 'iss-002', {
+        by: 'user-a',
+        sourceDepartment: 'Etch',
+        targetDepartment: 'Litho',
+        userDepartment: 'Litho',
+      });
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.reason).toBe('permission_denied');
+
+      // Alarm unchanged
+      expect(getActiveAlarmsForIssue('iss-001')).toHaveLength(1);
+    });
+
+    it('rejects when target issue is outside user department', () => {
+      attachAlarm('iss-001', 'alm-001', 'user-a');
+
+      const result = moveAlarm('alm-001', 'iss-002', {
+        by: 'user-a',
+        sourceDepartment: 'Litho',
+        targetDepartment: 'Etch',
+        userDepartment: 'Litho',
+      });
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.reason).toBe('permission_denied');
+    });
+
+    it('rejects when alarm has no active link', () => {
+      const result = moveAlarm('alm-999', 'iss-002', {
+        by: 'user-a',
+        sourceDepartment: 'Litho',
+        targetDepartment: 'Litho',
+        userDepartment: 'Litho',
+      });
+
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.reason).toBe('not_found');
+    });
+
+    it('returns fromIssueId and toIssueId on success', () => {
+      attachAlarm('iss-001', 'alm-001', 'user-a');
+
+      const result = moveAlarm('alm-001', 'iss-002', {
+        by: 'user-a',
+        sourceDepartment: 'Litho',
+        targetDepartment: 'Litho',
+        userDepartment: 'Litho',
+      });
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.fromIssueId).toBe('iss-001');
+        expect(result.toIssueId).toBe('iss-002');
+      }
     });
   });
 
