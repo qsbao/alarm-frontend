@@ -227,6 +227,12 @@ work_on_issue() {
   reset_to_main
   git checkout -B "$branch"
 
+  log "Running pnpm install..."
+  if ! pnpm install --frozen-lockfile 2>&1 | tee -a "$logfile"; then
+    log "pnpm install failed for issue #$n — skipping"
+    return 0
+  fi
+
   local timeout_cmd=()
   if command -v timeout >/dev/null 2>&1; then
     timeout_cmd=(timeout "$PER_ISSUE_TIMEOUT")
