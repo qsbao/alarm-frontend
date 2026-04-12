@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach } from 'vitest';
 import { api } from './client';
-import { resetRelations, getBlockers } from '../lib/relations/issueRelations';
+import { resetRelations } from '../lib/relations/issueRelations';
 
 beforeEach(() => {
   api.resetAllWorkflows();
@@ -67,6 +67,66 @@ describe('createHighlightedIssue', () => {
     const childAct = child.activity.filter((a) => a.type === 'blocker_added');
     expect(childAct.length).toBeGreaterThan(0);
     expect(childAct[childAct.length - 1].blockerIssueId).toBe(parent!.id);
+  });
+});
+
+describe('getHistoricalAlarmsForIssue', () => {
+  it('returns enriched historical alarm rows after a merge', async () => {
+    const issues = await api.listIssues();
+    // Find two issues in the same department; make the source Triage by picking
+    // one without a workflow (status stays 'Triage' after mock init)
+    const source = issues.find((i) => i.status === 'Triage' && !i.workflow);
+    if (!source) {
+      // All issues may have workflows attached; skip gracefully
+      return;
+    }
+
+    // Find a target in the same department
+    const target = issues.find(
+      (i) => i.id !== source.id && i.department === source.department && i.status !== 'Merged',
+    );
+    expect(target).toBeDefined();
+
+    // Ensure source has at least one alarm
+    const sourceAlarms = await api.getAlarmsForIssue(source.id);
+    if (sourceAlarms.length === 0) {
+      const allAlarms = await api.listAlarms();
+      await api.linkAlarm(source.id, allAlarms[0].id);
+    }
+    const alarmsBeforeMerge = await api.getAlarmsForIssue(source.id);
+
+    // Before merge, no historical alarms
+    const histBefore = await api.getHistoricalAlarmsForIssue(source.id);
+    expect(histBefore).toEqual([]);
+
+    // Merge
+    const user = { id: 'test-user', name: 'Test', department: source.department };
+    const result = await api.mergeIssues([source.id], target!.id, user);
+    expect(result.ok).toBe(true);
+
+    // After merge, historical alarms should be present
+    const histAfter = await api.getHistoricalAlarmsForIssue(source.id);
+    expect(histAfter.length).toBe(alarmsBeforeMerge.length);
+    expect(histAfter.length).toBeGreaterThan(0);
+
+    // Each row has the alarm data and the target issue ID
+    for (const row of histAfter) {
+      expect(row.alarm).toBeDefined();
+      expect(row.alarm.id).toBeTruthy();
+      expect(row.mergedToIssueId).toBe(target!.id);
+    }
+
+    // Active alarms on source should now be empty
+    const activeAfter = await api.getAlarmsForIssue(source.id);
+    expect(activeAfter).toEqual([]);
+  });
+
+  it('returns empty for an issue with no historical alarms', async () => {
+    const issues = await api.listIssues();
+    const nonMerged = issues.find((i) => i.status !== 'Merged');
+    expect(nonMerged).toBeDefined();
+    const hist = await api.getHistoricalAlarmsForIssue(nonMerged!.id);
+    expect(hist).toEqual([]);
   });
 });
 

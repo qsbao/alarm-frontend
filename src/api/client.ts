@@ -5,6 +5,7 @@ import {
   attachAlarm as iaAttach,
   detachAlarm as iaDetach,
   getActiveAlarmsForIssue,
+  getHistoricalAlarmsForIssue,
   getActiveIssueForAlarm as iaGetActiveIssue,
   moveAlarm as iaMoveAlarm,
 } from '../lib/issueAlarms';
@@ -666,5 +667,23 @@ export const api = {
       .map((id) => byId.get(id))
       .filter((a): a is Alarm => Boolean(a))
       .map((a) => ({ ...a, labels: [...a.labels], activity: a.activity.map((e) => ({ ...e })) }));
+  },
+
+  async getHistoricalAlarmsForIssue(
+    issueId: string,
+  ): Promise<Array<{ alarm: Alarm; mergedToIssueId: string }>> {
+    await delay();
+    const rows = getHistoricalAlarmsForIssue(issueId);
+    const byId = new Map(alarms.map((a) => [a.id, a]));
+    return rows
+      .map((r) => {
+        const alarm = byId.get(r.alarmId);
+        if (!alarm || !r.mergedToIssueId) return null;
+        return {
+          alarm: { ...alarm, labels: [...alarm.labels], activity: alarm.activity.map((e) => ({ ...e })) },
+          mergedToIssueId: r.mergedToIssueId,
+        };
+      })
+      .filter((x): x is { alarm: Alarm; mergedToIssueId: string } => x != null);
   },
 };

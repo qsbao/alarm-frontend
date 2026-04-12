@@ -1,8 +1,10 @@
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useCallback, useEffect, useState } from 'react';
+import { GitMerge } from 'lucide-react';
 import { ActivityTimeline } from '../components/issue-detail/ActivityTimeline';
 import { AlarmList } from '../components/issue-detail/AlarmList';
 import { CommentBox } from '../components/issue-detail/CommentBox';
+import { HistoricalAlarmList, type HistoricalAlarmRow } from '../components/issue-detail/HistoricalAlarmList';
 import { IssueHeader } from '../components/issue-detail/IssueHeader';
 import { MergeDialog, type MergeSource } from '../components/issue-detail/MergeDialog';
 import { WorkflowPanel } from '../components/issue-detail/WorkflowPanel';
@@ -37,7 +39,10 @@ export function IssueDetailPage() {
 
   const [showMergeDialog, setShowMergeDialog] = useState(false);
   const [mergedInto, setMergedInto] = useState<string | null>(null);
+  const [historicalAlarms, setHistoricalAlarms] = useState<HistoricalAlarmRow[]>([]);
   const currentUser = useCurrentUserStore((s) => s.currentUser);
+
+  const isMerged = mergedInto != null;
 
   // Check if this issue has been merged into another
   useEffect(() => {
@@ -48,6 +53,19 @@ export function IssueDetailPage() {
     });
     return () => { cancelled = true; };
   }, [id, issue?.status]);
+
+  // Fetch historical alarms for merged issues
+  useEffect(() => {
+    if (!id || !isMerged) {
+      setHistoricalAlarms([]);
+      return;
+    }
+    let cancelled = false;
+    api.getHistoricalAlarmsForIssue(id).then((rows) => {
+      if (!cancelled) setHistoricalAlarms(rows);
+    });
+    return () => { cancelled = true; };
+  }, [id, isMerged]);
 
   const handleMergeConfirm = useCallback(async (targetId: string) => {
     if (!issue) return;
@@ -83,37 +101,47 @@ export function IssueDetailPage() {
     <div className="h-full overflow-y-auto bg-surface-base">
       <div className="max-w-6xl mx-auto p-6 flex flex-col gap-5">
         {/* Merged-source banner */}
-        {mergedInto && (
-          <div className="rounded-lg bg-purple-500/10 border border-purple-500/20 px-4 py-3 flex items-center gap-3">
-            <span className="text-sm text-purple-300">
-              Merged into <span className="font-mono font-medium">{mergedInto}</span>
+        {isMerged && (
+          <Link
+            to={`/issues/${mergedInto}`}
+            className="group rounded-lg bg-purple-500/15 border-2 border-purple-500/30 px-5 py-4 flex items-center gap-3 hover:bg-purple-500/20 transition-colors cursor-pointer no-underline"
+          >
+            <GitMerge size={18} className="text-purple-400 shrink-0" />
+            <span className="text-sm font-medium text-purple-300">
+              This issue was merged into{' '}
+              <span className="font-mono font-semibold">{mergedInto}</span>
             </span>
-            <Link
-              to={`/issues/${mergedInto}`}
-              className="text-sm text-purple-400 hover:text-purple-300 underline"
-            >
+            <span className="text-sm text-purple-400 group-hover:text-purple-300 ml-auto">
               Go there &rarr;
-            </Link>
-          </div>
+            </span>
+          </Link>
         )}
 
-        <IssueHeader issue={issue} onAssign={assignOwner} onMerge={() => setShowMergeDialog(true)} />
+        <IssueHeader
+          issue={issue}
+          onAssign={assignOwner}
+          onMerge={isMerged ? undefined : () => setShowMergeDialog(true)}
+          disabled={isMerged}
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           <div className="lg:col-span-2 flex flex-col gap-5">
-            <WorkflowPanel
-              issue={issue}
-              blockers={blockers}
-              onCompleteStep={completeWorkflowStep}
-              onSkipStep={skipWorkflowStep}
-              onReviveStep={reviveWorkflowStep}
-              onEditStep={editWorkflowStep}
-              onAddBlocker={addBlocker}
-              onRemoveBlocker={removeBlocker}
-              onFetchHighlightCandidates={fetchHighlightCandidates}
-              onCreateHighlightedIssue={createHighlightedIssue}
-              onLinkExistingIssueAsHighlight={linkExistingIssueAsHighlight}
-            />
+            {/* Hide workflow panel entirely on merged source pages */}
+            {!isMerged && (
+              <WorkflowPanel
+                issue={issue}
+                blockers={blockers}
+                onCompleteStep={completeWorkflowStep}
+                onSkipStep={skipWorkflowStep}
+                onReviveStep={reviveWorkflowStep}
+                onEditStep={editWorkflowStep}
+                onAddBlocker={addBlocker}
+                onRemoveBlocker={removeBlocker}
+                onFetchHighlightCandidates={fetchHighlightCandidates}
+                onCreateHighlightedIssue={createHighlightedIssue}
+                onLinkExistingIssueAsHighlight={linkExistingIssueAsHighlight}
+              />
+            )}
 
             <div className="card p-5">
               <h2 className="text-xs font-semibold uppercase tracking-wide text-theme-muted mb-3">
@@ -124,11 +152,17 @@ export function IssueDetailPage() {
               </p>
             </div>
 
-            <CommentBox onPost={addComment} />
+            {/* Comment box hidden on merged pages */}
+            {!isMerged && <CommentBox onPost={addComment} />}
           </div>
 
           <div className="flex flex-col gap-5">
-            <AlarmList alarms={alarms} issue={issue} onLink={linkAlarm} onUnlink={unlinkAlarm} onMove={moveAlarm} />
+            {/* Show active alarms (read-only when merged) or historical alarms */}
+            {isMerged ? (
+              <HistoricalAlarmList rows={historicalAlarms} />
+            ) : (
+              <AlarmList alarms={alarms} issue={issue} onLink={linkAlarm} onUnlink={unlinkAlarm} onMove={moveAlarm} />
+            )}
             <ActivityTimeline activity={issue.activity} />
           </div>
         </div>
