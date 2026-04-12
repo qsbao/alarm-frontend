@@ -38,31 +38,33 @@ SLEEP_BETWEEN_NO_WORK="${SLEEP_BETWEEN_NO_WORK:-300}"
 PER_ISSUE_TIMEOUT="${PER_ISSUE_TIMEOUT:-3600}"
 MODEL="${MODEL:-}"
 
-# Issue dependency graph from PRD #31. Keep in sync with the PRD if it changes.
+# Issue dependency graph from PRD #46. Keep in sync with the PRD if it changes.
 # (Function-based instead of `declare -A` so it works on macOS bash 3.2.)
 #
-# Fan-out after #32 — #33, #35, #36, #38 can run in parallel; #34 follows #33
-# and #37 follows #36.
-#   #32 Slice 1: Step-DAG engine + generic linear + panel rewrite (no blockers)
-#   #33 Slice 2: SPC OOC branching definition           (needs 32)
-#   #34 Slice 3: Skip + revive                          (needs 33)
-#   #35 Slice 4: Edit completed step                    (needs 32)
-#   #36 Slice 5: IssueRelation + blocker gate           (needs 32)
-#   #37 Slice 6: Highlight dialog + route data          (needs 36)
-#   #38 Slice 7: Discovery surface                      (needs 32)
+# Linear spine 47 → 48 → 49 → 50, then fan-out: 51, 52, 53, 54 each depend on
+# 50 (and most also on 47/48).
+#   #47 Slice 1: Triage/Merged status vocabulary               (no blockers)
+#   #48 Slice 2: IssueAlarm join table refactor                (needs 47)
+#   #49 Slice 3: moveAlarm primitive end-to-end                (needs 48)
+#   #50 Slice 4: mergeIssues + source-detail entry + dialog    (needs 47, 48, 49)
+#   #51 Slice 5: Merged source page rendering polish           (needs 50)
+#   #52 Slice 6: Discover-list bulk merge                      (needs 47, 48, 50)
+#   #53 Slice 7: Merged filter chip + hide-by-default          (needs 47, 50)
+#   #54 Slice 8: Target-detail "Pull alarms from…" picker      (needs 47, 48, 50)
 blockers_for() {
   case "$1" in
-    32) echo "" ;;
-    33) echo "32" ;;
-    34) echo "33" ;;
-    35) echo "32" ;;
-    36) echo "32" ;;
-    37) echo "36" ;;
-    38) echo "32" ;;
+    47) echo "" ;;
+    48) echo "47" ;;
+    49) echo "48" ;;
+    50) echo "47 48 49" ;;
+    51) echo "50" ;;
+    52) echo "47 48 50" ;;
+    53) echo "47 50" ;;
+    54) echo "47 48 50" ;;
     *)  echo "" ;;
   esac
 }
-ALL_ISSUES="32 33 34 35 36 37 38"
+ALL_ISSUES="47 48 49 50 51 52 53 54"
 
 # -------------------------------------------------------------------- helpers
 
@@ -127,8 +129,8 @@ You are working autonomously on GitHub issue #$n in the repository $REPO.
 Step 1. Read the issue:
   gh issue view $n --repo $REPO
 
-Step 2. Read the parent PRD (issue #31) for full architectural context:
-  gh issue view 31 --repo $REPO
+Step 2. Read the parent PRD (issue #46) for full architectural context:
+  gh issue view 46 --repo $REPO
 
 Step 3. Use the tdd skill (red-green-refactor). For each acceptance criterion:
 write a failing test first, watch it fail, write the minimum code to make it
