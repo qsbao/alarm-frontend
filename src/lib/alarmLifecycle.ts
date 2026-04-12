@@ -141,6 +141,25 @@ export const alarmLifecycle = {
     };
   },
 
+  move(alarm: Alarm, fromIssueId: string, toIssueId: string, actor: User, timestamp: string): LifecycleResult {
+    const activityEntry: AlarmActivityEntry = {
+      id: nextActId(alarm.id),
+      type: 'moved_between_issues',
+      timestamp,
+      author: actor.name,
+      fromIssueId,
+      toIssueId,
+    };
+
+    return {
+      alarm: {
+        ...alarm,
+        activity: [...alarm.activity, activityEntry],
+      },
+      activityEntry,
+    };
+  },
+
   recover(alarm: Alarm, timestamp: string): LifecycleResult {
     if (alarm.recoveryTime) {
       throw new Error(`Alarm ${alarm.id} already has a recoveryTime`);

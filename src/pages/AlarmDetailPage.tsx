@@ -1,5 +1,6 @@
 import {
   ArrowLeft,
+  ArrowRightLeft,
   Bell,
   Building2,
   Calendar,
@@ -104,6 +105,7 @@ const ACT_ICON_MAP: Record<AlarmActivityType, typeof Plus> = {
   label_added: Tag,
   label_removed: Minus,
   risk_changed: Gauge,
+  moved_between_issues: ArrowRightLeft,
 };
 
 function describeActivity(entry: AlarmActivityEntry): React.ReactNode {
@@ -168,6 +170,14 @@ function describeActivity(entry: AlarmActivityEntry): React.ReactNode {
             <>from none → </>
           )}
           <span className="text-theme-accent font-medium">{entry.toRisk}</span>
+        </>
+      );
+    case 'moved_between_issues':
+      return (
+        <>
+          <span className="text-theme-primary font-medium">{entry.author}</span> moved alarm from{' '}
+          <span className="font-mono text-theme-secondary">{entry.fromIssueId}</span> to{' '}
+          <span className="font-mono text-theme-secondary">{entry.toIssueId}</span>
         </>
       );
   }

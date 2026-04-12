@@ -5,6 +5,8 @@ import {
   attachAlarm as iaAttach,
   detachAlarm as iaDetach,
   getActiveAlarmsForIssue,
+  getActiveIssueForAlarm as iaGetActiveIssue,
+  moveAlarm as iaMoveAlarm,
 } from '../lib/issueAlarms';
 import {
   attachWorkflow,
@@ -142,6 +144,33 @@ export const api = {
     iaDetach(id, alarmId);
     appendActivity(issue, 'alarm_unlinked', { alarmId });
     return cloneIssue(issue);
+  },
+
+  async moveAlarm(
+    alarmId: string,
+    targetIssueId: string,
+    userDepartment: string,
+  ): Promise<{ fromIssueId: string; toIssueId: string }> {
+    await delay();
+    const sourceRow = iaGetActiveIssue(alarmId);
+    if (!sourceRow) throw new Error(`Alarm ${alarmId} has no active issue link`);
+
+    const sourceIssue = findIssue(sourceRow.issueId);
+    const targetIssue = findIssue(targetIssueId);
+
+    const result = iaMoveAlarm(alarmId, targetIssueId, {
+      by: CURRENT_USER,
+      sourceDepartment: sourceIssue.department,
+      targetDepartment: targetIssue.department,
+      userDepartment,
+    });
+
+    if (!result.ok) throw new Error(`moveAlarm failed: ${result.reason}`);
+
+    appendActivity(sourceIssue, 'alarm_moved_out', { alarmId, fromIssueId: sourceIssue.id, toIssueId: targetIssueId });
+    appendActivity(targetIssue, 'alarm_moved_in', { alarmId, fromIssueId: sourceIssue.id, toIssueId: targetIssueId });
+
+    return { fromIssueId: sourceIssue.id, toIssueId: targetIssueId };
   },
 
   async createIssue(draft: Omit<Issue, 'id' | 'activity'>): Promise<Issue> {

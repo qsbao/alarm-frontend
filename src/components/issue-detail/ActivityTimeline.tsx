@@ -1,4 +1,5 @@
 import {
+  ArrowRightLeft,
   GitBranch,
   Link as LinkIcon,
   Link2,
@@ -18,6 +19,8 @@ const ICON_MAP: Record<ActivityType, typeof Plus> = {
   alarm_linked: LinkIcon,
   alarm_unlinked: Unlink,
   workflow_transition: GitBranch,
+  alarm_moved_in: ArrowRightLeft,
+  alarm_moved_out: ArrowRightLeft,
   blocker_added: Link2,
   blocker_removed: Unlink,
 };
@@ -108,6 +111,22 @@ function describe(entry: ActivityEntry): React.ReactNode {
         </>
       );
     }
+    case 'alarm_moved_out':
+      return (
+        <>
+          <span className="text-theme-primary font-medium">{entry.author}</span> moved alarm{' '}
+          <span className="font-mono text-theme-secondary">{entry.alarmId}</span> to{' '}
+          <span className="font-mono text-theme-secondary">{entry.toIssueId}</span>
+        </>
+      );
+    case 'alarm_moved_in':
+      return (
+        <>
+          <span className="text-theme-primary font-medium">{entry.author}</span> moved alarm{' '}
+          <span className="font-mono text-theme-secondary">{entry.alarmId}</span> from{' '}
+          <span className="font-mono text-theme-secondary">{entry.fromIssueId}</span>
+        </>
+      );
     case 'blocker_added':
       return (
         <>
