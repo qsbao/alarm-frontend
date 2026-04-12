@@ -20,4 +20,12 @@ describe('generated OpenAPI types', () => {
     const mock: HealthResponse = { status: 'UP' };
     expect(mock.status).toBe('UP');
   });
+
+  it('me endpoint response type includes user fields', () => {
+    type MeResponse =
+      paths['/api/me']['get']['responses']['200']['content']['*/*'];
+
+    const mock: MeResponse = { id: 'user-tanaka', name: 'H. Tanaka', department: 'Litho' };
+    expect(mock.id).toBe('user-tanaka');
+  });
 });
