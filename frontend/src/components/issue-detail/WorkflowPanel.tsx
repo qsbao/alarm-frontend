@@ -20,6 +20,7 @@ interface WorkflowPanelProps {
   onFetchHighlightCandidates?: () => Promise<HighlightCandidate[]>;
   onCreateHighlightedIssue?: (targetOperationId: string) => Promise<void>;
   onLinkExistingIssueAsHighlight?: (existingIssueId: string) => Promise<void>;
+  onAttachWorkflow?: (definitionId: string) => Promise<void>;
 }
 
 export function WorkflowPanel({
@@ -34,9 +35,33 @@ export function WorkflowPanel({
   onFetchHighlightCandidates,
   onCreateHighlightedIssue,
   onLinkExistingIssueAsHighlight,
+  onAttachWorkflow,
 }: WorkflowPanelProps) {
   const workflow = issue.workflow;
-  if (!workflow) return null;
+
+  if (!workflow) {
+    if (!onAttachWorkflow) return null;
+    return (
+      <div id="workflow-panel" className="card p-5">
+        <h3 className="text-lg font-semibold mb-3">Workflow</h3>
+        <p className="text-sm text-muted-foreground mb-3">No workflow attached to this issue.</p>
+        <div className="flex gap-2">
+          <button
+            className="btn btn-sm btn-primary"
+            onClick={() => onAttachWorkflow('generic_linear_v1')}
+          >
+            Attach Generic Linear
+          </button>
+          <button
+            className="btn btn-sm btn-outline"
+            onClick={() => onAttachWorkflow('spc_ooc_branching_v1')}
+          >
+            Attach SPC OOC Branching
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const definition = getDefinition(workflow.definitionId);
   if (!definition) return null;

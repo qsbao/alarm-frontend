@@ -29,6 +29,7 @@ export function IssueDetailPage() {
     linkAlarm,
     unlinkAlarm,
     moveAlarm,
+    attachWorkflow,
     completeWorkflowStep,
     skipWorkflowStep,
     reviveWorkflowStep,
@@ -173,6 +174,7 @@ export function IssueDetailPage() {
               <WorkflowPanel
                 issue={issue}
                 blockers={blockers}
+                onAttachWorkflow={attachWorkflow}
                 onCompleteStep={completeWorkflowStep}
                 onSkipStep={skipWorkflowStep}
                 onReviveStep={reviveWorkflowStep}

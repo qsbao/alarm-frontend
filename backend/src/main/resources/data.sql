@@ -242,7 +242,7 @@ INSERT INTO alarm_label (alarm_id, label) VALUES ('alm-150', 'NeedsEngReview');
 INSERT INTO issue (id, title, issue_date, alarm_type, risk_level, status, issue_time, operation, product, owner_id, department, description) VALUES
 ('iss-001', 'Temperature excursion on LITHO-07', '2025-06-01T08:00:00Z', 'TempSpike', 'Critical', 'Investigating', '2025-06-01T07:45:00Z', 'Exposure', 'A7-Litho', 'user-tanaka', 'Litho', 'Repeated temp spikes during exposure step on LITHO-07. Wafer lot at risk.'),
 ('iss-002', 'Pressure drop in ETCH-03 chamber B', '2025-06-01T09:30:00Z', 'PressureDrop', 'High', 'Triage', '2025-06-01T09:15:00Z', 'Etch', 'B3-Etch', 'user-chen', 'Etch', 'Sudden pressure drop detected in chamber B during etch process.'),
-('iss-003', 'Flow anomaly on CVD-12', '2025-06-02T10:00:00Z', 'FlowAnomaly', 'Medium', 'Resolved', '2025-06-02T09:30:00Z', 'Deposition', 'C2-CVD', 'user-patel', 'Etch', 'Gas flow deviation detected during deposition. Resolved by recalibration.'),
+('iss-003', 'Flow anomaly on CVD-12', '2025-06-02T10:00:00Z', 'FlowAnomaly', 'Medium', 'Closed', '2025-06-02T09:30:00Z', 'Deposition', 'C2-CVD', 'user-patel', 'Etch', 'Gas flow deviation detected during deposition. Resolved by recalibration.'),
 ('iss-004', 'Chamber leak LITHO-02', '2025-06-02T14:00:00Z', 'ChamberLeak', 'Critical', 'Investigating', '2025-06-02T13:30:00Z', 'Exposure', 'A7-Litho', 'user-rossi', 'Litho', 'Helium leak test failed on LITHO-02 chamber. Production halted.'),
 ('iss-005', 'Voltage sag on FACILITIES-PSU-01', '2025-06-03T06:00:00Z', 'VoltageSag', 'High', 'Closed', '2025-06-03T05:45:00Z', 'Power Distribution', 'FAC-Power', 'user-muller', 'Facilities', 'Voltage sag event on main PSU feeding cleanroom zone 3.'),
 ('iss-006', 'Particle count spike LITHO-07 post-maintenance', '2025-06-03T11:00:00Z', 'ParticleCount', 'Medium', 'Triage', '2025-06-03T10:30:00Z', 'Exposure', 'A7-Litho', 'user-tanaka', 'Litho', 'Elevated particle counts after scheduled maintenance window.'),
@@ -315,6 +315,29 @@ INSERT INTO issue_alarm (issue_id, alarm_id, attached_at, attached_by, merged_at
 -- Historical: alarm was moved from iss-006 to iss-001
 ('iss-006', 'alm-010', '2025-06-03T11:05:00Z', 'H. Tanaka', '2025-06-03T12:00:00Z', 'H. Tanaka', 'iss-001'),
 ('iss-001', 'alm-010', '2025-06-03T12:00:00Z', 'H. Tanaka', NULL, NULL, NULL);
+
+-- Seed data: workflow instances and steps
+-- iss-001: generic_linear_v1 — chart_owner_comment completed, resolved ongoing
+INSERT INTO workflow_instance (issue_id, definition_id, status) VALUES ('iss-001', 'generic_linear_v1', 'Active');
+INSERT INTO workflow_step (instance_id, step_id, status, actor_id, completed_at) VALUES (1, 'chart_owner_comment', 'completed', 'user-tanaka', '2025-06-01T09:00:00Z');
+INSERT INTO workflow_step (instance_id, step_id, status) VALUES (1, 'resolved', 'ongoing');
+INSERT INTO workflow_step (instance_id, step_id, status) VALUES (1, 'closed', 'pending');
+
+-- iss-007: spc_ooc_branching_v1 — chart_owner_comment completed, l5+pi ongoing
+INSERT INTO workflow_instance (issue_id, definition_id, status) VALUES ('iss-007', 'spc_ooc_branching_v1', 'Active');
+INSERT INTO workflow_step (instance_id, step_id, status, actor_id, completed_at) VALUES (2, 'chart_owner_comment', 'completed', 'user-kim', '2025-06-04T09:30:00Z');
+INSERT INTO workflow_step (instance_id, step_id, status) VALUES (2, 'l5_review', 'ongoing');
+INSERT INTO workflow_step (instance_id, step_id, status) VALUES (2, 'l4_review', 'pending');
+INSERT INTO workflow_step (instance_id, step_id, status) VALUES (2, 'pi_comment', 'ongoing');
+INSERT INTO workflow_step (instance_id, step_id, status) VALUES (2, 'meeting', 'pending');
+INSERT INTO workflow_step (instance_id, step_id, status) VALUES (2, 'resolved', 'pending');
+INSERT INTO workflow_step (instance_id, step_id, status) VALUES (2, 'closed', 'pending');
+
+-- iss-003: generic_linear_v1 — fully completed (Resolved status)
+INSERT INTO workflow_instance (issue_id, definition_id, status, completed_at) VALUES ('iss-003', 'generic_linear_v1', 'Completed', '2025-06-02T12:00:00Z');
+INSERT INTO workflow_step (instance_id, step_id, status, actor_id, completed_at) VALUES (3, 'chart_owner_comment', 'completed', 'user-patel', '2025-06-02T10:30:00Z');
+INSERT INTO workflow_step (instance_id, step_id, status, actor_id, completed_at) VALUES (3, 'resolved', 'completed', 'user-patel', '2025-06-02T11:30:00Z');
+INSERT INTO workflow_step (instance_id, step_id, status, actor_id, completed_at) VALUES (3, 'closed', 'completed', 'user-patel', '2025-06-02T12:00:00Z');
 
 -- Seed data: issue_relation (blockers and highlights)
 INSERT INTO issue_relation (from_issue_id, to_issue_id, type, created_by, created_at) VALUES

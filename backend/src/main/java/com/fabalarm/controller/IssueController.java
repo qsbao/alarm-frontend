@@ -191,6 +191,10 @@ public class IssueController {
         if (a.getAssignedTo() != null) dto.put("assignedTo", a.getAssignedTo());
         if (a.getAlarmId() != null) dto.put("alarmId", a.getAlarmId());
         if (a.getBlockerIssueId() != null) dto.put("blockerIssueId", a.getBlockerIssueId());
+        if (a.getWorkflowDefinitionId() != null) dto.put("workflowDefinitionId", a.getWorkflowDefinitionId());
+        if (a.getWorkflowStepId() != null) dto.put("workflowStepId", a.getWorkflowStepId());
+        if (a.getWorkflowAction() != null) dto.put("workflowAction", a.getWorkflowAction());
+        if (a.getWorkflowActorId() != null) dto.put("workflowActorId", a.getWorkflowActorId());
         return dto;
     }
 

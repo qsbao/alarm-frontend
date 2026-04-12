@@ -36,6 +36,18 @@ public class IssueActivity {
     @Column(name = "blocker_issue_id", length = 20)
     private String blockerIssueId;
 
+    @Column(name = "workflow_definition_id", length = 50)
+    private String workflowDefinitionId;
+
+    @Column(name = "workflow_step_id", length = 50)
+    private String workflowStepId;
+
+    @Column(name = "workflow_action", length = 20)
+    private String workflowAction;
+
+    @Column(name = "workflow_actor_id", length = 50)
+    private String workflowActorId;
+
     public IssueActivity() {}
 
     // Getters and setters
@@ -66,4 +78,16 @@ public class IssueActivity {
 
     public String getBlockerIssueId() { return blockerIssueId; }
     public void setBlockerIssueId(String blockerIssueId) { this.blockerIssueId = blockerIssueId; }
+
+    public String getWorkflowDefinitionId() { return workflowDefinitionId; }
+    public void setWorkflowDefinitionId(String workflowDefinitionId) { this.workflowDefinitionId = workflowDefinitionId; }
+
+    public String getWorkflowStepId() { return workflowStepId; }
+    public void setWorkflowStepId(String workflowStepId) { this.workflowStepId = workflowStepId; }
+
+    public String getWorkflowAction() { return workflowAction; }
+    public void setWorkflowAction(String workflowAction) { this.workflowAction = workflowAction; }
+
+    public String getWorkflowActorId() { return workflowActorId; }
+    public void setWorkflowActorId(String workflowActorId) { this.workflowActorId = workflowActorId; }
 }
