@@ -8,5 +8,9 @@ public enum IssueActivityType {
     alarm_unlinked,
     alarm_moved,
     merged_out,
-    merged_in
+    merged_in,
+    blocker_added,
+    blocker_removed,
+    highlight_added,
+    highlight_removed
 }

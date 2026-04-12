@@ -190,6 +190,7 @@ public class IssueController {
         if (a.getText() != null) dto.put("text", a.getText());
         if (a.getAssignedTo() != null) dto.put("assignedTo", a.getAssignedTo());
         if (a.getAlarmId() != null) dto.put("alarmId", a.getAlarmId());
+        if (a.getBlockerIssueId() != null) dto.put("blockerIssueId", a.getBlockerIssueId());
         return dto;
     }
 

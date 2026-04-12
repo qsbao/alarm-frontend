@@ -3,7 +3,6 @@ import { backend } from '../api/backendClient';
 import { api } from '../api/client';
 import { refreshEvents } from '../lib/refreshEvents';
 import { useAlarmStore } from '../stores/alarmStore';
-import { useCurrentUserStore } from '../stores/currentUserStore';
 import type { Alarm, Issue, ActivityEntry } from '../types';
 import type { HighlightCandidate } from '../lib/relations/highlightCandidates';
 
@@ -81,6 +80,7 @@ interface BackendActivity {
   author: string;
   text?: string;
   assignedTo?: string;
+  blockerIssueId?: string;
 }
 
 function toIssue(raw: BackendIssue, activity: ActivityEntry[]): Issue {
@@ -109,6 +109,7 @@ function toActivityEntry(raw: BackendActivity): ActivityEntry {
     author: raw.author,
     text: raw.text,
     assignedTo: raw.assignedTo,
+    blockerIssueId: raw.blockerIssueId,
   };
 }
 
@@ -158,10 +159,13 @@ export function useIssue(id: string | undefined) {
           setAlarms([]);
         }
 
-        // Blockers still from mock client
+        // Blockers from backend
         try {
-          const blockerList = await api.getBlockers(id);
-          setBlockers(blockerList);
+          const blockersRes = await backend.GET('/api/issues/{id}/blockers', {
+            params: { path: { id } },
+          });
+          const rawBlockers = (blockersRes.data ?? []) as unknown as BlockerInfo[];
+          setBlockers(rawBlockers);
         } catch {
           setBlockers([]);
         }
@@ -271,42 +275,44 @@ export function useIssue(id: string | undefined) {
   const addBlocker = useCallback(
     async (blockerIssueId: string) => {
       if (!id) return;
-      const currentUser = useCurrentUserStore.getState().currentUser;
-      const updated = await api.addBlocker(id, blockerIssueId, currentUser.id);
-      setIssue(updated);
-      const blockerList = await api.getBlockers(id);
-      setBlockers(blockerList);
+      await backend.POST('/api/issues/{id}/blockers', {
+        params: { path: { id } },
+        body: { toIssueId: blockerIssueId } as any,
+      });
+      await reload();
     },
-    [id],
+    [id, reload],
   );
 
   const removeBlocker = useCallback(
     async (blockerIssueId: string) => {
       if (!id) return;
-      const currentUser = useCurrentUserStore.getState().currentUser;
-      const updated = await api.removeBlocker(id, blockerIssueId, currentUser.id);
-      setIssue(updated);
-      const blockerList = await api.getBlockers(id);
-      setBlockers(blockerList);
+      await backend.DELETE('/api/issues/{id}/blockers/{targetId}', {
+        params: { path: { id, targetId: blockerIssueId } },
+      } as any);
+      await reload();
     },
-    [id],
+    [id, reload],
   );
 
   const fetchHighlightCandidates = useCallback(async (): Promise<HighlightCandidate[]> => {
     if (!id) return [];
-    return api.listHighlightCandidates(id);
+    const res = await backend.GET('/api/issues/{id}/highlight-candidates', {
+      params: { path: { id } },
+    });
+    return (res.data ?? []) as unknown as HighlightCandidate[];
   }, [id]);
 
   const createHighlightedIssue = useCallback(
     async (targetOperationId: string) => {
       if (!id) return;
-      const currentUser = useCurrentUserStore.getState().currentUser;
-      const { parent: updated } = await api.createHighlightedIssue(id, targetOperationId, currentUser.id);
-      setIssue(updated);
-      const blockerList = await api.getBlockers(id);
-      setBlockers(blockerList);
+      await backend.POST('/api/issues/{id}/highlights/create', {
+        params: { path: { id } },
+        body: { targetOperationId } as any,
+      } as any);
+      await reload();
     },
-    [id],
+    [id, reload],
   );
 
   const moveAlarm = useCallback(
@@ -324,13 +330,13 @@ export function useIssue(id: string | undefined) {
   const linkExistingIssueAsHighlight = useCallback(
     async (existingIssueId: string) => {
       if (!id) return;
-      const currentUser = useCurrentUserStore.getState().currentUser;
-      const updated = await api.linkExistingIssueAsHighlight(id, existingIssueId, currentUser.id);
-      setIssue(updated);
-      const blockerList = await api.getBlockers(id);
-      setBlockers(blockerList);
+      await backend.POST('/api/issues/{id}/highlights', {
+        params: { path: { id } },
+        body: { toIssueId: existingIssueId } as any,
+      });
+      await reload();
     },
-    [id],
+    [id, reload],
   );
 
   return {
