@@ -12,5 +12,6 @@ public enum IssueActivityType {
     blocker_added,
     blocker_removed,
     highlight_added,
-    highlight_removed
+    highlight_removed,
+    workflow_transition
 }

@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { backend } from '../api/backendClient';
-import { api } from '../api/client';
 import { refreshEvents } from '../lib/refreshEvents';
 import { useAlarmStore } from '../stores/alarmStore';
 import type { Alarm, Issue, ActivityEntry } from '../types';
 import type { HighlightCandidate } from '../lib/relations/highlightCandidates';
+import type { WorkflowInstance } from '../lib/workflows/types';
 
 export interface BlockerInfo {
   issueId: string;
@@ -137,6 +137,19 @@ export function useIssue(id: string | undefined) {
         const rawIssue = issueRes.data as unknown as BackendIssue;
         const rawActivity = (activityRes.data ?? []) as unknown as BackendActivity[];
         const found = toIssue(rawIssue, rawActivity.map(toActivityEntry));
+
+        // Fetch workflow from backend
+        try {
+          const wfRes = await backend.GET('/api/issues/{id}/workflow' as any, {
+            params: { path: { id } },
+          });
+          if (wfRes.data) {
+            found.workflow = wfRes.data as unknown as WorkflowInstance;
+          }
+        } catch {
+          // No workflow attached — that's fine
+        }
+
         setIssue(found);
 
         // Fetch active alarms linked to this issue
@@ -236,40 +249,62 @@ export function useIssue(id: string | undefined) {
     [id, reload],
   );
 
-  const completeWorkflowStep = useCallback(
-    async (stepId: string, actorId: string, payload: Record<string, unknown>) => {
+  const attachWorkflow = useCallback(
+    async (definitionId: string) => {
       if (!id) return;
-      const updated = await api.completeStep(id, stepId, actorId, payload);
-      setIssue(updated);
+      await backend.POST('/api/issues/{id}/workflow' as any, {
+        params: { path: { id } },
+        body: { definitionId } as any,
+      });
+      await reload();
     },
-    [id],
+    [id, reload],
+  );
+
+  const completeWorkflowStep = useCallback(
+    async (stepId: string, _actorId: string, payload: Record<string, unknown>) => {
+      if (!id) return;
+      await backend.POST('/api/issues/{id}/workflow/steps/{stepId}/complete' as any, {
+        params: { path: { id, stepId } },
+        body: payload as any,
+      });
+      await reload();
+    },
+    [id, reload],
   );
 
   const skipWorkflowStep = useCallback(
-    async (stepId: string, actorId: string) => {
+    async (stepId: string, _actorId: string) => {
       if (!id) return;
-      const updated = await api.skipStep(id, stepId, actorId);
-      setIssue(updated);
+      await backend.POST('/api/issues/{id}/workflow/steps/{stepId}/skip' as any, {
+        params: { path: { id, stepId } },
+      });
+      await reload();
     },
-    [id],
+    [id, reload],
   );
 
   const reviveWorkflowStep = useCallback(
-    async (stepId: string, actorId: string) => {
+    async (stepId: string, _actorId: string) => {
       if (!id) return;
-      const updated = await api.reviveStep(id, stepId, actorId);
-      setIssue(updated);
+      await backend.POST('/api/issues/{id}/workflow/steps/{stepId}/revive' as any, {
+        params: { path: { id, stepId } },
+      });
+      await reload();
     },
-    [id],
+    [id, reload],
   );
 
   const editWorkflowStep = useCallback(
-    async (stepId: string, actorId: string, payload: Record<string, unknown>) => {
+    async (stepId: string, _actorId: string, payload: Record<string, unknown>) => {
       if (!id) return;
-      const updated = await api.editCompletedStep(id, stepId, actorId, payload);
-      setIssue(updated);
+      await backend.POST('/api/issues/{id}/workflow/steps/{stepId}/edit' as any, {
+        params: { path: { id, stepId } },
+        body: payload as any,
+      });
+      await reload();
     },
-    [id],
+    [id, reload],
   );
 
   const addBlocker = useCallback(
@@ -350,6 +385,7 @@ export function useIssue(id: string | undefined) {
     linkAlarm,
     unlinkAlarm,
     moveAlarm,
+    attachWorkflow,
     completeWorkflowStep,
     skipWorkflowStep,
     reviveWorkflowStep,
