@@ -43,15 +43,23 @@ public final class SpcOocBranchingDefinition {
                             .preSteps("l4_review", "pi_comment", "attach_report", "verify_calibration")
                             .skippableIf(issue -> issue.getRiskLevel() == RiskLevel.Low)
                             .build(),
-                    StepDefinition.builder("resolved", "Resolved", 8)
+                    StepDefinition.builder("lot_disposition", "Lot Disposition", 8)
                             .preSteps("meeting")
+                            .skippableIf(issue -> true)
+                            .defaultSkipIf(issue -> issue.getRiskLevel() == RiskLevel.Low)
+                            .payloadSchema(Map.of(
+                                    "lotId", PayloadFieldSchema.lotDisposition("Lot ID", false)
+                            ))
+                            .build(),
+                    StepDefinition.builder("resolved", "Resolved", 9)
+                            .preSteps("lot_disposition")
                             .gate((userId, issue) -> userId.equals(issue.getOwnerId()))
                             .payloadSchema(Map.of(
                                     "comment", PayloadFieldSchema.text("Comment", false, null)
                             ))
                             .impliesStatus(IssueStatus.Resolved)
                             .build(),
-                    StepDefinition.builder("closed", "Closed", 9)
+                    StepDefinition.builder("closed", "Closed", 10)
                             .preSteps("resolved")
                             .gate((userId, issue) -> userId.equals(issue.getOwnerId()))
                             .payloadSchema(Map.of(
