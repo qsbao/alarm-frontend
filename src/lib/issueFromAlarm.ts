@@ -32,6 +32,5 @@ export function buildIssueFromAlarm(alarm: Alarm, _currentUser: User, now: strin
     product: alarm.product,
     ownerId,
     department: alarm.department,
-    relatedAlarmIds: [alarm.id],
   };
 }

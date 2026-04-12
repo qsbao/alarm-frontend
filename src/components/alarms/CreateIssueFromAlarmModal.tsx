@@ -49,7 +49,6 @@ export function CreateIssueFromAlarmModal({
         product,
         ownerId,
         department,
-        relatedAlarmIds: [alarm.id],
       },
       workflowId || undefined,
     );

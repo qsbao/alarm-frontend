@@ -31,6 +31,7 @@ import { api } from '../api/client';
 import type { IssueDraft } from '../lib/issueFromAlarm';
 import { LinkedIssueCard } from '../components/alarms/LinkedIssueCard';
 import { CreateIssueFromAlarmModal } from '../components/alarms/CreateIssueFromAlarmModal';
+import { getActiveIssueForAlarm } from '../lib/issueAlarms';
 
 const SEVERITY_COLOR: Record<string, string> = {
   Critical: 'bg-red-500/15 text-red-400 border-red-500/30',
@@ -396,8 +397,10 @@ export function AlarmDetailPage() {
   }, []);
 
   useEffect(() => {
-    fetchLinkedIssue(alarm?.linkedIssueId);
-  }, [alarm?.linkedIssueId, fetchLinkedIssue]);
+    if (!alarm) return;
+    const row = getActiveIssueForAlarm(alarm.id);
+    fetchLinkedIssue(row?.issueId);
+  }, [alarm, fetchLinkedIssue]);
 
   const handleCreateIssue = async (draft: IssueDraft, workflowDefinitionId: string | undefined) => {
     if (!alarm) return;
@@ -437,11 +440,11 @@ export function AlarmDetailPage() {
   };
 
   const handleUnlink = () => {
-    if (!alarm || !alarm.linkedIssueId) return;
-    const issueId = alarm.linkedIssueId;
+    if (!alarm) return;
+    const row = getActiveIssueForAlarm(alarm.id);
+    if (!row) return;
     unlinkAlarm(alarm.id, currentUser);
-    // Also remove from issue's relatedAlarmIds
-    api.unlinkAlarm(issueId, alarm.id);
+    api.unlinkAlarm(row.issueId, alarm.id);
     setLinkedIssue(undefined);
   };
 
@@ -518,7 +521,7 @@ export function AlarmDetailPage() {
               onLinkExisting={handleOpenIssuePicker}
             />
 
-            {showIssuePicker && !alarm.linkedIssueId && (
+            {showIssuePicker && !getActiveIssueForAlarm(alarm.id) && (
               <div className="card p-5">
                 <div className="flex items-center justify-between mb-3">
                   <h2 className="text-xs font-semibold uppercase tracking-wide text-theme-muted">

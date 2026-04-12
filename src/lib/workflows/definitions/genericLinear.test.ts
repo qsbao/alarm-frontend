@@ -17,7 +17,6 @@ function makeIssue(overrides: Partial<Issue> = {}): Issue {
     ownerId: 'user-tanaka',
     department: 'Litho',
     description: 'Test',
-    relatedAlarmIds: [],
     activity: [],
     ...overrides,
   };

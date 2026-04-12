@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, beforeEach } from 'vitest';
 import { linkAlarmCandidates } from './linkAlarmCandidates';
+import { attachAlarm, resetIssueAlarms } from './issueAlarms';
 import type { Alarm, Issue } from '../types';
 
 const baseAlarm: Alarm = {
@@ -35,27 +36,32 @@ const baseIssue: Issue = {
   ownerId: 'user-tanaka',
   department: 'Litho',
   description: 'Test',
-  relatedAlarmIds: ['alm-099'],
   activity: [],
 };
 
+beforeEach(() => {
+  resetIssueAlarms();
+});
+
 describe('linkAlarmCandidates', () => {
   it('excludes alarms already linked to any issue', () => {
+    // alm-001 linked to iss-002 via join table
+    attachAlarm('iss-002', 'alm-001', 'user-a');
     const alarms = [
-      makeAlarm({ id: 'alm-001', linkedIssueId: 'iss-002' }),
+      makeAlarm({ id: 'alm-001' }),
       makeAlarm({ id: 'alm-002' }),
     ];
     const result = linkAlarmCandidates(alarms, baseIssue);
     expect(result.map((a) => a.id)).toEqual(['alm-002']);
   });
 
-  it('excludes alarms already in the issue relatedAlarmIds', () => {
-    const issue = { ...baseIssue, relatedAlarmIds: ['alm-001'] };
+  it('excludes alarms already linked to this issue', () => {
+    attachAlarm('iss-001', 'alm-001', 'user-a');
     const alarms = [
       makeAlarm({ id: 'alm-001' }),
       makeAlarm({ id: 'alm-002' }),
     ];
-    const result = linkAlarmCandidates(alarms, issue);
+    const result = linkAlarmCandidates(alarms, baseIssue);
     expect(result.map((a) => a.id)).toEqual(['alm-002']);
   });
 
@@ -64,12 +70,6 @@ describe('linkAlarmCandidates', () => {
       makeAlarm({ id: 'alm-001', machineId: 'LITHO-07' }),
       makeAlarm({ id: 'alm-002', machineId: 'ETCH-03' }),
     ];
-    // Issue has no explicit machineId — we derive it from the first related alarm
-    // or fall back. For now, the issue uses machineId from the linked alarms.
-    // Actually, issues don't have machineId. Let's check...
-    // Issues don't store machineId directly. The picker should use the alarms
-    // already linked to the issue to determine the machine scope.
-    // If no alarms are linked, show all machines.
     const result = linkAlarmCandidates(alarms, baseIssue);
     // No linked alarms to determine machine → show all
     expect(result).toHaveLength(2);
@@ -77,12 +77,12 @@ describe('linkAlarmCandidates', () => {
 
   it('filters to same machine as existing linked alarms', () => {
     const linkedAlarm = makeAlarm({ id: 'alm-099', machineId: 'LITHO-07' });
+    attachAlarm('iss-001', 'alm-099', 'user-a');
     const alarms = [
       linkedAlarm,
       makeAlarm({ id: 'alm-001', machineId: 'LITHO-07' }),
       makeAlarm({ id: 'alm-002', machineId: 'ETCH-03' }),
     ];
-    // Pass linked alarms so the function can determine machine scope
     const result = linkAlarmCandidates(alarms, baseIssue, { linkedAlarms: [linkedAlarm] });
     expect(result.map((a) => a.id)).toEqual(['alm-001']);
   });
@@ -100,8 +100,9 @@ describe('linkAlarmCandidates', () => {
   });
 
   it('returns empty when all alarms are already linked', () => {
+    attachAlarm('iss-005', 'alm-001', 'user-a');
     const alarms = [
-      makeAlarm({ id: 'alm-001', linkedIssueId: 'iss-005' }),
+      makeAlarm({ id: 'alm-001' }),
     ];
     const result = linkAlarmCandidates(alarms, baseIssue);
     expect(result).toEqual([]);
@@ -110,7 +111,6 @@ describe('linkAlarmCandidates', () => {
   it('does not exclude alarms on a Closed issue (filter is on candidates not the issue)', () => {
     const closedIssue = { ...baseIssue, status: 'Closed' as const };
     const alarms = [makeAlarm({ id: 'alm-001', time: '2025-06-01T11:30:00.000Z' })];
-    // The function still returns candidates; the UI decides whether to show the picker
     const result = linkAlarmCandidates(alarms, closedIssue);
     expect(result).toHaveLength(1);
   });

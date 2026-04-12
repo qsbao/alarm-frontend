@@ -78,12 +78,7 @@ describe('mockAlarmGenerator', () => {
       expect(withLabels.length).toBeGreaterThanOrEqual(4);
     });
 
-    it('has ~30% linked (linkedIssueId set, at least 4 of 20)', () => {
-      // We check that some alarms in the deliberate block have activity entries
-      // indicating linking. Since this slice doesn't add linkedIssueId to Alarm,
-      // we'll just verify the coverage targets are met by the generator config.
-      // The actual linking happens via issues.ts referencing these alarm IDs.
-      // For now, just verify the alarms exist and are well-formed.
+    it('deliberate block contains exactly 20 alarms', () => {
       expect(deliberate.length).toBe(20);
     });
   });

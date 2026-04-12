@@ -1,6 +1,11 @@
 import type { ActivityEntry, ActivityType, Alarm, Issue } from '../types';
 import { MOCK_ALARMS } from '../mocks/alarms';
-import { MOCK_ISSUES } from '../mocks/issues';
+import { MOCK_ISSUES, seedIssueAlarmRows } from '../mocks/issues';
+import {
+  attachAlarm as iaAttach,
+  detachAlarm as iaDetach,
+  getActiveAlarmsForIssue,
+} from '../lib/issueAlarms';
 import {
   attachWorkflow,
   completeStep as engineCompleteStep,
@@ -30,7 +35,6 @@ function deepCloneWorkflow(wf: WorkflowInstance | undefined): WorkflowInstance |
 // Module-level mutable copies of the seed arrays — clones at import time.
 const issues: Issue[] = MOCK_ISSUES.map((i) => ({
   ...i,
-  relatedAlarmIds: [...i.relatedAlarmIds],
   activity: i.activity.map((a) => ({ ...a })),
   workflow: deepCloneWorkflow(i.workflow),
 }));
@@ -53,7 +57,6 @@ function cloneWorkflow(wf: WorkflowInstance | undefined): WorkflowInstance | und
 function cloneIssue(issue: Issue): Issue {
   return {
     ...issue,
-    relatedAlarmIds: [...issue.relatedAlarmIds],
     activity: issue.activity.map((a) => ({ ...a })),
     workflow: cloneWorkflow(issue.workflow),
   };
@@ -128,21 +131,16 @@ export const api = {
   async linkAlarm(id: string, alarmId: string): Promise<Issue> {
     await delay();
     const issue = findIssue(id);
-    if (!issue.relatedAlarmIds.includes(alarmId)) {
-      issue.relatedAlarmIds.push(alarmId);
-      appendActivity(issue, 'alarm_linked', { alarmId });
-    }
+    iaAttach(id, alarmId, CURRENT_USER);
+    appendActivity(issue, 'alarm_linked', { alarmId });
     return cloneIssue(issue);
   },
 
   async unlinkAlarm(id: string, alarmId: string): Promise<Issue> {
     await delay();
     const issue = findIssue(id);
-    const idx = issue.relatedAlarmIds.indexOf(alarmId);
-    if (idx >= 0) {
-      issue.relatedAlarmIds.splice(idx, 1);
-      appendActivity(issue, 'alarm_unlinked', { alarmId });
-    }
+    iaDetach(id, alarmId);
+    appendActivity(issue, 'alarm_unlinked', { alarmId });
     return cloneIssue(issue);
   },
 
@@ -478,7 +476,6 @@ export const api = {
       ownerId: actorId,
       department: parent.department,
       description: `Highlighted upstream operation "${opName}" from ${parent.id}.`,
-      relatedAlarmIds: [],
       activity: [seedActivity],
     };
     issues.push(child);
@@ -544,13 +541,13 @@ export const api = {
   resetAllWorkflows(): void {
     const freshIssues = MOCK_ISSUES.map((i) => ({
       ...i,
-      relatedAlarmIds: [...i.relatedAlarmIds],
       activity: i.activity.map((a) => ({ ...a })),
       workflow: i.workflow ? JSON.parse(JSON.stringify(i.workflow)) as WorkflowInstance : undefined,
     }));
     issues.length = 0;
     issues.push(...freshIssues);
     resetRelations();
+    seedIssueAlarmRows(freshIssues);
   },
 
   async listAlarms(): Promise<Alarm[]> {
@@ -564,6 +561,17 @@ export const api = {
     const byId = new Map(alarms.map((a) => [a.id, a]));
     return ids
       .filter((id) => set.has(id))
+      .map((id) => byId.get(id))
+      .filter((a): a is Alarm => Boolean(a))
+      .map((a) => ({ ...a, labels: [...a.labels], activity: a.activity.map((e) => ({ ...e })) }));
+  },
+
+  async getAlarmsForIssue(issueId: string): Promise<Alarm[]> {
+    await delay();
+    const rows = getActiveAlarmsForIssue(issueId);
+    const ids = rows.map((r) => r.alarmId);
+    const byId = new Map(alarms.map((a) => [a.id, a]));
+    return ids
       .map((id) => byId.get(id))
       .filter((a): a is Alarm => Boolean(a))
       .map((a) => ({ ...a, labels: [...a.labels], activity: a.activity.map((e) => ({ ...e })) }));

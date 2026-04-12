@@ -42,7 +42,6 @@ describe('buildIssueFromAlarm', () => {
     expect(draft.product).toBe(alarm.product);
     expect(draft.ownerId).toBe('user-tanaka');
     expect(draft.department).toBe(alarm.department);
-    expect(draft.relatedAlarmIds).toEqual([alarm.id]);
     expect(draft.date).toBe(now);
   });
 
@@ -64,9 +63,9 @@ describe('buildIssueFromAlarm', () => {
     expect(draft.riskLevel).toBe('Low');
   });
 
-  it('preserves alarm.id in relatedAlarmIds', () => {
+  it('does not include relatedAlarmIds (moved to join table)', () => {
     const alarm = makeAlarm({ id: 'alm-099' });
     const draft = buildIssueFromAlarm(alarm, currentUser, now);
-    expect(draft.relatedAlarmIds).toEqual(['alm-099']);
+    expect((draft as any).relatedAlarmIds).toBeUndefined();
   });
 });

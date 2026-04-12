@@ -3,6 +3,7 @@ import type { Alarm, AlarmLabel, HumanRisk, User } from '../types';
 import { MOCK_ALARMS } from '../mocks/alarms';
 import { alarmLifecycle } from '../lib/alarmLifecycle';
 import { mockClock } from '../lib/mockClock';
+import { attachAlarm as iaAttach, detachAlarm as iaDetach, getActiveIssueForAlarm } from '../lib/issueAlarms';
 
 interface AlarmStore {
   alarms: Alarm[];
@@ -61,6 +62,7 @@ export const useAlarmStore = create<AlarmStore>()((set, get) => ({
   linkAlarm(id, issueId, user) {
     const alarm = get().alarms.find((a) => a.id === id);
     if (!alarm) return;
+    iaAttach(issueId, id, user.id);
     const { alarm: updated } = alarmLifecycle.link(alarm, issueId, user, now());
     set({ alarms: replaceAlarm(get().alarms, updated) });
   },
@@ -68,7 +70,10 @@ export const useAlarmStore = create<AlarmStore>()((set, get) => ({
   unlinkAlarm(id, user) {
     const alarm = get().alarms.find((a) => a.id === id);
     if (!alarm) return;
-    const { alarm: updated } = alarmLifecycle.unlink(alarm, user, now());
+    const row = getActiveIssueForAlarm(id);
+    if (!row) return;
+    iaDetach(row.issueId, id);
+    const { alarm: updated } = alarmLifecycle.unlink(alarm, row.issueId, user, now());
     set({ alarms: replaceAlarm(get().alarms, updated) });
   },
 }));

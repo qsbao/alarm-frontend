@@ -90,10 +90,6 @@ export const alarmLifecycle = {
   },
 
   link(alarm: Alarm, issueId: string, actor: User, timestamp: string): { alarm: Alarm; activityEntries: AlarmActivityEntry[] } {
-    if (alarm.linkedIssueId) {
-      throw new Error(`Alarm ${alarm.id} is already linked to issue ${alarm.linkedIssueId}`);
-    }
-
     const entries: AlarmActivityEntry[] = [];
     let status = alarm.status;
 
@@ -121,30 +117,24 @@ export const alarmLifecycle = {
       alarm: {
         ...alarm,
         status,
-        linkedIssueId: issueId,
         activity: [...alarm.activity, ...entries],
       },
       activityEntries: entries,
     };
   },
 
-  unlink(alarm: Alarm, actor: User, timestamp: string): LifecycleResult {
-    if (!alarm.linkedIssueId) {
-      throw new Error(`Alarm ${alarm.id} is not linked to any issue`);
-    }
-
+  unlink(alarm: Alarm, issueId: string, actor: User, timestamp: string): LifecycleResult {
     const activityEntry: AlarmActivityEntry = {
       id: nextActId(alarm.id),
       type: 'unlinked',
       timestamp,
       author: actor.name,
-      issueId: alarm.linkedIssueId,
+      issueId,
     };
 
     return {
       alarm: {
         ...alarm,
-        linkedIssueId: undefined,
         activity: [...alarm.activity, activityEntry],
       },
       activityEntry,

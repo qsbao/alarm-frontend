@@ -145,7 +145,6 @@ describe('issueRelations', () => {
         ownerId: 'user-owner',
         department: 'Litho',
         description: 'Test',
-        relatedAlarmIds: [],
         activity: [],
         ...overrides,
       };
