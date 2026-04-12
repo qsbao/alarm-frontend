@@ -71,7 +71,6 @@ export interface Alarm {
   status: AlarmStatus;
   humanRisk?: HumanRisk;
   labels: AlarmLabel[];
-  linkedIssueId?: string; // 1 alarm : 0..1 issue
   activity: AlarmActivityEntry[];
 }
 
@@ -118,7 +117,6 @@ export interface Issue {
   department: string; // e.g. "Litho"
   // detail-only fields
   description: string;
-  relatedAlarmIds: string[];
   activity: ActivityEntry[]; // ascending; render reversed
   workflow?: import('./lib/workflows/types').WorkflowInstance;
 }

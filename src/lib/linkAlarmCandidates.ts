@@ -1,4 +1,5 @@
 import type { Alarm, Issue } from '../types';
+import { getActiveIssueForAlarm, getActiveAlarmsForIssue } from './issueAlarms';
 
 export interface LinkAlarmCandidateOptions {
   /** Already-linked alarms, used to determine machine scope */
@@ -11,7 +12,7 @@ const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
  * Pure filter: returns alarms eligible for linking to the given issue.
  *
  * Default scope:
- * - Currently unlinked (no linkedIssueId) AND not already in issue.relatedAlarmIds
+ * - Currently unlinked (no active IssueAlarm row) AND not already linked to this issue
  * - Same machine as existing linked alarms (if any linked alarms exist)
  * - Within ±2h of issue creation time (issue.date)
  */
@@ -21,7 +22,9 @@ export function linkAlarmCandidates(
   options: LinkAlarmCandidateOptions = {},
 ): Alarm[] {
   const { linkedAlarms = [] } = options;
-  const alreadyLinkedIds = new Set(issue.relatedAlarmIds);
+  const alreadyLinkedIds = new Set(
+    getActiveAlarmsForIssue(issue.id).map((r) => r.alarmId),
+  );
 
   // Determine machine scope from existing linked alarms
   const machineScope =
@@ -33,8 +36,8 @@ export function linkAlarmCandidates(
 
   return allAlarms.filter((alarm) => {
     // Exclude already linked to any issue
-    if (alarm.linkedIssueId) return false;
-    // Exclude already in this issue's relatedAlarmIds
+    if (getActiveIssueForAlarm(alarm.id)) return false;
+    // Exclude already linked to this issue
     if (alreadyLinkedIds.has(alarm.id)) return false;
     // Machine scope: if we have linked alarms, restrict to same machine(s)
     if (machineScope && !machineScope.has(alarm.machineId)) return false;

@@ -18,7 +18,6 @@ function makeIssue(workflow?: WorkflowInstance): Issue {
     ownerId: 'user-tanaka',
     department: 'Litho',
     description: 'Test',
-    relatedAlarmIds: [],
     activity: [],
     workflow,
   };

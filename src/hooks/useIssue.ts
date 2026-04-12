@@ -29,8 +29,8 @@ export function useIssue(id: string | undefined) {
     try {
       const found = await api.getIssue(id);
       setIssue(found);
-      if (found && found.relatedAlarmIds.length > 0) {
-        const list = await api.getAlarmsByIds(found.relatedAlarmIds);
+      if (found) {
+        const list = await api.getAlarmsForIssue(id);
         setAlarms(list);
       } else {
         setAlarms([]);
@@ -58,12 +58,8 @@ export function useIssue(id: string | undefined) {
   const applyIssue = useCallback(async (next: Issue, refetchAlarms: boolean) => {
     setIssue(next);
     if (refetchAlarms) {
-      if (next.relatedAlarmIds.length === 0) {
-        setAlarms([]);
-      } else {
-        const list = await api.getAlarmsByIds(next.relatedAlarmIds);
-        setAlarms(list);
-      }
+      const list = await api.getAlarmsForIssue(next.id);
+      setAlarms(list);
     }
   }, []);
 

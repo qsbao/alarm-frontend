@@ -1,6 +1,7 @@
 import type { ActivityEntry, AlarmType, Issue, RiskLevel } from '../types';
 import { MOCK_ALARMS } from './alarms';
 import { PRODUCT_ROUTES } from './routes';
+import { loadIssueAlarms, type IssueAlarm } from '../lib/issueAlarms';
 
 const ALARM_TYPES: AlarmType[] = [
   'TempSpike',
@@ -70,15 +71,6 @@ function makeIssue(i: number): Issue {
     EPOCH - minutesAgoCreated * 60_000 - ((i * 17) % 180) * 60_000,
   ).toISOString();
 
-  // Pick 0–5 alarms, drawn deterministically from MOCK_ALARMS.
-  const linkCount = i % 6;
-  const relatedAlarmIds: string[] = [];
-  for (let k = 0; k < linkCount; k++) {
-    const idx = (i * 13 + k * 29) % MOCK_ALARMS.length;
-    const id = MOCK_ALARMS[idx].id;
-    if (!relatedAlarmIds.includes(id)) relatedAlarmIds.push(id);
-  }
-
   const id = `iss-${pad(i + 1)}`;
   const seedActivity: ActivityEntry = {
     id: `${id}-act-1`,
@@ -103,7 +95,6 @@ function makeIssue(i: number): Issue {
       `Operator observed ${TITLES[alarmType].toLowerCase()} during "${operation}" on ${product}. ` +
       `Department: ${department}. Initial risk assessment: ${riskLevel}. ` +
       `Investigation pending — review related alarms and recent maintenance history.`,
-    relatedAlarmIds,
     activity: [seedActivity],
   };
 }
@@ -112,5 +103,30 @@ import { applyCuratedWorkflows } from './curatedWorkflows';
 
 const _issues: Issue[] = Array.from({ length: 40 }, (_, i) => makeIssue(i));
 applyCuratedWorkflows(_issues);
+
+export function seedIssueAlarmRows(issueList: Issue[]): void {
+  const seed: IssueAlarm[] = [];
+  let id = 1;
+  for (let i = 0; i < issueList.length; i++) {
+    const linkCount = i % 6;
+    const seen = new Set<string>();
+    for (let k = 0; k < linkCount; k++) {
+      const idx = (i * 13 + k * 29) % MOCK_ALARMS.length;
+      const alarmId = MOCK_ALARMS[idx].id;
+      if (seen.has(alarmId)) continue;
+      seen.add(alarmId);
+      seed.push({
+        id: `ia-${id++}`,
+        issueId: issueList[i].id,
+        alarmId,
+        attachedAt: issueList[i].date,
+        attachedBy: 'system',
+      });
+    }
+  }
+  loadIssueAlarms(seed);
+}
+
+seedIssueAlarmRows(_issues);
 
 export const MOCK_ISSUES: Issue[] = _issues;
