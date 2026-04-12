@@ -1,11 +1,11 @@
 import { Hourglass } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { Issue } from '../../types';
-import { getUserById } from '../../mocks/users';
+import { getUserById } from '../../lib/users';
 import { useCurrentUserStore } from '../../stores/currentUserStore';
 import { useIssueStore } from '../../stores/issueStore';
 import { awaitingMyAction, getOngoingStepLabels } from '../../lib/workflows/discovery';
-import { getDefinition } from '../../lib/workflows/registry';
+import { getDefinition } from '../../lib/workflows/definitions';
 import { RiskBadge } from './RiskBadge';
 import { StatusBadge } from './StatusBadge';
 import { OngoingStepsBadge } from './OngoingStepsBadge';

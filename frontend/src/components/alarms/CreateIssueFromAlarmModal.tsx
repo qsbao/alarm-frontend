@@ -1,10 +1,38 @@
 import { X } from 'lucide-react';
 import { useState } from 'react';
-import type { Alarm, AlarmType, RiskLevel, User } from '../../types';
+import type { Alarm, AlarmType, HumanRisk, IssueDraft, RiskLevel, User } from '../../types';
 import { ALL_ALARM_TYPES, ALL_RISK_LEVELS } from '../../types';
-import { buildIssueFromAlarm, type IssueDraft } from '../../lib/issueFromAlarm';
 import { getDefaultWorkflowId } from '../../lib/workflows/workflowDefaults';
-import { getAllDefinitions } from '../../lib/workflows/registry';
+import { getAllDefinitions } from '../../lib/workflows/definitions';
+
+const HUMAN_RISK_TO_RISK_LEVEL: Record<HumanRisk, RiskLevel> = {
+  high: 'High',
+  middle: 'Medium',
+  low: 'Low',
+};
+
+function buildIssueFromAlarm(alarm: Alarm, now: string): IssueDraft {
+  const riskLevel: RiskLevel = alarm.humanRisk
+    ? HUMAN_RISK_TO_RISK_LEVEL[alarm.humanRisk]
+    : alarm.severity;
+
+  return {
+    title: alarm.message,
+    description:
+      `Escalated from alarm ${alarm.id}: ${alarm.message}. ` +
+      `Machine: ${alarm.machineId}. Product: ${alarm.product}. Operation: ${alarm.operation}. ` +
+      `Department: ${alarm.department}. Owner: ${alarm.owner}.`,
+    date: now,
+    alarmType: alarm.type,
+    riskLevel,
+    status: 'Triage',
+    issueTime: alarm.time,
+    operation: alarm.operation,
+    product: alarm.product,
+    ownerId: alarm.owner,
+    department: alarm.department,
+  };
+}
 
 interface CreateIssueFromAlarmModalProps {
   alarm: Alarm;
@@ -19,7 +47,7 @@ export function CreateIssueFromAlarmModal({
   onSubmit,
   onClose,
 }: CreateIssueFromAlarmModalProps) {
-  const initial = buildIssueFromAlarm(alarm, currentUser, new Date().toISOString());
+  const initial = buildIssueFromAlarm(alarm, new Date().toISOString());
   const [title, setTitle] = useState(initial.title);
   const [description, setDescription] = useState(initial.description);
   const [alarmType, setAlarmType] = useState<AlarmType>(initial.alarmType);

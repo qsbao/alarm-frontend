@@ -4,7 +4,7 @@ import type { Issue } from '../../types';
 import type { BlockerInfo } from '../../hooks/useIssue';
 import type { PayloadFieldSchema, Step, StepStatus } from '../../lib/workflows/types';
 import type { HighlightCandidate } from '../../lib/relations/highlightCandidates';
-import { getDefinition } from '../../lib/workflows/registry';
+import { getDefinition } from '../../lib/workflows/definitions';
 import { getStepDisplayList, canUserActOnStep, canSkipStep, canReviveStep, canEditStep } from '../../lib/workflows/panelHelpers';
 import { useCurrentUserStore } from '../../stores/currentUserStore';
 

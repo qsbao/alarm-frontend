@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom';
-import { useMockClockStore } from '../../stores/mockClockStore';
 import { isActive } from '../../lib/alarmFiltering';
 import type { Alarm, RiskLevel } from '../../types';
 
@@ -20,7 +19,7 @@ const SEVERITY_DOT: Record<RiskLevel, string> = {
 };
 
 export function HistoricalAlarmList({ rows }: HistoricalAlarmListProps) {
-  const now = useMockClockStore((s) => s.now);
+  const now = Date.now();
 
   if (rows.length === 0) return null;
 

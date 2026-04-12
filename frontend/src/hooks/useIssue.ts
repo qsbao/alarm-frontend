@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { backend } from '../api/backendClient';
 import { refreshEvents } from '../lib/refreshEvents';
-import { useAlarmStore } from '../stores/alarmStore';
 import type { Alarm, Issue, ActivityEntry } from '../types';
 import type { HighlightCandidate } from '../lib/relations/highlightCandidates';
 import type { WorkflowInstance } from '../lib/workflows/types';

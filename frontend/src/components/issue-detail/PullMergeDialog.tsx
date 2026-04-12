@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Alarm, Issue } from '../../types';
 import { backend } from '../../api/backendClient';
 import { StatusBadge } from '../issues/StatusBadge';
-import { getUserById } from '../../mocks/users';
+import { getUserById } from '../../lib/users';
 
 interface PullMergeDialogProps {
   target: Issue;

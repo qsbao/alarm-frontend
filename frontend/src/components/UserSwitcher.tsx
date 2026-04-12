@@ -1,7 +1,7 @@
 import { ChevronDown, User } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useCurrentUserStore } from '../stores/currentUserStore';
-import { MOCK_USERS } from '../mocks/users';
+import { USERS } from '../lib/users';
 
 export function UserSwitcher() {
   const { currentUser, setCurrentUser } = useCurrentUserStore();
@@ -35,7 +35,7 @@ export function UserSwitcher() {
           <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-theme-muted">
             Switch User
           </div>
-          {MOCK_USERS.map((user) => (
+          {USERS.map((user) => (
             <button
               key={user.name}
               onClick={() => {

@@ -21,14 +21,12 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import type { Alarm, AlarmActivityEntry, AlarmActivityType, AlarmLabel, HumanRisk, Issue } from '../types';
+import type { Alarm, AlarmLabel, HumanRisk, Issue, IssueDraft } from '../types';
 import { ALL_ALARM_LABELS, ALL_HUMAN_RISKS } from '../types';
 import { useCurrentUserStore } from '../stores/currentUserStore';
-import { alarmPermissions } from '../lib/alarmPermissions';
 import { isActive } from '../lib/alarmFiltering';
 import { useAlarm, useAlarmActions } from '../hooks/useAlarms';
 import { backend } from '../api/backendClient';
-import type { IssueDraft } from '../lib/issueFromAlarm';
 import { LinkedIssueCard } from '../components/alarms/LinkedIssueCard';
 import { CreateIssueFromAlarmModal } from '../components/alarms/CreateIssueFromAlarmModal';
 
@@ -393,7 +391,7 @@ export function AlarmDetailPage() {
               onAck={() => actions.ack()}
               onSetLabel={(action, label) => actions.setLabel(action, label)}
               onSetRisk={(risk) => actions.setRisk(risk)}
-              canAck={alarmPermissions.canAck(currentUser, alarm)}
+              canAck={currentUser.department !== '' && currentUser.department === alarm.department}
             />
             <LinkedIssueCard
               issue={linkedIssue}

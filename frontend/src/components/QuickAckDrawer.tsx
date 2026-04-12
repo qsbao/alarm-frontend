@@ -1,12 +1,10 @@
 import { Check, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { Alarm, AlarmLabel, HumanRisk } from '../types';
 import { ALL_ALARM_LABELS, ALL_HUMAN_RISKS } from '../types';
-import { useAlarmStore } from '../stores/alarmStore';
 import { useCurrentUserStore } from '../stores/currentUserStore';
-import { alarmPermissions } from '../lib/alarmPermissions';
 import { isActive } from '../lib/alarmFiltering';
-import { useMockClockStore } from '../stores/mockClockStore';
+import { useAlarm, useAlarmActions } from '../hooks/useAlarms';
 
 const SEVERITY_COLOR: Record<string, string> = {
   Critical: 'bg-red-500/15 text-red-400 border-red-500/30',
@@ -38,11 +36,11 @@ interface QuickAckDrawerProps {
 }
 
 export function QuickAckDrawer({ alarmId, onClose }: QuickAckDrawerProps) {
-  const alarm = useAlarmStore((s) => s.alarms.find((a) => a.id === alarmId));
-  const { ackAlarm, setAlarmLabel, setAlarmRisk } = useAlarmStore();
+  const { alarm, refresh } = useAlarm(alarmId);
   const currentUser = useCurrentUserStore((s) => s.currentUser);
+  const actions = useAlarmActions(alarmId, refresh);
   const [comment, setComment] = useState('');
-  const now = useMockClockStore((s) => s.now);
+  const now = Date.now();
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -59,22 +57,22 @@ export function QuickAckDrawer({ alarmId, onClose }: QuickAckDrawerProps) {
 
   if (!alarm) return null;
 
-  const canAck = alarmPermissions.canAck(currentUser, alarm);
+  const canAck = currentUser.department !== '' && currentUser.department === alarm.department;
   const active = isActive(alarm, now);
 
-  const handleAck = () => {
-    ackAlarm(alarm.id, currentUser, comment || undefined);
+  const handleAck = async () => {
+    await actions.ack(comment || undefined);
     setComment('');
     onClose();
   };
 
-  const handleLabelToggle = (label: AlarmLabel) => {
+  const handleLabelToggle = async (label: AlarmLabel) => {
     const action = alarm.labels.includes(label) ? 'remove' : 'add';
-    setAlarmLabel(alarm.id, currentUser, action, label);
+    await actions.setLabel(action, label);
   };
 
-  const handleRiskChange = (risk: HumanRisk) => {
-    setAlarmRisk(alarm.id, currentUser, risk);
+  const handleRiskChange = async (risk: HumanRisk) => {
+    await actions.setRisk(risk);
   };
 
   return (
