@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class IssueAlarmService {
@@ -31,6 +32,10 @@ public class IssueAlarmService {
 
     public List<IssueAlarm> getActiveAlarms(String issueId) {
         return issueAlarmRepository.findByIssueIdAndMergedAtIsNull(issueId);
+    }
+
+    public Optional<IssueAlarm> getActiveLink(String alarmId) {
+        return issueAlarmRepository.findByAlarmIdAndMergedAtIsNull(alarmId);
     }
 
     public List<IssueAlarm> getHistoricalAlarms(String issueId) {

@@ -79,6 +79,14 @@ public class IssueAlarmController {
         }
     }
 
+    @Operation(summary = "Get the active issue-alarm link for an alarm (if any)")
+    @GetMapping("/api/alarms/{alarmId}/issue")
+    public ResponseEntity<?> getLinkedIssue(@PathVariable String alarmId) {
+        return issueAlarmService.getActiveLink(alarmId)
+                .map(ia -> ResponseEntity.ok(toDto(ia)))
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     private Map<String, Object> toDto(IssueAlarm ia) {
         Map<String, Object> dto = new LinkedHashMap<>();
         dto.put("id", ia.getId());

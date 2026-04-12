@@ -20,14 +20,14 @@ import {
   Wrench,
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import type { Alarm, AlarmActivityEntry, AlarmActivityType, AlarmLabel, HumanRisk, Issue } from '../types';
 import { ALL_ALARM_LABELS, ALL_HUMAN_RISKS } from '../types';
 import { useCurrentUserStore } from '../stores/currentUserStore';
 import { alarmPermissions } from '../lib/alarmPermissions';
 import { isActive } from '../lib/alarmFiltering';
 import { useAlarm, useAlarmActions } from '../hooks/useAlarms';
-import { api } from '../api/client';
+import { backend } from '../api/backendClient';
 import type { IssueDraft } from '../lib/issueFromAlarm';
 import { LinkedIssueCard } from '../components/alarms/LinkedIssueCard';
 import { CreateIssueFromAlarmModal } from '../components/alarms/CreateIssueFromAlarmModal';
@@ -224,10 +224,97 @@ function ActionPanel({
 
 export function AlarmDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { alarm, loading, refresh } = useAlarm(id);
   const currentUser = useCurrentUserStore((s) => s.currentUser);
   const actions = useAlarmActions(id ?? '', refresh);
   const now = Date.now();
+
+  const [linkedIssue, setLinkedIssue] = useState<Issue | undefined>(undefined);
+  const [linkedIssueLoading, setLinkedIssueLoading] = useState(true);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+
+  // Fetch linked issue for this alarm via GET /api/alarms/{alarmId}/issue
+  const reloadLinkedIssue = useCallback(async () => {
+    if (!id) { setLinkedIssueLoading(false); return; }
+    setLinkedIssueLoading(true);
+    try {
+      const { data: link } = await backend.GET('/api/alarms/{alarmId}/issue', {
+        params: { path: { alarmId: id } },
+      });
+      if (!link) { setLinkedIssue(undefined); return; }
+      const issueId = (link as unknown as { issueId: string }).issueId;
+      const { data: issueData } = await backend.GET('/api/issues/{id}', {
+        params: { path: { id: issueId } },
+      });
+      if (issueData) {
+        const raw = issueData as unknown as {
+          id: string; title: string; date: string; alarmType: string;
+          riskLevel: string; status: string; issueTime: string;
+          operation: string; product: string; ownerId: string;
+          department: string; description: string;
+        };
+        setLinkedIssue({
+          ...raw,
+          alarmType: raw.alarmType as Issue['alarmType'],
+          riskLevel: raw.riskLevel as Issue['riskLevel'],
+          status: raw.status as Issue['status'],
+          activity: [],
+        });
+      } else {
+        setLinkedIssue(undefined);
+      }
+    } catch {
+      setLinkedIssue(undefined);
+    } finally {
+      setLinkedIssueLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => { reloadLinkedIssue(); }, [reloadLinkedIssue]);
+
+  const handleUnlink = useCallback(async () => {
+    if (!id || !linkedIssue) return;
+    await backend.DELETE('/api/issues/{id}/alarms/{alarmId}', {
+      params: { path: { id: linkedIssue.id, alarmId: id } },
+    });
+    setLinkedIssue(undefined);
+  }, [id, linkedIssue]);
+
+  const handleCreateIssueFromAlarm = useCallback(
+    async (draft: IssueDraft) => {
+      if (!id || !alarm) return;
+      const issueId = `iss-${Date.now()}`;
+      await backend.POST('/api/issues', {
+        body: {
+          id: issueId,
+          title: draft.title,
+          alarmType: draft.alarmType,
+          riskLevel: draft.riskLevel,
+          issueTime: draft.issueTime,
+          operation: draft.operation,
+          product: draft.product,
+          ownerId: draft.ownerId,
+          department: draft.department,
+          description: draft.description,
+          alarmId: id,
+        } as any,
+      });
+      setShowCreateModal(false);
+      navigate(`/issues/${issueId}`);
+    },
+    [id, alarm, navigate],
+  );
+
+  const handleLinkExisting = useCallback(async () => {
+    if (!id) return;
+    const issueId = prompt('Enter issue ID to link to:');
+    if (!issueId) return;
+    await backend.POST('/api/issues/{id}/alarms/{alarmId}', {
+      params: { path: { id: issueId, alarmId: id } },
+    });
+    await reloadLinkedIssue();
+  }, [id, reloadLinkedIssue]);
 
   if (loading) {
     return (
@@ -308,8 +395,24 @@ export function AlarmDetailPage() {
               onSetRisk={(risk) => actions.setRisk(risk)}
               canAck={alarmPermissions.canAck(currentUser, alarm)}
             />
+            <LinkedIssueCard
+              issue={linkedIssue}
+              loading={linkedIssueLoading}
+              onUnlink={handleUnlink}
+              onCreateIssue={() => setShowCreateModal(true)}
+              onLinkExisting={handleLinkExisting}
+            />
           </div>
         </div>
+
+        {showCreateModal && alarm && (
+          <CreateIssueFromAlarmModal
+            alarm={alarm}
+            currentUser={currentUser}
+            onSubmit={(draft) => handleCreateIssueFromAlarm(draft)}
+            onClose={() => setShowCreateModal(false)}
+          />
+        )}
       </div>
     </div>
   );
