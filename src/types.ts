@@ -36,7 +36,8 @@ export type AlarmActivityType =
   | 'unlinked'
   | 'label_added'
   | 'label_removed'
-  | 'risk_changed';
+  | 'risk_changed'
+  | 'moved_between_issues';
 
 export interface AlarmActivityEntry {
   id: string;
@@ -48,6 +49,8 @@ export interface AlarmActivityEntry {
   fromRisk?: HumanRisk;
   toRisk?: HumanRisk;
   issueId?: string;
+  fromIssueId?: string;
+  toIssueId?: string;
 }
 
 export interface Alarm {
@@ -80,6 +83,8 @@ export type ActivityType =
   | 'comment'
   | 'alarm_linked'
   | 'alarm_unlinked'
+  | 'alarm_moved_in'
+  | 'alarm_moved_out'
   | 'workflow_transition'
   | 'blocker_added'
   | 'blocker_removed';
@@ -99,6 +104,9 @@ export interface ActivityEntry {
   workflowActorId?: string;
   // blocker fields
   blockerIssueId?: string;
+  // move fields
+  fromIssueId?: string;
+  toIssueId?: string;
 }
 
 export interface Issue {

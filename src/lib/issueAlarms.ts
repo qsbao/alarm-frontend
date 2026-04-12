@@ -50,6 +50,44 @@ export function getHistoricalAlarmsForIssue(issueId: string): IssueAlarm[] {
   return rows.filter((r) => r.issueId === issueId && r.mergedAt != null);
 }
 
+export interface MoveAlarmOpts {
+  by: string;
+  sourceDepartment: string;
+  targetDepartment: string;
+  userDepartment: string;
+}
+
+export type MoveAlarmResult =
+  | { ok: true; fromIssueId: string; toIssueId: string }
+  | { ok: false; reason: 'not_found' | 'permission_denied' };
+
+export function moveAlarm(alarmId: string, targetIssueId: string, opts: MoveAlarmOpts): MoveAlarmResult {
+  if (opts.userDepartment !== opts.sourceDepartment || opts.userDepartment !== opts.targetDepartment) {
+    return { ok: false, reason: 'permission_denied' };
+  }
+
+  const row = rows.find((r) => r.alarmId === alarmId && !r.mergedAt);
+  if (!row) return { ok: false, reason: 'not_found' };
+
+  const fromIssueId = row.issueId;
+
+  // Atomic: mark old row as historical and create new active row in one go
+  row.mergedAt = new Date().toISOString();
+  row.mergedBy = opts.by;
+  row.mergedToIssueId = targetIssueId;
+
+  const newRow: IssueAlarm = {
+    id: `ia-${nextId++}`,
+    issueId: targetIssueId,
+    alarmId,
+    attachedAt: new Date().toISOString(),
+    attachedBy: opts.by,
+  };
+  rows.push(newRow);
+
+  return { ok: true, fromIssueId, toIssueId: targetIssueId };
+}
+
 export function resetIssueAlarms(): void {
   rows = [];
   nextId = 1;

@@ -14,6 +14,7 @@ interface AlarmStore {
   recoverAlarm: (id: string) => void;
   linkAlarm: (id: string, issueId: string, user: User) => void;
   unlinkAlarm: (id: string, user: User) => void;
+  moveAlarm: (id: string, fromIssueId: string, toIssueId: string, user: User) => void;
 }
 
 function replaceAlarm(alarms: Alarm[], updated: Alarm): Alarm[] {
@@ -74,6 +75,13 @@ export const useAlarmStore = create<AlarmStore>()((set, get) => ({
     if (!row) return;
     iaDetach(row.issueId, id);
     const { alarm: updated } = alarmLifecycle.unlink(alarm, row.issueId, user, now());
+    set({ alarms: replaceAlarm(get().alarms, updated) });
+  },
+
+  moveAlarm(id, fromIssueId, toIssueId, user) {
+    const alarm = get().alarms.find((a) => a.id === id);
+    if (!alarm) return;
+    const { alarm: updated } = alarmLifecycle.move(alarm, fromIssueId, toIssueId, user, now());
     set({ alarms: replaceAlarm(get().alarms, updated) });
   },
 }));
