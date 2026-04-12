@@ -1,8 +1,10 @@
 package com.fabalarm.service;
 
 import com.fabalarm.model.*;
+import com.fabalarm.repository.AlarmActivityRepository;
 import com.fabalarm.repository.AlarmRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
@@ -14,9 +16,111 @@ import java.util.stream.Collectors;
 public class AlarmService {
 
     private final AlarmRepository alarmRepository;
+    private final AlarmActivityRepository alarmActivityRepository;
 
-    public AlarmService(AlarmRepository alarmRepository) {
+    public AlarmService(AlarmRepository alarmRepository, AlarmActivityRepository alarmActivityRepository) {
         this.alarmRepository = alarmRepository;
+        this.alarmActivityRepository = alarmActivityRepository;
+    }
+
+    @Transactional
+    public Alarm ack(String alarmId, User user, String note) {
+        Alarm alarm = alarmRepository.findByIdWithLabels(alarmId);
+        if (alarm == null) return null;
+
+        if (!canAck(user, alarm)) {
+            throw new PermissionDeniedException("User " + user.getName() + " (" + user.getDepartment()
+                    + ") cannot ack alarm in " + alarm.getDepartment());
+        }
+
+        alarm.setStatus(AlarmStatus.Acked);
+        alarmRepository.save(alarm);
+
+        AlarmActivity activity = new AlarmActivity();
+        activity.setAlarmId(alarmId);
+        activity.setType(AlarmActivityType.acked);
+        activity.setTimestamp(Instant.now());
+        activity.setAuthor(user.getName());
+        activity.setNote(note);
+        alarmActivityRepository.save(activity);
+
+        return alarm;
+    }
+
+    @Transactional
+    public Alarm setLabel(String alarmId, User user, String action, AlarmLabel label) {
+        Alarm alarm = alarmRepository.findByIdWithLabels(alarmId);
+        if (alarm == null) return null;
+
+        if ("add".equals(action)) {
+            alarm.getLabels().add(label);
+        } else {
+            alarm.getLabels().remove(label);
+        }
+        alarmRepository.save(alarm);
+
+        AlarmActivity activity = new AlarmActivity();
+        activity.setAlarmId(alarmId);
+        activity.setType("add".equals(action) ? AlarmActivityType.label_added : AlarmActivityType.label_removed);
+        activity.setTimestamp(Instant.now());
+        activity.setAuthor(user.getName());
+        activity.setLabel(label);
+        alarmActivityRepository.save(activity);
+
+        return alarm;
+    }
+
+    @Transactional
+    public Alarm setRisk(String alarmId, User user, HumanRisk risk) {
+        Alarm alarm = alarmRepository.findByIdWithLabels(alarmId);
+        if (alarm == null) return null;
+
+        HumanRisk fromRisk = alarm.getHumanRisk();
+        alarm.setHumanRisk(risk);
+        alarmRepository.save(alarm);
+
+        AlarmActivity activity = new AlarmActivity();
+        activity.setAlarmId(alarmId);
+        activity.setType(AlarmActivityType.risk_changed);
+        activity.setTimestamp(Instant.now());
+        activity.setAuthor(user.getName());
+        activity.setFromRisk(fromRisk);
+        activity.setToRisk(risk);
+        alarmActivityRepository.save(activity);
+
+        return alarm;
+    }
+
+    @Transactional
+    public Alarm recover(String alarmId, User user) {
+        Alarm alarm = alarmRepository.findByIdWithLabels(alarmId);
+        if (alarm == null) return null;
+
+        if (alarm.getRecoveryTime() != null) {
+            throw new IllegalStateException("Alarm " + alarmId + " already has a recoveryTime");
+        }
+
+        alarm.setRecoveryTime(Instant.now());
+        alarmRepository.save(alarm);
+
+        AlarmActivity activity = new AlarmActivity();
+        activity.setAlarmId(alarmId);
+        activity.setType(AlarmActivityType.recovered);
+        activity.setTimestamp(Instant.now());
+        activity.setAuthor(user.getName());
+        alarmActivityRepository.save(activity);
+
+        return alarm;
+    }
+
+    public List<AlarmActivity> getActivity(String alarmId) {
+        return alarmActivityRepository.findByAlarmIdOrderByTimestampAsc(alarmId);
+    }
+
+    public boolean canAck(User user, Alarm alarm) {
+        return user.getDepartment() != null
+                && !user.getDepartment().isEmpty()
+                && user.getDepartment().equals(alarm.getDepartment());
     }
 
     public List<Alarm> findByDateRange(Instant from, Instant to,

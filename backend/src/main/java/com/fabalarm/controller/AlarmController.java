@@ -1,7 +1,9 @@
 package com.fabalarm.controller;
 
+import com.fabalarm.auth.CurrentUserHolder;
 import com.fabalarm.model.*;
 import com.fabalarm.service.AlarmService;
+import com.fabalarm.service.PermissionDeniedException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
@@ -80,6 +82,77 @@ public class AlarmController {
         return alarmService.findById(id)
                 .map(a -> ResponseEntity.ok(toDto(a)))
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @Operation(summary = "Acknowledge alarm", description = "Ack an alarm (same-department permission required)")
+    @PostMapping("/{id}/ack")
+    public ResponseEntity<?> ackAlarm(@PathVariable String id, @RequestBody(required = false) Map<String, String> body) {
+        try {
+            String note = body != null ? body.get("note") : null;
+            Alarm alarm = alarmService.ack(id, CurrentUserHolder.get(), note);
+            if (alarm == null) return ResponseEntity.notFound().build();
+            return ResponseEntity.ok(toDto(alarm));
+        } catch (PermissionDeniedException e) {
+            return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @Operation(summary = "Set label on alarm", description = "Add or remove a label from an alarm")
+    @PostMapping("/{id}/label")
+    public ResponseEntity<?> setLabel(@PathVariable String id, @RequestBody Map<String, String> body) {
+        String action = body.get("action");
+        AlarmLabel label = AlarmLabel.valueOf(body.get("label"));
+        Alarm alarm = alarmService.setLabel(id, CurrentUserHolder.get(), action, label);
+        if (alarm == null) return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(toDto(alarm));
+    }
+
+    @Operation(summary = "Set human risk on alarm", description = "Set human risk assessment on an alarm")
+    @PostMapping("/{id}/risk")
+    public ResponseEntity<?> setRisk(@PathVariable String id, @RequestBody Map<String, String> body) {
+        HumanRisk risk = HumanRisk.valueOf(body.get("risk"));
+        Alarm alarm = alarmService.setRisk(id, CurrentUserHolder.get(), risk);
+        if (alarm == null) return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(toDto(alarm));
+    }
+
+    @Operation(summary = "Recover alarm", description = "Set recovery time on an active alarm")
+    @PostMapping("/{id}/recover")
+    public ResponseEntity<?> recoverAlarm(@PathVariable String id, @RequestBody(required = false) Map<String, String> body) {
+        try {
+            Alarm alarm = alarmService.recover(id, CurrentUserHolder.get());
+            if (alarm == null) return ResponseEntity.notFound().build();
+            return ResponseEntity.ok(toDto(alarm));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @Operation(summary = "Get alarm activity", description = "Returns ordered activity entries for an alarm")
+    @GetMapping("/{id}/activity")
+    public ResponseEntity<?> getActivity(@PathVariable String id) {
+        if (alarmService.findById(id).isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        List<AlarmActivity> activities = alarmService.getActivity(id);
+        List<Map<String, Object>> result = activities.stream()
+                .map(this::toActivityDto)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(result);
+    }
+
+    private Map<String, Object> toActivityDto(AlarmActivity a) {
+        Map<String, Object> dto = new LinkedHashMap<>();
+        dto.put("id", a.getId());
+        dto.put("alarmId", a.getAlarmId());
+        dto.put("type", a.getType().name());
+        dto.put("timestamp", a.getTimestamp().toString());
+        dto.put("author", a.getAuthor());
+        if (a.getNote() != null) dto.put("note", a.getNote());
+        if (a.getLabel() != null) dto.put("label", a.getLabel().name());
+        if (a.getFromRisk() != null) dto.put("fromRisk", a.getFromRisk().name());
+        if (a.getToRisk() != null) dto.put("toRisk", a.getToRisk().name());
+        return dto;
     }
 
     private Map<String, Object> toDto(Alarm a) {
