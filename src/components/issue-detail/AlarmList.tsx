@@ -1,4 +1,4 @@
-import { Plus, X } from 'lucide-react';
+import { ArrowRightLeft, Plus, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../../api/client';
 import { isActive } from '../../lib/alarmFiltering';
@@ -11,6 +11,7 @@ interface AlarmListProps {
   issue: Issue;
   onLink: (alarmId: string) => Promise<void> | void;
   onUnlink: (alarmId: string) => Promise<void> | void;
+  onMove?: (alarmId: string, targetIssueId: string) => Promise<void> | void;
 }
 
 const SEVERITY_DOT: Record<RiskLevel, string> = {
@@ -25,10 +26,13 @@ const STATUS_PILL: Record<string, string> = {
   Acked: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
 };
 
-export function AlarmList({ alarms, issue, onLink, onUnlink }: AlarmListProps) {
+export function AlarmList({ alarms, issue, onLink, onUnlink, onMove }: AlarmListProps) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [allAlarms, setAllAlarms] = useState<Alarm[]>([]);
   const [loadingAll, setLoadingAll] = useState(false);
+  const [moveAlarmId, setMoveAlarmId] = useState<string | null>(null);
+  const [moveIssues, setMoveIssues] = useState<Issue[]>([]);
+  const [moveLoading, setMoveLoading] = useState(false);
   const now = useMockClockStore((s) => s.now);
 
   useEffect(() => {
@@ -49,6 +53,32 @@ export function AlarmList({ alarms, issue, onLink, onUnlink }: AlarmListProps) {
     await onLink(alarmId);
     setPickerOpen(false);
   };
+
+  const handleOpenMovePicker = async (alarmId: string) => {
+    setMoveAlarmId(alarmId);
+    if (moveIssues.length === 0) {
+      setMoveLoading(true);
+      try {
+        const list = await api.listIssues();
+        setMoveIssues(list);
+      } finally {
+        setMoveLoading(false);
+      }
+    }
+  };
+
+  const handleMovePick = async (targetIssueId: string) => {
+    if (!moveAlarmId || !onMove) return;
+    await onMove(moveAlarmId, targetIssueId);
+    setMoveAlarmId(null);
+  };
+
+  const sameDeptIssues = useMemo(
+    () => moveIssues.filter(
+      (i) => i.department === issue.department && i.id !== issue.id && i.status !== 'Closed' && i.status !== 'Merged',
+    ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+    [moveIssues, issue.department, issue.id],
+  );
 
   const showLinkButton = issue.status !== 'Closed';
 
@@ -101,6 +131,15 @@ export function AlarmList({ alarms, issue, onLink, onUnlink }: AlarmListProps) {
                   {active ? 'Active' : 'Recovered'}
                 </span>
                 <span className="flex-1" />
+                {onMove && (
+                  <button
+                    onClick={() => handleOpenMovePicker(alarm.id)}
+                    className="btn-ghost p-1 rounded-md shrink-0"
+                    title="Move to another issue…"
+                  >
+                    <ArrowRightLeft size={12} />
+                  </button>
+                )}
                 <button
                   onClick={() => onUnlink(alarm.id)}
                   className="btn-ghost p-1 rounded-md shrink-0"
@@ -112,6 +151,39 @@ export function AlarmList({ alarms, issue, onLink, onUnlink }: AlarmListProps) {
             );
           })}
         </ul>
+      )}
+
+      {moveAlarmId && (
+        <div className="mt-3 p-3 rounded-lg bg-surface-inset border border-border-subtle/40">
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-[11px] text-theme-muted">
+              Move <span className="font-mono">{moveAlarmId}</span> to:
+            </div>
+            <button onClick={() => setMoveAlarmId(null)} className="btn-ghost btn-sm">
+              Cancel
+            </button>
+          </div>
+          {moveLoading ? (
+            <div className="text-xs text-theme-muted">Loading issues...</div>
+          ) : sameDeptIssues.length === 0 ? (
+            <div className="text-xs text-theme-muted">No same-department issues available.</div>
+          ) : (
+            <ul className="max-h-56 overflow-y-auto flex flex-col gap-1">
+              {sameDeptIssues.map((iss) => (
+                <li key={iss.id}>
+                  <button
+                    onClick={() => handleMovePick(iss.id)}
+                    className="w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-surface-overlay/60"
+                  >
+                    <span className="text-[11px] text-theme-secondary font-mono shrink-0">{iss.id}</span>
+                    <span className="badge text-[10px] shrink-0">{iss.status}</span>
+                    <span className="text-xs text-theme-primary truncate flex-1">{iss.title}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
 
       {pickerOpen && (

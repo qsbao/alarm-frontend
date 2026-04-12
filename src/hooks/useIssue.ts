@@ -180,6 +180,19 @@ export function useIssue(id: string | undefined) {
     [id, applyIssue],
   );
 
+  const moveAlarm = useCallback(
+    async (alarmId: string, targetIssueId: string) => {
+      if (!id) return;
+      const currentUser = useCurrentUserStore.getState().currentUser;
+      const result = await api.moveAlarm(alarmId, targetIssueId, currentUser.department);
+      useAlarmStore.getState().moveAlarm(alarmId, result.fromIssueId, result.toIssueId, currentUser);
+      // Reload both issue and alarms since alarm moved away
+      const updated = await api.getIssue(id);
+      if (updated) await applyIssue(updated, true);
+    },
+    [id, applyIssue],
+  );
+
   const linkExistingIssueAsHighlight = useCallback(
     async (existingIssueId: string) => {
       if (!id) return;
@@ -202,6 +215,7 @@ export function useIssue(id: string | undefined) {
     addComment,
     linkAlarm,
     unlinkAlarm,
+    moveAlarm,
     completeWorkflowStep,
     skipWorkflowStep,
     reviveWorkflowStep,
