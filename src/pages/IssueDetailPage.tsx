@@ -7,6 +7,7 @@ import { CommentBox } from '../components/issue-detail/CommentBox';
 import { HistoricalAlarmList, type HistoricalAlarmRow } from '../components/issue-detail/HistoricalAlarmList';
 import { IssueHeader } from '../components/issue-detail/IssueHeader';
 import { MergeDialog, type MergeSource } from '../components/issue-detail/MergeDialog';
+import { PullMergeDialog } from '../components/issue-detail/PullMergeDialog';
 import { WorkflowPanel } from '../components/issue-detail/WorkflowPanel';
 import { useIssue } from '../hooks/useIssue';
 import { useCurrentUserStore } from '../stores/currentUserStore';
@@ -38,6 +39,7 @@ export function IssueDetailPage() {
   } = useIssue(id);
 
   const [showMergeDialog, setShowMergeDialog] = useState(false);
+  const [showPullDialog, setShowPullDialog] = useState(false);
   const [mergedInto, setMergedInto] = useState<string | null>(null);
   const [historicalAlarms, setHistoricalAlarms] = useState<HistoricalAlarmRow[]>([]);
   const currentUser = useCurrentUserStore((s) => s.currentUser);
@@ -75,6 +77,15 @@ export function IssueDetailPage() {
       navigate(`/issues/${targetId}`);
     }
   }, [issue, currentUser, navigate]);
+
+  const handlePullConfirm = useCallback(async (sourceIds: string[]) => {
+    if (!issue) return;
+    const result = await api.mergeIssues(sourceIds, issue.id, currentUser);
+    if (result.ok) {
+      setShowPullDialog(false);
+      reload();
+    }
+  }, [issue, currentUser, reload]);
 
   const mergeSources: MergeSource[] = issue ? [{ issue, alarms }] : [];
 
@@ -121,6 +132,7 @@ export function IssueDetailPage() {
           issue={issue}
           onAssign={assignOwner}
           onMerge={isMerged ? undefined : () => setShowMergeDialog(true)}
+          onPullAlarms={isMerged ? undefined : () => setShowPullDialog(true)}
           disabled={isMerged}
         />
 
@@ -173,6 +185,16 @@ export function IssueDetailPage() {
           sources={mergeSources}
           onConfirm={handleMergeConfirm}
           onCancel={() => setShowMergeDialog(false)}
+          currentUserDepartment={currentUser.department}
+        />
+      )}
+
+      {showPullDialog && (
+        <PullMergeDialog
+          target={issue}
+          targetAlarms={alarms}
+          onConfirm={handlePullConfirm}
+          onCancel={() => setShowPullDialog(false)}
           currentUserDepartment={currentUser.department}
         />
       )}

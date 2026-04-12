@@ -130,6 +130,37 @@ describe('getHistoricalAlarmsForIssue', () => {
   });
 });
 
+describe('listMergeSourceCandidates', () => {
+  it('returns only same-department Triage issues, excluding the target, sorted by recency', async () => {
+    const issues = await api.listIssues();
+    // Find an issue to use as the target (any status)
+    const target = issues.find((i) => i.department === 'Litho');
+    expect(target).toBeDefined();
+
+    const candidates = await api.listMergeSourceCandidates(target!.id, target!.department);
+
+    // Every candidate must be same department, Triage status, and not the target
+    for (const c of candidates) {
+      expect(c.department).toBe(target!.department);
+      expect(c.status).toBe('Triage');
+      expect(c.id).not.toBe(target!.id);
+    }
+
+    // Must be sorted by recency (newest first)
+    for (let i = 1; i < candidates.length; i++) {
+      expect(new Date(candidates[i - 1].date).getTime()).toBeGreaterThanOrEqual(
+        new Date(candidates[i].date).getTime(),
+      );
+    }
+  });
+
+  it('returns empty when no Triage issues exist in the department', async () => {
+    // Use a department that likely has no Triage issues after filtering
+    const candidates = await api.listMergeSourceCandidates('iss-999', 'NonExistentDept');
+    expect(candidates).toEqual([]);
+  });
+});
+
 describe('linkExistingIssueAsHighlight', () => {
   it('links an existing issue as a blocker without duplicating it', async () => {
     const issues = await api.listIssues();

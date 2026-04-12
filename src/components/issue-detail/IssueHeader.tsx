@@ -10,6 +10,7 @@ interface IssueHeaderProps {
   issue: Issue;
   onAssign: (ownerId: string) => Promise<void> | void;
   onMerge?: () => void;
+  onPullAlarms?: () => void;
   disabled?: boolean;
 }
 
@@ -36,7 +37,7 @@ function Chip({
   );
 }
 
-export function IssueHeader({ issue, onAssign, onMerge, disabled }: IssueHeaderProps) {
+export function IssueHeader({ issue, onAssign, onMerge, onPullAlarms, disabled }: IssueHeaderProps) {
   const ownerName = getUserById(issue.ownerId)?.name ?? issue.ownerId;
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(ownerName);
@@ -92,6 +93,15 @@ export function IssueHeader({ issue, onAssign, onMerge, disabled }: IssueHeaderP
 
         {!disabled && (
           <div className="flex items-center gap-2">
+            {issue.status !== 'Merged' && onPullAlarms && (
+              <button
+                onClick={onPullAlarms}
+                className="btn-secondary btn-sm"
+              >
+                <GitMerge size={13} />
+                Pull alarms from...
+              </button>
+            )}
             {issue.status !== 'Merged' && onMerge && (
               <div className="relative group">
                 <button

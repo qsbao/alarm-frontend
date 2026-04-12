@@ -617,6 +617,21 @@ export const api = {
   },
 
   /**
+   * Lists candidate source issues for a "pull alarms from" merge.
+   * Returns same-department Triage issues, excluding the target, sorted by recency.
+   */
+  async listMergeSourceCandidates(
+    targetId: string,
+    department: string,
+  ): Promise<Issue[]> {
+    await delay();
+    return issues
+      .filter((i) => i.department === department && i.id !== targetId && i.status === 'Triage')
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .map(cloneIssue);
+  },
+
+  /**
    * Gets the merge-into relation for a source issue, if any.
    */
   async getMergedInto(issueId: string): Promise<{ targetIssueId: string } | undefined> {
