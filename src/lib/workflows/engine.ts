@@ -103,17 +103,8 @@ export function deriveStatus(
   }
   if (bestCompleted) return bestCompleted.status;
 
-  // Fallback: lowest-order ongoing step with impliesStatus
-  let bestOngoing: { order: number; status: IssueStatus } | undefined;
-  for (const step of definition.steps) {
-    if (!step.impliesStatus) continue;
-    const state = instance.stepStates[step.id];
-    if (state?.status !== 'ongoing') continue;
-    if (!bestOngoing || step.order < bestOngoing.order) {
-      bestOngoing = { order: step.order, status: step.impliesStatus };
-    }
-  }
-  return bestOngoing?.status;
+  // No completed step implies a status → leave as Triage (caller default).
+  return undefined;
 }
 
 function isTerminal(stepStates: Record<string, StepState>): boolean {

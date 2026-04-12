@@ -38,6 +38,11 @@ const SPC_OOC_ADVANCE: string[][] = [
 /**
  * Attaches workflows to all issues, distributed across stages.
  * SPC OOC issues (EndpointDrift) use spcOocBranching; others use genericLinear.
+ *
+ * Stage distribution (i % 3):
+ *   0 → no steps completed (Triage — workflow attached but nothing done yet)
+ *   1 → chart_owner_comment completed (Investigating)
+ *   2 → fully closed (terminal)
  */
 export function applyCuratedWorkflows(issues: Issue[]): void {
   for (let i = 0; i < issues.length; i++) {
