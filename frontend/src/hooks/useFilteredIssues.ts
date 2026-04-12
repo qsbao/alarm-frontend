@@ -1,5 +1,5 @@
 import type { Issue, IssueStatus, RiskLevel, AlarmType } from '../types';
-import { getUserById } from '../mocks/users';
+import { getUserById } from '../lib/users';
 
 export interface IssueFilterParams {
   statusFilter: IssueStatus | 'all';

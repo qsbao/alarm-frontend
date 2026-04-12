@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { awaitingMyAction, getOngoingStepLabels } from './discovery';
 import type { Issue } from '../../types';
 import type { WorkflowInstance } from './types';
-import { getDefinition } from './registry';
+import { getDefinition } from './definitions';
 
 function makeIssue(workflow?: WorkflowInstance): Issue {
   return {

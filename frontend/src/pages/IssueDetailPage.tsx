@@ -12,7 +12,6 @@ import { WorkflowPanel } from '../components/issue-detail/WorkflowPanel';
 import { useIssue } from '../hooks/useIssue';
 import type { Alarm } from '../types';
 import { useCurrentUserStore } from '../stores/currentUserStore';
-import { api } from '../api/client';
 import { backend } from '../api/backendClient';
 
 export function IssueDetailPage() {

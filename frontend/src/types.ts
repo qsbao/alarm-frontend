@@ -133,6 +133,8 @@ export interface Issue {
   workflow?: import('./lib/workflows/types').WorkflowInstance;
 }
 
+export type IssueDraft = Omit<Issue, 'id' | 'activity'>;
+
 export const ALL_ALARM_STATUSES: AlarmStatus[] = ['Open', 'Acked'];
 export const ALL_HUMAN_RISKS: HumanRisk[] = ['high', 'middle', 'low'];
 export const ALL_ALARM_LABELS: AlarmLabel[] = [

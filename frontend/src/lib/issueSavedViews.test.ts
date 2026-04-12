@@ -6,7 +6,7 @@ import {
 } from './issueSavedViews';
 import type { Issue } from '../types';
 import type { WorkflowInstance } from './workflows/types';
-import { getDefinition } from './workflows/registry';
+import { getDefinition } from './workflows/definitions';
 
 function makeIssue(workflow?: WorkflowInstance): Issue {
   return {

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { User } from '../types';
-import { MOCK_USERS } from '../mocks/users';
+import { USERS } from '../lib/users';
 
 interface CurrentUserStore {
   currentUser: User;
@@ -11,7 +11,7 @@ interface CurrentUserStore {
 export const useCurrentUserStore = create<CurrentUserStore>()(
   persist(
     (set) => ({
-      currentUser: MOCK_USERS[0],
+      currentUser: USERS[0],
       setCurrentUser: (user) => set({ currentUser: user }),
     }),
     { name: 'fab-alarm-current-user' },

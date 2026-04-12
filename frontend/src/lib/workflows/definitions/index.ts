@@ -1,6 +1,6 @@
-import type { WorkflowDefinition } from './types';
-import { genericLinearDefinition } from './definitions/genericLinear';
-import { spcOocBranchingDefinition } from './definitions/spcOocBranching';
+import type { WorkflowDefinition } from '../types';
+import { genericLinearDefinition } from './genericLinear';
+import { spcOocBranchingDefinition } from './spcOocBranching';
 
 const definitions = new Map<string, WorkflowDefinition>();
 

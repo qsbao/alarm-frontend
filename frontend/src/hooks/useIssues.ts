@@ -4,7 +4,7 @@ import { refreshEvents } from '../lib/refreshEvents';
 import { useIssueStore } from '../stores/issueStore';
 import { useCurrentUserStore } from '../stores/currentUserStore';
 import { ISSUE_BUILTIN_VIEWS } from '../lib/issueSavedViews';
-import { getDefinition } from '../lib/workflows/registry';
+import { getDefinition } from '../lib/workflows/definitions';
 import { matchesFilters } from './useFilteredIssues';
 import type { Issue, RiskLevel } from '../types';
 

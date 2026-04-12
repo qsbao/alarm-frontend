@@ -2,7 +2,7 @@ import { ArrowLeft, Building2, Calendar, Check, Clock, GitMerge, Package, Pencil
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { Issue } from '../../types';
-import { getUserById } from '../../mocks/users';
+import { getUserById } from '../../lib/users';
 import { RiskBadge } from '../issues/RiskBadge';
 import { StatusBadge } from '../issues/StatusBadge';
 

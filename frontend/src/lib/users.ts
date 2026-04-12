@@ -1,6 +1,10 @@
 import type { User } from '../types';
 
-export const MOCK_USERS: User[] = [
+/**
+ * Seed user list for dev-mode auth (UserSwitcher + X-User-Id header).
+ * Matches the backend's data.sql seed data.
+ */
+export const USERS: User[] = [
   // Original 8 engineers
   { id: 'user-tanaka', name: 'H. Tanaka', department: 'Litho' },
   { id: 'user-rossi', name: 'L. Rossi', department: 'Litho' },
@@ -36,8 +40,8 @@ export const MOCK_USERS: User[] = [
   { id: 'user-taylor', name: 'J. Taylor', department: 'Facilities' },
 ];
 
-const byId = new Map(MOCK_USERS.map((u) => [u.id, u]));
-const byName = new Map(MOCK_USERS.map((u) => [u.name, u]));
+const byId = new Map(USERS.map((u) => [u.id, u]));
+const byName = new Map(USERS.map((u) => [u.name, u]));
 
 export function getUserById(id: string): User | undefined {
   return byId.get(id);

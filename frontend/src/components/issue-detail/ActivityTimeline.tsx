@@ -10,8 +10,8 @@ import {
   UserCheck,
 } from 'lucide-react';
 import type { ActivityEntry, ActivityType } from '../../types';
-import { getUserById } from '../../mocks/users';
-import { getDefinition } from '../../lib/workflows/registry';
+import { getUserById } from '../../lib/users';
+import { getDefinition } from '../../lib/workflows/definitions';
 
 const ICON_MAP: Record<ActivityType, typeof Plus> = {
   created: Plus,

@@ -1,9 +1,8 @@
 import { ArrowRightLeft, Plus, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { api } from '../../api/client';
+import { backend } from '../../api/backendClient';
 import { isActive } from '../../lib/alarmFiltering';
 import { linkAlarmCandidates } from '../../lib/linkAlarmCandidates';
-import { useMockClockStore } from '../../stores/mockClockStore';
 import type { Alarm, Issue, RiskLevel } from '../../types';
 
 interface AlarmListProps {
@@ -26,6 +25,49 @@ const STATUS_PILL: Record<string, string> = {
   Acked: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
 };
 
+interface BackendAlarm {
+  id: string;
+  type: string;
+  severity: string;
+  message: string;
+  value?: number;
+  unit?: string;
+  time: string;
+  recoveryTime?: string;
+  machineId: string;
+  chamberId?: string;
+  product: string;
+  operation: string;
+  owner: string;
+  department: string;
+  status: string;
+  humanRisk?: string;
+  labels: string[];
+}
+
+function toAlarm(raw: BackendAlarm): Alarm {
+  return {
+    id: raw.id,
+    type: raw.type as Alarm['type'],
+    severity: raw.severity as Alarm['severity'],
+    message: raw.message,
+    value: raw.value,
+    unit: raw.unit,
+    time: raw.time,
+    recoveryTime: raw.recoveryTime,
+    machineId: raw.machineId,
+    chamberId: raw.chamberId,
+    product: raw.product,
+    operation: raw.operation,
+    owner: raw.owner,
+    department: raw.department,
+    status: raw.status as Alarm['status'],
+    humanRisk: raw.humanRisk as Alarm['humanRisk'],
+    labels: (raw.labels ?? []) as Alarm['labels'],
+    activity: [],
+  };
+}
+
 export function AlarmList({ alarms, issue, onLink, onUnlink, onMove }: AlarmListProps) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [allAlarms, setAllAlarms] = useState<Alarm[]>([]);
@@ -33,14 +75,18 @@ export function AlarmList({ alarms, issue, onLink, onUnlink, onMove }: AlarmList
   const [moveAlarmId, setMoveAlarmId] = useState<string | null>(null);
   const [moveIssues, setMoveIssues] = useState<Issue[]>([]);
   const [moveLoading, setMoveLoading] = useState(false);
-  const now = useMockClockStore((s) => s.now);
+  const now = Date.now();
 
   useEffect(() => {
     if (!pickerOpen || allAlarms.length > 0) return;
     setLoadingAll(true);
-    api
-      .listAlarms()
-      .then((list) => setAllAlarms(list))
+    const from = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+    const to = new Date().toISOString();
+    backend.GET('/api/alarms', { params: { query: { from, to } as any } })
+      .then(({ data }) => {
+        const raw = (data ?? []) as unknown as BackendAlarm[];
+        setAllAlarms(raw.map(toAlarm));
+      })
       .finally(() => setLoadingAll(false));
   }, [pickerOpen, allAlarms.length]);
 
@@ -59,8 +105,23 @@ export function AlarmList({ alarms, issue, onLink, onUnlink, onMove }: AlarmList
     if (moveIssues.length === 0) {
       setMoveLoading(true);
       try {
-        const list = await api.listIssues();
-        setMoveIssues(list);
+        const { data } = await backend.GET('/api/issues', { params: { query: {} } });
+        const raw = (data ?? []) as unknown as Array<Record<string, any>>;
+        setMoveIssues(raw.map((i) => ({
+          id: i.id as string,
+          title: i.title as string,
+          date: i.date as string,
+          alarmType: i.alarmType as Issue['alarmType'],
+          riskLevel: i.riskLevel as Issue['riskLevel'],
+          status: i.status as Issue['status'],
+          issueTime: i.issueTime as string,
+          operation: i.operation as string,
+          product: i.product as string,
+          ownerId: i.ownerId as string,
+          department: i.department as string,
+          description: (i.description ?? '') as string,
+          activity: [],
+        })));
       } finally {
         setMoveLoading(false);
       }
@@ -135,7 +196,7 @@ export function AlarmList({ alarms, issue, onLink, onUnlink, onMove }: AlarmList
                   <button
                     onClick={() => handleOpenMovePicker(alarm.id)}
                     className="btn-ghost p-1 rounded-md shrink-0"
-                    title="Move to another issue…"
+                    title="Move to another issue..."
                   >
                     <ArrowRightLeft size={12} />
                   </button>
