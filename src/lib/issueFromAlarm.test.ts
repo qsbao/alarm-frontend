@@ -36,7 +36,7 @@ describe('buildIssueFromAlarm', () => {
     expect(draft.description).toContain(alarm.message);
     expect(draft.alarmType).toBe(alarm.type);
     expect(draft.riskLevel).toBe('High'); // humanRisk 'high' → 'High'
-    expect(draft.status).toBe('New');
+    expect(draft.status).toBe('Triage');
     expect(draft.issueTime).toBe(alarm.time);
     expect(draft.operation).toBe(alarm.operation);
     expect(draft.product).toBe(alarm.product);

@@ -60,7 +60,7 @@ describe('listHighlightCandidates', () => {
     const allIssues: Issue[] = [
       makeIssue({ id: 'iss-010', product: 'A7-Litho', operation: 'Wafer transfer', status: 'Investigating' }),
       makeIssue({ id: 'iss-011', product: 'A7-Litho', operation: 'Wafer transfer', status: 'Resolved' }),
-      makeIssue({ id: 'iss-012', product: 'A7-Litho', operation: 'Chamber pump-down', status: 'New' }),
+      makeIssue({ id: 'iss-012', product: 'A7-Litho', operation: 'Chamber pump-down', status: 'Triage' }),
       makeIssue({ id: 'iss-013', product: 'A7-Litho', operation: 'Chamber pump-down', status: 'Closed' }),
       makeIssue({ id: 'iss-014', product: 'A7-Litho', operation: 'Recipe step 3', status: 'Investigating' }), // same op as parent — not upstream
       makeIssue({ id: 'iss-015', product: 'B3-Etch', operation: 'Lot start', status: 'Investigating' }), // different product

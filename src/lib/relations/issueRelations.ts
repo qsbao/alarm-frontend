@@ -9,7 +9,7 @@ export interface IssueRelation {
   createdBy: string;
 }
 
-const TERMINAL_STATUSES: IssueStatus[] = ['Resolved', 'Closed'];
+const TERMINAL_STATUSES: IssueStatus[] = ['Resolved', 'Closed', 'Merged'];
 
 let relations: IssueRelation[] = [];
 let nextId = 1;

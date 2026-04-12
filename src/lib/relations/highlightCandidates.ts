@@ -1,7 +1,7 @@
 import type { Issue, IssueStatus } from '../../types';
 import { getProductRoute, type RouteOperation } from '../../mocks/routes';
 
-const OPEN_STATUSES: IssueStatus[] = ['New', 'Investigating'];
+const OPEN_STATUSES: IssueStatus[] = ['Triage', 'Investigating'];
 
 export interface HighlightCandidate {
   operation: RouteOperation;

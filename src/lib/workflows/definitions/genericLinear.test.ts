@@ -10,7 +10,7 @@ function makeIssue(overrides: Partial<Issue> = {}): Issue {
     date: '2025-01-15T10:00:00Z',
     alarmType: 'TempSpike',
     riskLevel: 'High',
-    status: 'New',
+    status: 'Triage',
     issueTime: '2025-01-15T09:55:00Z',
     operation: 'Lithography',
     product: 'A7-Litho',
