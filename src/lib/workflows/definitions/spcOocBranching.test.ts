@@ -11,7 +11,7 @@ function makeIssue(overrides: Partial<Issue> = {}): Issue {
     date: '2025-01-15T10:00:00Z',
     alarmType: 'EndpointDrift',
     riskLevel: 'High',
-    status: 'New',
+    status: 'Triage',
     issueTime: '2025-01-15T09:55:00Z',
     operation: 'Endpoint detect',
     product: 'A7-Litho',

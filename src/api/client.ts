@@ -471,7 +471,7 @@ export const api = {
       date: new Date().toISOString(),
       alarmType: parent.alarmType,
       riskLevel: parent.riskLevel,
-      status: 'New',
+      status: 'Triage',
       issueTime: new Date().toISOString(),
       operation: opName,
       product: productName,

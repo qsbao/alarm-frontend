@@ -68,9 +68,9 @@ describe('issueRelations', () => {
       expect(isBlocked('iss-001', lookup({ 'iss-002': 'Investigating' }))).toBe(true);
     });
 
-    it('returns true when blocker is New', () => {
+    it('returns true when blocker is Triage', () => {
       addBlocker('iss-001', 'iss-002', 'user-a');
-      expect(isBlocked('iss-001', lookup({ 'iss-002': 'New' }))).toBe(true);
+      expect(isBlocked('iss-001', lookup({ 'iss-002': 'Triage' }))).toBe(true);
     });
 
     it('returns false when all blockers are Resolved', () => {

@@ -16,7 +16,7 @@ import { getDefaultWorkflowId } from '../lib/workflows/workflowDefaults';
 
 /** Reads the derived status from the workflow's current step states. */
 function statusFromWorkflow(definition: WorkflowDefinition, instance: WorkflowInstance) {
-  return deriveStatus(definition, instance) ?? 'New';
+  return deriveStatus(definition, instance) ?? 'Triage';
 }
 
 const ts = '2025-06-01T10:00:00Z';

@@ -54,7 +54,7 @@ function makeIssue(i: number): Issue {
   const alarmType = ALARM_TYPES[i % ALARM_TYPES.length];
   const riskLevel = RISK_LEVELS[(i * 2 + 1) % RISK_LEVELS.length];
   // status is a placeholder; the engine writes the real value during workflow attach
-  const status = 'New';
+  const status = 'Triage';
   const product = PRODUCTS[(i * 7 + 1) % PRODUCTS.length];
   const ownerId = OWNER_IDS[(i * 5) % OWNER_IDS.length];
   const department = DEPARTMENTS[(i * 7) % DEPARTMENTS.length];

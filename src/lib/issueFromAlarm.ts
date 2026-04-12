@@ -26,7 +26,7 @@ export function buildIssueFromAlarm(alarm: Alarm, _currentUser: User, now: strin
     date: now,
     alarmType: alarm.type,
     riskLevel,
-    status: 'New',
+    status: 'Triage',
     issueTime: alarm.time,
     operation: alarm.operation,
     product: alarm.product,

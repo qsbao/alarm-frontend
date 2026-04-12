@@ -43,7 +43,7 @@ export function CreateIssueFromAlarmModal({
         date: initial.date,
         alarmType,
         riskLevel,
-        status: 'New',
+        status: 'Triage',
         issueTime: initial.issueTime,
         operation,
         product,

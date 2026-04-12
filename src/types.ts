@@ -5,7 +5,7 @@ export interface User {
 }
 
 export type RiskLevel = 'Low' | 'Medium' | 'High' | 'Critical';
-export type IssueStatus = 'New' | 'Investigating' | 'Resolved' | 'Closed';
+export type IssueStatus = 'Triage' | 'Investigating' | 'Resolved' | 'Closed' | 'Merged';
 export type AlarmType =
   | 'TempSpike'
   | 'PressureDrop'
@@ -134,7 +134,7 @@ export const ALL_ALARM_LABELS: AlarmLabel[] = [
 ];
 
 export const ALL_RISK_LEVELS: RiskLevel[] = ['Low', 'Medium', 'High', 'Critical'];
-export const ALL_ISSUE_STATUSES: IssueStatus[] = ['New', 'Investigating', 'Resolved', 'Closed'];
+export const ALL_ISSUE_STATUSES: IssueStatus[] = ['Triage', 'Investigating', 'Resolved', 'Closed', 'Merged'];
 export const ALL_ALARM_TYPES: AlarmType[] = [
   'TempSpike',
   'PressureDrop',
