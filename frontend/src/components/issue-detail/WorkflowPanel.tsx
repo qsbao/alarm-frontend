@@ -3,6 +3,7 @@ import { useState } from 'react';
 import type { Issue } from '../../types';
 import type { BlockerInfo } from '../../hooks/useIssue';
 import type { PayloadFieldSchema, Step, StepStatus } from '../../lib/workflows/types';
+import { ReportReferenceField } from './ReportReferenceField';
 import type { HighlightCandidate } from '../../lib/relations/highlightCandidates';
 import { getDefinition } from '../../lib/workflows/definitions';
 import { getStepDisplayList, canUserActOnStep, canSkipStep, canReviveStep, canEditStep } from '../../lib/workflows/panelHelpers';
@@ -238,6 +239,8 @@ function StepRow({
         <InlineStepForm
           step={step}
           currentUserId={currentUser.id}
+          issue={issue}
+          stepStatus={status}
           onSubmit={async (payload) => {
             await onCompleteStep?.(step.id, currentUser.id, payload);
             setShowForm(false);
@@ -259,6 +262,8 @@ function StepRow({
         <InlineStepForm
           step={step}
           currentUserId={currentUser.id}
+          issue={issue}
+          stepStatus={status}
           initialValues={workflow.stepStates[step.id]?.payload}
           onSubmit={async (payload) => {
             await onEditStep?.(step.id, currentUser.id, payload);
@@ -307,12 +312,16 @@ function ConfirmAction({
 function InlineStepForm({
   step,
   currentUserId,
+  issue,
+  stepStatus,
   initialValues,
   onSubmit,
   onCancel,
 }: {
   step: Step;
   currentUserId: string;
+  issue: Issue;
+  stepStatus: StepStatus;
   initialValues?: Record<string, unknown>;
   onSubmit: (payload: Record<string, unknown>) => Promise<void>;
   onCancel: () => void;
@@ -363,6 +372,8 @@ function InlineStepForm({
           schema={fieldSchema}
           value={values[fieldName] ?? ''}
           onChange={(v) => setValues({ ...values, [fieldName]: v })}
+          issue={issue}
+          stepStatus={stepStatus}
         />
       ))}
       {error && (
@@ -388,12 +399,27 @@ function SchemaField({
   schema,
   value,
   onChange,
+  issue,
+  stepStatus,
 }: {
   fieldName: string;
   schema: PayloadFieldSchema;
   value: string;
   onChange: (v: string) => void;
+  issue: Issue;
+  stepStatus: StepStatus;
 }) {
+  if (schema.kind === 'report-reference') {
+    return (
+      <ReportReferenceField
+        value={value}
+        onChange={onChange}
+        readOnly={stepStatus === 'completed' || stepStatus === 'skipped'}
+        stepStatus={stepStatus}
+      />
+    );
+  }
+
   return (
     <label className="flex flex-col gap-1 mb-2 last:mb-0">
       <span className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted">
