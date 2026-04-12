@@ -2,6 +2,7 @@ package com.fabalarm.controller;
 
 import com.fabalarm.auth.CurrentUserHolder;
 import com.fabalarm.model.*;
+import com.fabalarm.service.IssueAlarmService;
 import com.fabalarm.service.IssueService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -18,9 +19,11 @@ import java.util.stream.Collectors;
 public class IssueController {
 
     private final IssueService issueService;
+    private final IssueAlarmService issueAlarmService;
 
-    public IssueController(IssueService issueService) {
+    public IssueController(IssueService issueService, IssueAlarmService issueAlarmService) {
         this.issueService = issueService;
+        this.issueAlarmService = issueAlarmService;
     }
 
     @Operation(summary = "List issues", description = "Returns all issues with optional filtering")
@@ -69,6 +72,17 @@ public class IssueController {
 
         User user = CurrentUserHolder.get();
         Issue created = issueService.create(issue, user);
+
+        // If alarmId provided, link the alarm to the new issue in the same transaction
+        String alarmId = body.get("alarmId");
+        if (alarmId != null && !alarmId.isBlank()) {
+            try {
+                issueAlarmService.link(created.getId(), alarmId, user);
+            } catch (Exception e) {
+                // If linking fails, still return the created issue
+            }
+        }
+
         return ResponseEntity.status(201).body(toDto(created));
     }
 
@@ -131,6 +145,7 @@ public class IssueController {
         dto.put("author", a.getAuthor());
         if (a.getText() != null) dto.put("text", a.getText());
         if (a.getAssignedTo() != null) dto.put("assignedTo", a.getAssignedTo());
+        if (a.getAlarmId() != null) dto.put("alarmId", a.getAlarmId());
         return dto;
     }
 
