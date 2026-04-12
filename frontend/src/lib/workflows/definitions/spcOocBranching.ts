@@ -7,7 +7,7 @@ import type { WorkflowDefinition } from '../types';
  *   chart_owner_comment
  *     ├── l5_review → l4_review ──────────┐
  *     ├── pi_comment ─────────────────────┤
- *     ├── attach_report ──────────────────┼── meeting → resolved → closed
+ *     ├── attach_report ──────────────────┼── meeting → lot_disposition → resolved → closed
  *     └── verify_calibration ─────────────┘
  */
 export const spcOocBranchingDefinition: WorkflowDefinition = {
@@ -76,10 +76,25 @@ export const spcOocBranchingDefinition: WorkflowDefinition = {
       skippableIf: (issue) => issue.riskLevel === 'Low',
     },
     {
-      id: 'resolved',
-      label: 'Resolved',
+      id: 'lot_disposition',
+      label: 'Lot Disposition',
       order: 8,
       preSteps: ['meeting'],
+      skippableIf: () => true,
+      defaultSkipIf: (issue) => issue.riskLevel === 'Low',
+      payloadSchema: {
+        lotId: {
+          kind: 'lot-disposition',
+          label: 'Lot ID',
+          required: false,
+        },
+      },
+    },
+    {
+      id: 'resolved',
+      label: 'Resolved',
+      order: 9,
+      preSteps: ['lot_disposition'],
       gate: ({ user, issue }) => user.id === issue.ownerId,
       payloadSchema: {
         comment: {
@@ -93,7 +108,7 @@ export const spcOocBranchingDefinition: WorkflowDefinition = {
     {
       id: 'closed',
       label: 'Closed',
-      order: 9,
+      order: 10,
       preSteps: ['resolved'],
       gate: ({ user, issue }) => user.id === issue.ownerId,
       payloadSchema: {

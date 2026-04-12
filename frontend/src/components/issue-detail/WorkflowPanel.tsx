@@ -5,6 +5,7 @@ import type { BlockerInfo } from '../../hooks/useIssue';
 import type { PayloadFieldSchema, Step, StepStatus } from '../../lib/workflows/types';
 import { ReportReferenceField } from './ReportReferenceField';
 import { CalibrationReferenceField } from './CalibrationReferenceField';
+import { LotDispositionField } from './LotDispositionField';
 import type { HighlightCandidate } from '../../lib/relations/highlightCandidates';
 import { getDefinition } from '../../lib/workflows/definitions';
 import { getStepDisplayList, canUserActOnStep, canSkipStep, canReviveStep, canEditStep } from '../../lib/workflows/panelHelpers';
@@ -424,6 +425,18 @@ function SchemaField({
   if (schema.kind === 'calibration-reference') {
     return (
       <CalibrationReferenceField
+        value={value}
+        onChange={onChange}
+        readOnly={stepStatus === 'completed' || stepStatus === 'skipped'}
+        stepStatus={stepStatus}
+        issue={issue}
+      />
+    );
+  }
+
+  if (schema.kind === 'lot-disposition') {
+    return (
+      <LotDispositionField
         value={value}
         onChange={onChange}
         readOnly={stepStatus === 'completed' || stepStatus === 'skipped'}

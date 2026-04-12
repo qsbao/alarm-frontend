@@ -7,8 +7,8 @@ describe('spcOocBranchingDefinition', () => {
     expect(spcOocBranchingDefinition.name).toBe('SPC OOC Branching');
   });
 
-  it('has nine steps matching the PRD step graph', () => {
-    expect(spcOocBranchingDefinition.steps).toHaveLength(9);
+  it('has ten steps matching the PRD step graph', () => {
+    expect(spcOocBranchingDefinition.steps).toHaveLength(10);
     const ids = spcOocBranchingDefinition.steps.map((s) => s.id);
     expect(ids).toEqual([
       'chart_owner_comment',
@@ -18,6 +18,7 @@ describe('spcOocBranchingDefinition', () => {
       'attach_report',
       'verify_calibration',
       'meeting',
+      'lot_disposition',
       'resolved',
       'closed',
     ]);
@@ -34,7 +35,8 @@ describe('spcOocBranchingDefinition', () => {
     expect(byId['attach_report'].preSteps).toEqual(['chart_owner_comment']);
     expect(byId['verify_calibration'].preSteps).toEqual(['chart_owner_comment']);
     expect(byId['meeting'].preSteps).toEqual(['l4_review', 'pi_comment', 'attach_report', 'verify_calibration']);
-    expect(byId['resolved'].preSteps).toEqual(['meeting']);
+    expect(byId['lot_disposition'].preSteps).toEqual(['meeting']);
+    expect(byId['resolved'].preSteps).toEqual(['lot_disposition']);
     expect(byId['closed'].preSteps).toEqual(['resolved']);
   });
 
@@ -60,6 +62,25 @@ describe('spcOocBranchingDefinition', () => {
     const step = spcOocBranchingDefinition.steps.find((s) => s.id === 'attach_report')!;
     expect(step.payloadSchema).toBeDefined();
     expect(step.payloadSchema!['reportId'].kind).toBe('report-reference');
+  });
+
+  it('lot_disposition is skippable', () => {
+    const step = spcOocBranchingDefinition.steps.find((s) => s.id === 'lot_disposition')!;
+    expect(step.skippableIf).toBeDefined();
+    expect(step.skippableIf!({} as any)).toBe(true);
+  });
+
+  it('lot_disposition is auto-skipped when riskLevel is Low', () => {
+    const step = spcOocBranchingDefinition.steps.find((s) => s.id === 'lot_disposition')!;
+    expect(step.defaultSkipIf).toBeDefined();
+    expect(step.defaultSkipIf!({ riskLevel: 'Low' } as any)).toBe(true);
+    expect(step.defaultSkipIf!({ riskLevel: 'High' } as any)).toBe(false);
+  });
+
+  it('lot_disposition has lot-disposition payload schema', () => {
+    const step = spcOocBranchingDefinition.steps.find((s) => s.id === 'lot_disposition')!;
+    expect(step.payloadSchema).toBeDefined();
+    expect(step.payloadSchema!['lotId'].kind).toBe('lot-disposition');
   });
 
   it('resolved and closed have owner-only gates', () => {
