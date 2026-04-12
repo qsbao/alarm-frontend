@@ -33,6 +33,9 @@ public class IssueActivity {
     @Column(name = "alarm_id", length = 20)
     private String alarmId;
 
+    @Column(name = "blocker_issue_id", length = 20)
+    private String blockerIssueId;
+
     public IssueActivity() {}
 
     // Getters and setters
@@ -60,4 +63,7 @@ public class IssueActivity {
 
     public String getAlarmId() { return alarmId; }
     public void setAlarmId(String alarmId) { this.alarmId = alarmId; }
+
+    public String getBlockerIssueId() { return blockerIssueId; }
+    public void setBlockerIssueId(String blockerIssueId) { this.blockerIssueId = blockerIssueId; }
 }

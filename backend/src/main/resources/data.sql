@@ -315,3 +315,10 @@ INSERT INTO issue_alarm (issue_id, alarm_id, attached_at, attached_by, merged_at
 -- Historical: alarm was moved from iss-006 to iss-001
 ('iss-006', 'alm-010', '2025-06-03T11:05:00Z', 'H. Tanaka', '2025-06-03T12:00:00Z', 'H. Tanaka', 'iss-001'),
 ('iss-001', 'alm-010', '2025-06-03T12:00:00Z', 'H. Tanaka', NULL, NULL, NULL);
+
+-- Seed data: issue_relation (blockers and highlights)
+INSERT INTO issue_relation (from_issue_id, to_issue_id, type, created_by, created_at) VALUES
+('iss-001', 'iss-004', 'BLOCKER', 'H. Tanaka', '2025-06-02T15:00:00Z'),
+('iss-007', 'iss-010', 'BLOCKER', 'A. Kim', '2025-06-05T13:00:00Z'),
+('iss-001', 'iss-006', 'HIGHLIGHT', 'H. Tanaka', '2025-06-03T12:30:00Z'),
+('iss-018', 'iss-020', 'HIGHLIGHT', 'A. Kim', '2025-06-10T16:00:00Z');
