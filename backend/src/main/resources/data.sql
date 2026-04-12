@@ -329,6 +329,7 @@ INSERT INTO workflow_step (instance_id, step_id, status, actor_id, completed_at)
 INSERT INTO workflow_step (instance_id, step_id, status) VALUES (2, 'l5_review', 'ongoing');
 INSERT INTO workflow_step (instance_id, step_id, status) VALUES (2, 'l4_review', 'pending');
 INSERT INTO workflow_step (instance_id, step_id, status) VALUES (2, 'pi_comment', 'ongoing');
+INSERT INTO workflow_step (instance_id, step_id, status) VALUES (2, 'attach_report', 'ongoing');
 INSERT INTO workflow_step (instance_id, step_id, status) VALUES (2, 'meeting', 'pending');
 INSERT INTO workflow_step (instance_id, step_id, status) VALUES (2, 'resolved', 'pending');
 INSERT INTO workflow_step (instance_id, step_id, status) VALUES (2, 'closed', 'pending');
@@ -338,6 +339,17 @@ INSERT INTO workflow_instance (issue_id, definition_id, status, completed_at) VA
 INSERT INTO workflow_step (instance_id, step_id, status, actor_id, completed_at) VALUES (3, 'chart_owner_comment', 'completed', 'user-patel', '2026-04-02T10:30:00Z');
 INSERT INTO workflow_step (instance_id, step_id, status, actor_id, completed_at) VALUES (3, 'resolved', 'completed', 'user-patel', '2026-04-02T11:30:00Z');
 INSERT INTO workflow_step (instance_id, step_id, status, actor_id, completed_at) VALUES (3, 'closed', 'completed', 'user-patel', '2026-04-02T12:00:00Z');
+
+-- iss-020: spc_ooc_branching_v1 — attach_report completed with report reference
+INSERT INTO workflow_instance (issue_id, definition_id, status) VALUES ('iss-020', 'spc_ooc_branching_v1', 'Active');
+INSERT INTO workflow_step (instance_id, step_id, status, actor_id, completed_at) VALUES (4, 'chart_owner_comment', 'completed', 'user-chen', '2026-04-10T15:30:00Z');
+INSERT INTO workflow_step (instance_id, step_id, status) VALUES (4, 'l5_review', 'ongoing');
+INSERT INTO workflow_step (instance_id, step_id, status) VALUES (4, 'l4_review', 'pending');
+INSERT INTO workflow_step (instance_id, step_id, status) VALUES (4, 'pi_comment', 'ongoing');
+INSERT INTO workflow_step (instance_id, step_id, status, actor_id, completed_at, payload) VALUES (4, 'attach_report', 'completed', 'user-chen', '2026-04-10T16:00:00Z', '{"reportId":"RPT-1001"}');
+INSERT INTO workflow_step (instance_id, step_id, status) VALUES (4, 'meeting', 'pending');
+INSERT INTO workflow_step (instance_id, step_id, status) VALUES (4, 'resolved', 'pending');
+INSERT INTO workflow_step (instance_id, step_id, status) VALUES (4, 'closed', 'pending');
 
 -- Seed data: issue_relation (blockers and highlights)
 INSERT INTO issue_relation (from_issue_id, to_issue_id, type, created_by, created_at) VALUES

@@ -25,11 +25,18 @@ public final class SpcOocBranchingDefinition {
                     StepDefinition.builder("pi_comment", "PI Comment", 4)
                             .preSteps("chart_owner_comment")
                             .build(),
-                    StepDefinition.builder("meeting", "Meeting", 5)
-                            .preSteps("l4_review", "pi_comment")
+                    StepDefinition.builder("attach_report", "Attach Investigation Report", 5)
+                            .preSteps("chart_owner_comment")
+                            .skippableIf(issue -> true)
+                            .payloadSchema(Map.of(
+                                    "reportId", PayloadFieldSchema.reportReference("Report ID", false)
+                            ))
+                            .build(),
+                    StepDefinition.builder("meeting", "Meeting", 6)
+                            .preSteps("l4_review", "pi_comment", "attach_report")
                             .skippableIf(issue -> issue.getRiskLevel() == RiskLevel.Low)
                             .build(),
-                    StepDefinition.builder("resolved", "Resolved", 6)
+                    StepDefinition.builder("resolved", "Resolved", 7)
                             .preSteps("meeting")
                             .gate((userId, issue) -> userId.equals(issue.getOwnerId()))
                             .payloadSchema(Map.of(
@@ -37,7 +44,7 @@ public final class SpcOocBranchingDefinition {
                             ))
                             .impliesStatus(IssueStatus.Resolved)
                             .build(),
-                    StepDefinition.builder("closed", "Closed", 7)
+                    StepDefinition.builder("closed", "Closed", 8)
                             .preSteps("resolved")
                             .gate((userId, issue) -> userId.equals(issue.getOwnerId()))
                             .payloadSchema(Map.of(
