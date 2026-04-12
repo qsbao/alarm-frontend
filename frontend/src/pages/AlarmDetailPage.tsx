@@ -26,7 +26,7 @@ import { ALL_ALARM_LABELS, ALL_HUMAN_RISKS } from '../types';
 import { useCurrentUserStore } from '../stores/currentUserStore';
 import { alarmPermissions } from '../lib/alarmPermissions';
 import { isActive } from '../lib/alarmFiltering';
-import { useAlarm } from '../hooks/useAlarms';
+import { useAlarm, useAlarmActions } from '../hooks/useAlarms';
 import { api } from '../api/client';
 import type { IssueDraft } from '../lib/issueFromAlarm';
 import { LinkedIssueCard } from '../components/alarms/LinkedIssueCard';
@@ -139,43 +139,83 @@ function FourWPanels({ alarm, now }: { alarm: Alarm; now: number }) {
   );
 }
 
-// --- Action Panel (read-only for now; mutations in future slice) ---
+// --- Action Panel ---
 
-function ActionPanel({ alarm }: { alarm: Alarm }) {
+function ActionPanel({
+  alarm,
+  onAck,
+  onSetLabel,
+  onSetRisk,
+  canAck,
+}: {
+  alarm: Alarm;
+  onAck: () => void;
+  onSetLabel: (action: 'add' | 'remove', label: AlarmLabel) => void;
+  onSetRisk: (risk: HumanRisk) => void;
+  canAck: boolean;
+}) {
   return (
     <div className="card p-5 flex flex-col gap-4">
-      <h2 className="text-xs font-semibold uppercase tracking-wide text-theme-muted">Info</h2>
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-theme-muted">Actions</h2>
 
-      <div>
+      <div className="flex items-center gap-2">
         <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border ${STATUS_COLOR[alarm.status]}`}>
           {alarm.status}
         </span>
+        {alarm.status === 'Open' && (
+          <button
+            onClick={onAck}
+            disabled={!canAck}
+            className="btn-primary btn-sm text-[10px] disabled:opacity-40 disabled:cursor-not-allowed"
+            title={canAck ? 'Acknowledge alarm' : 'You can only ack alarms in your department'}
+          >
+            <Check size={12} className="mr-1 inline" />
+            Ack
+          </button>
+        )}
       </div>
 
-      {alarm.labels.length > 0 && (
-        <div>
-          <h3 className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted mb-2">Labels</h3>
-          <div className="flex flex-wrap gap-1.5">
-            {alarm.labels.map((label) => (
-              <span
+      <div>
+        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted mb-2">Labels</h3>
+        <div className="flex flex-wrap gap-1.5">
+          {ALL_ALARM_LABELS.map((label) => {
+            const active = alarm.labels.includes(label);
+            return (
+              <button
                 key={label}
-                className="px-2 py-0.5 rounded text-[10px] font-medium border bg-accent-subtle text-theme-accent border-theme-accent/30"
+                onClick={() => onSetLabel(active ? 'remove' : 'add', label)}
+                className={`px-2 py-0.5 rounded text-[10px] font-medium border transition-colors ${
+                  active
+                    ? 'bg-accent-subtle text-theme-accent border-theme-accent/30'
+                    : 'bg-surface-overlay/40 text-theme-muted border-border-subtle/40 hover:text-theme-secondary'
+                }`}
               >
+                {active ? <Minus size={10} className="mr-0.5 inline" /> : <Plus size={10} className="mr-0.5 inline" />}
                 {label}
-              </span>
-            ))}
-          </div>
+              </button>
+            );
+          })}
         </div>
-      )}
+      </div>
 
-      {alarm.humanRisk && (
-        <div>
-          <h3 className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted mb-2">Human Risk</h3>
-          <span className={`inline-flex items-center px-2.5 py-1 rounded text-[10px] font-medium border ${RISK_COLOR[alarm.humanRisk]}`}>
-            {RISK_LABELS[alarm.humanRisk]}
-          </span>
+      <div>
+        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted mb-2">Human Risk</h3>
+        <div className="flex gap-1.5">
+          {ALL_HUMAN_RISKS.map((risk) => (
+            <button
+              key={risk}
+              onClick={() => onSetRisk(risk)}
+              className={`inline-flex items-center px-2.5 py-1 rounded text-[10px] font-medium border transition-colors ${
+                alarm.humanRisk === risk
+                  ? RISK_COLOR[risk]
+                  : 'bg-surface-overlay/40 text-theme-muted border-border-subtle/40 hover:text-theme-secondary'
+              }`}
+            >
+              {RISK_LABELS[risk]}
+            </button>
+          ))}
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -184,8 +224,9 @@ function ActionPanel({ alarm }: { alarm: Alarm }) {
 
 export function AlarmDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { alarm, loading } = useAlarm(id);
+  const { alarm, loading, refresh } = useAlarm(id);
   const currentUser = useCurrentUserStore((s) => s.currentUser);
+  const actions = useAlarmActions(id ?? '', refresh);
   const now = Date.now();
 
   if (loading) {
@@ -260,7 +301,13 @@ export function AlarmDetailPage() {
           </div>
 
           <div className="flex flex-col gap-5">
-            <ActionPanel alarm={alarm} />
+            <ActionPanel
+              alarm={alarm}
+              onAck={() => actions.ack()}
+              onSetLabel={(action, label) => actions.setLabel(action, label)}
+              onSetRisk={(risk) => actions.setRisk(risk)}
+              canAck={alarmPermissions.canAck(currentUser, alarm)}
+            />
           </div>
         </div>
       </div>

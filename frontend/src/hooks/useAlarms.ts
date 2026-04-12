@@ -90,23 +90,62 @@ export function useAlarm(id: string | undefined) {
   const [alarm, setAlarm] = useState<Alarm | undefined>(undefined);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const fetch = useCallback(async () => {
     if (!id) {
       setAlarm(undefined);
       setLoading(false);
       return;
     }
     setLoading(true);
-    backend.GET('/api/alarms/{id}', {
-      params: { path: { id } },
-    }).then(({ data }) => {
+    try {
+      const { data } = await backend.GET('/api/alarms/{id}', {
+        params: { path: { id } },
+      });
       if (data) {
         setAlarm(toAlarm(data as unknown as BackendAlarm));
       } else {
         setAlarm(undefined);
       }
-    }).finally(() => setLoading(false));
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
 
-  return { alarm, loading };
+  useEffect(() => {
+    fetch();
+  }, [fetch]);
+
+  return { alarm, loading, refresh: fetch };
+}
+
+export function useAlarmActions(alarmId: string, onSuccess: () => void) {
+  const ack = async (note?: string) => {
+    const body = note ? { note } : {};
+    const { response } = await backend.POST('/api/alarms/{id}/ack', {
+      params: { path: { id: alarmId } },
+      body: body as any,
+    });
+    if (response.ok) onSuccess();
+    return response;
+  };
+
+  const setLabel = async (action: 'add' | 'remove', label: string) => {
+    const { response } = await backend.POST('/api/alarms/{id}/label', {
+      params: { path: { id: alarmId } },
+      body: { action, label } as any,
+    });
+    if (response.ok) onSuccess();
+    return response;
+  };
+
+  const setRisk = async (risk: string) => {
+    const { response } = await backend.POST('/api/alarms/{id}/risk', {
+      params: { path: { id: alarmId } },
+      body: { risk } as any,
+    });
+    if (response.ok) onSuccess();
+    return response;
+  };
+
+  return { ack, setLabel, setRisk };
 }
