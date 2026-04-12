@@ -38,41 +38,24 @@ SLEEP_BETWEEN_NO_WORK="${SLEEP_BETWEEN_NO_WORK:-300}"
 PER_ISSUE_TIMEOUT="${PER_ISSUE_TIMEOUT:-3600}"
 MODEL="${MODEL:-}"
 
-# Issue dependency graph from PRD #63. Keep in sync with the PRD if it changes.
+# Issue dependency graph from PRD #85. Keep in sync with the PRD if it changes.
 # (Function-based instead of `declare -A` so it works on macOS bash 3.2.)
 #
-# Spine: 64 → 65, then two parallel tracks:
-#   Alarm track: 65 → 66 → 67 (lifecycle)
-#   Issue track: 65 → 68 → 71 (relations), 68 → 72 (workflow)
-# Convergence: 66+68 → 69 (linking) → 70 (merge)
-# Final: 67+70+71+72 → 73 (cleanup)
+#   #86 Slice 1: Report Reference + rich-field infrastructure    (no blockers)
+#   #87 Slice 2: Calibration Reference (pre-populated)           (needs 86)
+#   #88 Slice 3: Lot Disposition (search/picker)                 (needs 86)
+#   #89 Slice 4: Integration guide for developers                (needs 86, 87, 88)
 #
-#   #64 Slice 1:  Monorepo scaffold + OpenAPI pipeline          (no blockers)
-#   #65 Slice 2:  User entity + X-User-Id auth filter           (needs 64)
-#   #66 Slice 3:  Alarm CRUD + date-range + filtering           (needs 65)
-#   #67 Slice 4:  Alarm lifecycle + permissions + activity       (needs 66)
-#   #68 Slice 5:  Issue CRUD + list/detail + comments            (needs 65)
-#   #69 Slice 6:  IssueAlarm linking (link, unlink, move)        (needs 66, 68)
-#   #70 Slice 7:  Issue merge                                    (needs 69)
-#   #71 Slice 8:  Issue relations (blockers + highlights)        (needs 68)
-#   #72 Slice 9:  Workflow engine (full port)                    (needs 68, 71)
-#   #73 Slice 10: Frontend cleanup — remove redundant logic      (needs 67, 70, 71, 72)
 blockers_for() {
   case "$1" in
-    64) echo "" ;;
-    65) echo "64" ;;
-    66) echo "65" ;;
-    67) echo "66" ;;
-    68) echo "65" ;;
-    69) echo "66 68" ;;
-    70) echo "69" ;;
-    71) echo "68" ;;
-    72) echo "68 71" ;;
-    73) echo "67 70 71 72" ;;
+    86) echo "" ;;
+    87) echo "86" ;;
+    88) echo "86" ;;
+    89) echo "86 87 88" ;;
     *)  echo "" ;;
   esac
 }
-ALL_ISSUES="64 65 66 67 68 69 70 71 72 73"
+ALL_ISSUES="86 87 88 89"
 
 # -------------------------------------------------------------------- helpers
 
@@ -137,8 +120,8 @@ You are working autonomously on GitHub issue #$n in the repository $REPO.
 Step 1. Read the issue:
   gh issue view $n --repo $REPO
 
-Step 2. Read the parent PRD (issue #63) for full architectural context:
-  gh issue view 63 --repo $REPO
+Step 2. Read the parent PRD (issue #85) for full architectural context:
+  gh issue view 85 --repo $REPO
 
 Step 3. Use the tdd skill (red-green-refactor). For each acceptance criterion:
 write a failing test first, watch it fail, write the minimum code to make it
