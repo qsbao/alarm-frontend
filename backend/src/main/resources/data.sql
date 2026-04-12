@@ -299,3 +299,19 @@ INSERT INTO issue_activity (issue_id, type, timestamp, author, text, assigned_to
 ('iss-023', 'created', '2025-06-12T08:00:00Z', 'A. Kim', NULL, NULL),
 ('iss-024', 'created', '2025-06-12T13:00:00Z', 'M. Chen', NULL, NULL),
 ('iss-025', 'created', '2025-06-12T18:00:00Z', 'B. Hoffman', NULL, NULL);
+
+-- Seed data: issue_alarm links (active and historical)
+INSERT INTO issue_alarm (issue_id, alarm_id, attached_at, attached_by, merged_at, merged_by, merged_to_issue_id) VALUES
+('iss-001', 'alm-001', '2025-06-01T08:05:00Z', 'H. Tanaka', NULL, NULL, NULL),
+('iss-001', 'alm-006', '2025-06-01T08:10:00Z', 'H. Tanaka', NULL, NULL, NULL),
+('iss-002', 'alm-002', '2025-06-01T09:35:00Z', 'M. Chen', NULL, NULL, NULL),
+('iss-003', 'alm-003', '2025-06-02T10:05:00Z', 'S. Patel', NULL, NULL, NULL),
+('iss-004', 'alm-004', '2025-06-02T14:05:00Z', 'L. Rossi', NULL, NULL, NULL),
+('iss-005', 'alm-005', '2025-06-03T06:05:00Z', 'K. Müller', NULL, NULL, NULL),
+('iss-007', 'alm-007', '2025-06-04T08:35:00Z', 'A. Kim', NULL, NULL, NULL),
+('iss-011', 'alm-011', '2025-06-06T09:05:00Z', 'R. Garcia', NULL, NULL, NULL),
+('iss-014', 'alm-014', '2025-06-07T14:05:00Z', 'L. Rossi', NULL, NULL, NULL),
+('iss-020', 'alm-020', '2025-06-10T15:05:00Z', 'M. Chen', NULL, NULL, NULL),
+-- Historical: alarm was moved from iss-006 to iss-001
+('iss-006', 'alm-010', '2025-06-03T11:05:00Z', 'H. Tanaka', '2025-06-03T12:00:00Z', 'H. Tanaka', 'iss-001'),
+('iss-001', 'alm-010', '2025-06-03T12:00:00Z', 'H. Tanaka', NULL, NULL, NULL);

@@ -13,6 +13,51 @@ export interface BlockerInfo {
   status: string;
 }
 
+interface BackendAlarm {
+  id: string;
+  type: string;
+  severity: string;
+  message: string;
+  value?: number;
+  unit?: string;
+  time: string;
+  recoveryTime?: string;
+  machineId: string;
+  chamberId?: string;
+  product: string;
+  operation: string;
+  owner: string;
+  department: string;
+  chartOwnerId?: string;
+  status: string;
+  humanRisk?: string;
+  labels: string[];
+}
+
+function toAlarm(raw: BackendAlarm): Alarm {
+  return {
+    id: raw.id,
+    type: raw.type as Alarm['type'],
+    severity: raw.severity as Alarm['severity'],
+    message: raw.message,
+    value: raw.value,
+    unit: raw.unit,
+    time: raw.time,
+    recoveryTime: raw.recoveryTime,
+    machineId: raw.machineId,
+    chamberId: raw.chamberId,
+    product: raw.product,
+    operation: raw.operation,
+    owner: raw.owner,
+    department: raw.department,
+    chartOwnerId: raw.chartOwnerId,
+    status: raw.status as Alarm['status'],
+    humanRisk: raw.humanRisk as Alarm['humanRisk'],
+    labels: (raw.labels ?? []) as Alarm['labels'],
+    activity: [],
+  };
+}
+
 interface BackendIssue {
   id: string;
   title: string;
@@ -93,10 +138,22 @@ export function useIssue(id: string | undefined) {
         const found = toIssue(rawIssue, rawActivity.map(toActivityEntry));
         setIssue(found);
 
-        // Alarms are still from mock client until issue-alarm linking is built
+        // Fetch active alarms linked to this issue
         try {
-          const list = await api.getAlarmsForIssue(id);
-          setAlarms(list);
+          const alarmsRes = await backend.GET('/api/issues/{id}/alarms', {
+            params: { path: { id } },
+          });
+          const issueAlarmLinks = (alarmsRes.data ?? []) as unknown as Array<{ alarmId: string }>;
+          // Fetch full alarm details for each linked alarm
+          const alarmDetails = await Promise.all(
+            issueAlarmLinks.map(async (link) => {
+              const { data } = await backend.GET('/api/alarms/{id}', {
+                params: { path: { id: link.alarmId } },
+              });
+              return data ? toAlarm(data as unknown as BackendAlarm) : null;
+            }),
+          );
+          setAlarms(alarmDetails.filter((a): a is Alarm => a !== null));
         } catch {
           setAlarms([]);
         }
@@ -153,32 +210,26 @@ export function useIssue(id: string | undefined) {
     [id, reload],
   );
 
-  // --- Below methods still use mock client (out of scope for this slice) ---
-
   const linkAlarm = useCallback(
     async (alarmId: string) => {
       if (!id) return;
-      const currentUser = useCurrentUserStore.getState().currentUser;
-      useAlarmStore.getState().linkAlarm(alarmId, id, currentUser);
-      const updated = await api.linkAlarm(id, alarmId);
-      setIssue(updated);
-      const list = await api.getAlarmsForIssue(id);
-      setAlarms(list);
+      await backend.POST('/api/issues/{id}/alarms/{alarmId}', {
+        params: { path: { id, alarmId } },
+      });
+      await reload();
     },
-    [id],
+    [id, reload],
   );
 
   const unlinkAlarm = useCallback(
     async (alarmId: string) => {
       if (!id) return;
-      const currentUser = useCurrentUserStore.getState().currentUser;
-      useAlarmStore.getState().unlinkAlarm(alarmId, currentUser);
-      const updated = await api.unlinkAlarm(id, alarmId);
-      setIssue(updated);
-      const list = await api.getAlarmsForIssue(id);
-      setAlarms(list);
+      await backend.DELETE('/api/issues/{id}/alarms/{alarmId}', {
+        params: { path: { id, alarmId } },
+      });
+      await reload();
     },
-    [id],
+    [id, reload],
   );
 
   const completeWorkflowStep = useCallback(
@@ -261,9 +312,10 @@ export function useIssue(id: string | undefined) {
   const moveAlarm = useCallback(
     async (alarmId: string, targetIssueId: string) => {
       if (!id) return;
-      const currentUser = useCurrentUserStore.getState().currentUser;
-      const result = await api.moveAlarm(alarmId, targetIssueId, currentUser.department);
-      useAlarmStore.getState().moveAlarm(alarmId, result.fromIssueId, result.toIssueId, currentUser);
+      await backend.POST('/api/alarms/{alarmId}/move', {
+        params: { path: { alarmId } },
+        body: { targetIssueId } as any,
+      });
       await reload();
     },
     [id, reload],

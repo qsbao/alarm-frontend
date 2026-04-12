@@ -68,6 +68,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/issues/{id}/alarms/{alarmId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Link an alarm to an issue */
+        post: operations["linkAlarm"];
+        /** Unlink an alarm from an issue */
+        delete: operations["unlinkAlarm"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/alarms/{id}/risk": {
         parameters: {
             query?: never;
@@ -148,6 +166,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/alarms/{alarmId}/move": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Move an alarm to a different issue */
+        post: operations["moveAlarm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/me": {
         parameters: {
             query?: never;
@@ -180,6 +215,40 @@ export interface paths {
          * @description Returns a single issue with details
          */
         get: operations["getIssue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/issues/{id}/alarms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List active alarms for an issue */
+        get: operations["getActiveAlarms"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/issues/{id}/alarms/historical": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List historical (moved/merged) alarms for an issue */
+        get: operations["getHistoricalAlarms"];
         put?: never;
         post?: never;
         delete?: never;
@@ -280,6 +349,23 @@ export interface paths {
          * @description Returns ordered activity entries for an alarm
          */
         get: operations["getActivity_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/alarms/{alarmId}/issue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the active issue-alarm link for an alarm (if any) */
+        get: operations["getLinkedIssue"];
         put?: never;
         post?: never;
         delete?: never;
@@ -407,6 +493,52 @@ export interface operations {
             };
         };
     };
+    linkAlarm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                alarmId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": Record<string, never>;
+                };
+            };
+        };
+    };
+    unlinkAlarm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                alarmId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": Record<string, never>;
+                };
+            };
+        };
+    };
     setRisk: {
         parameters: {
             query?: never;
@@ -507,6 +639,34 @@ export interface operations {
             };
         };
     };
+    moveAlarm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                alarmId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": Record<string, never>;
+                };
+            };
+        };
+    };
     me: {
         parameters: {
             query?: never;
@@ -530,6 +690,50 @@ export interface operations {
         };
     };
     getIssue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": Record<string, never>;
+                };
+            };
+        };
+    };
+    getActiveAlarms: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": Record<string, never>;
+                };
+            };
+        };
+    };
+    getHistoricalAlarms: {
         parameters: {
             query?: never;
             header?: never;
@@ -659,6 +863,28 @@ export interface operations {
             header?: never;
             path: {
                 id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": Record<string, never>;
+                };
+            };
+        };
+    };
+    getLinkedIssue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                alarmId: string;
             };
             cookie?: never;
         };

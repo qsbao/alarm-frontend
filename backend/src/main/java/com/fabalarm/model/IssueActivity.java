@@ -30,6 +30,9 @@ public class IssueActivity {
     @Column(name = "assigned_to", length = 50)
     private String assignedTo;
 
+    @Column(name = "alarm_id", length = 20)
+    private String alarmId;
+
     public IssueActivity() {}
 
     // Getters and setters
@@ -54,4 +57,7 @@ public class IssueActivity {
 
     public String getAssignedTo() { return assignedTo; }
     public void setAssignedTo(String assignedTo) { this.assignedTo = assignedTo; }
+
+    public String getAlarmId() { return alarmId; }
+    public void setAlarmId(String alarmId) { this.alarmId = alarmId; }
 }
