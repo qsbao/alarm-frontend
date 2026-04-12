@@ -91,3 +91,32 @@ describe('issueStore selection slice', () => {
     expect(useIssueStore.getState().selectedIds.size).toBe(0);
   });
 });
+
+describe('issueStore showMerged', () => {
+  beforeEach(() => {
+    useIssueStore.getState().reset();
+  });
+
+  it('defaults showMerged to false', () => {
+    expect(useIssueStore.getState().showMerged).toBe(false);
+  });
+
+  it('setShowMerged toggles the flag on', () => {
+    act(() => useIssueStore.getState().setShowMerged(true));
+    expect(useIssueStore.getState().showMerged).toBe(true);
+  });
+
+  it('setShowMerged resets page to 1 and clears selection', () => {
+    act(() => useIssueStore.getState().setPage(3));
+    act(() => useIssueStore.getState().toggleSelected('iss-001'));
+    act(() => useIssueStore.getState().setShowMerged(true));
+    expect(useIssueStore.getState().page).toBe(1);
+    expect(useIssueStore.getState().selectedIds.size).toBe(0);
+  });
+
+  it('reset sets showMerged back to false', () => {
+    act(() => useIssueStore.getState().setShowMerged(true));
+    act(() => useIssueStore.getState().reset());
+    expect(useIssueStore.getState().showMerged).toBe(false);
+  });
+});

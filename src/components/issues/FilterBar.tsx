@@ -3,12 +3,14 @@ import { useIssueStore } from '../../stores/issueStore';
 import { ISSUE_BUILTIN_VIEWS } from '../../lib/issueSavedViews';
 import {
   ALL_ALARM_TYPES,
-  ALL_ISSUE_STATUSES,
   ALL_RISK_LEVELS,
   type AlarmType,
   type IssueStatus,
   type RiskLevel,
 } from '../../types';
+
+/** Statuses shown in the dropdown — Merged gets its own chip. */
+const DROPDOWN_STATUSES: IssueStatus[] = ['Triage', 'Investigating', 'Resolved', 'Closed'];
 
 export function FilterBar() {
   const search = useIssueStore((s) => s.search);
@@ -21,6 +23,8 @@ export function FilterBar() {
   const setStatusFilter = useIssueStore((s) => s.setStatusFilter);
   const setAlarmTypeFilter = useIssueStore((s) => s.setAlarmTypeFilter);
   const setActiveViewName = useIssueStore((s) => s.setActiveViewName);
+  const showMerged = useIssueStore((s) => s.showMerged);
+  const setShowMerged = useIssueStore((s) => s.setShowMerged);
   const reset = useIssueStore((s) => s.reset);
 
   return (
@@ -79,12 +83,23 @@ export function FilterBar() {
         className="input-base w-auto"
       >
         <option value="all">All status</option>
-        {ALL_ISSUE_STATUSES.map((s) => (
+        {DROPDOWN_STATUSES.map((s) => (
           <option key={s} value={s}>
             {s}
           </option>
         ))}
       </select>
+
+      <button
+        onClick={() => setShowMerged(!showMerged)}
+        className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
+          showMerged
+            ? 'bg-purple-500/10 text-purple-400 border border-purple-500/30'
+            : 'bg-surface-overlay/30 text-theme-secondary border border-border-subtle/40 hover:border-border-default hover:text-theme-primary'
+        }`}
+      >
+        Merged
+      </button>
 
       <select
         value={alarmTypeFilter}

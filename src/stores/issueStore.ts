@@ -15,12 +15,14 @@ interface IssueStore {
   page: number; // 1-based
   pageSize: number;
   selectedIds: Set<string>;
+  showMerged: boolean;
 
   setSearch: (s: string) => void;
   setRiskFilter: (r: RiskLevel | 'all') => void;
   setStatusFilter: (s: IssueStatus | 'all') => void;
   setAlarmTypeFilter: (t: AlarmType | 'all') => void;
   setActiveViewName: (name: string | null) => void;
+  setShowMerged: (v: boolean) => void;
   setSort: (key: SortKey) => void;
   setPage: (p: number) => void;
   toggleSelected: (id: string) => void;
@@ -40,6 +42,7 @@ const INITIAL: Pick<
   | 'page'
   | 'pageSize'
   | 'selectedIds'
+  | 'showMerged'
 > = {
   search: '',
   riskFilter: 'all',
@@ -51,6 +54,7 @@ const INITIAL: Pick<
   page: 1,
   pageSize: 20,
   selectedIds: new Set<string>(),
+  showMerged: false,
 };
 
 export const useIssueStore = create<IssueStore>((set) => ({
@@ -60,6 +64,7 @@ export const useIssueStore = create<IssueStore>((set) => ({
   setStatusFilter: (s) => set({ statusFilter: s, page: 1, selectedIds: new Set() }),
   setAlarmTypeFilter: (t) => set({ alarmTypeFilter: t, page: 1, selectedIds: new Set() }),
   setActiveViewName: (name) => set({ activeViewName: name, page: 1, selectedIds: new Set() }),
+  setShowMerged: (v) => set({ showMerged: v, page: 1, selectedIds: new Set() }),
   setSort: (key) =>
     set((state) => {
       if (state.sortKey === key) {
