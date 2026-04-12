@@ -1,13 +1,11 @@
 import { GitMerge, X } from 'lucide-react';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useIssueStore } from '../../stores/issueStore';
 import { useCurrentUserStore } from '../../stores/currentUserStore';
 import { useIssues } from '../../hooks/useIssues';
-import { getActiveAlarmsForIssue } from '../../lib/issueAlarms';
-import { api } from '../../api/client';
-import { MOCK_ALARMS } from '../../mocks/alarms';
+import { backend } from '../../api/backendClient';
 import { MergeDialog, type MergeSource } from '../issue-detail/MergeDialog';
-import type { Issue } from '../../types';
+import type { Alarm, Issue } from '../../types';
 
 interface SelectionToolbarProps {
   pageItems: Issue[];
@@ -32,24 +30,44 @@ export function SelectionToolbar({ pageItems }: SelectionToolbarProps) {
 
   const handleConfirm = useCallback(async (targetId: string) => {
     const sourceIds = [...selectedIds];
-    const result = await api.mergeIssues(sourceIds, targetId, currentUser);
-    if (!result.ok) return;
+    const { error } = await backend.POST('/api/issues/{id}/merge', {
+      params: { path: { id: targetId } },
+      body: { sourceIds } as any,
+    });
+    if (error) return;
     setShowMergeDialog(false);
     clearSelection();
     refresh();
-  }, [selectedIds, currentUser, clearSelection, refresh]);
+  }, [selectedIds, clearSelection, refresh]);
 
   const handleCancel = useCallback(() => {
     setShowMergeDialog(false);
   }, []);
 
-  const sources: MergeSource[] = selectedIssues.map((issue) => {
-    const alarmRows = getActiveAlarmsForIssue(issue.id);
-    const alarms = alarmRows
-      .map((r) => MOCK_ALARMS.find((a) => a.id === r.alarmId))
-      .filter(Boolean) as import('../../types').Alarm[];
-    return { issue, alarms };
-  });
+  const [sources, setSources] = useState<MergeSource[]>([]);
+
+  // Fetch alarm data for selected issues when merge dialog opens
+  useEffect(() => {
+    if (!showMergeDialog) return;
+    (async () => {
+      const result: MergeSource[] = [];
+      for (const issue of selectedIssues) {
+        const { data } = await backend.GET('/api/issues/{id}/alarms', {
+          params: { path: { id: issue.id } },
+        });
+        const links = (data ?? []) as unknown as Array<{ alarmId: string }>;
+        const alarms: Alarm[] = [];
+        for (const link of links) {
+          const { data: alarmData } = await backend.GET('/api/alarms/{id}', {
+            params: { path: { id: link.alarmId } },
+          });
+          if (alarmData) alarms.push(alarmData as unknown as Alarm);
+        }
+        result.push({ issue, alarms });
+      }
+      setSources(result);
+    })();
+  }, [showMergeDialog, selectedIssues]);
 
   return (
     <>

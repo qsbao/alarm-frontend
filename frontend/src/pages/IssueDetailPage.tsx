@@ -10,8 +10,10 @@ import { MergeDialog, type MergeSource } from '../components/issue-detail/MergeD
 import { PullMergeDialog } from '../components/issue-detail/PullMergeDialog';
 import { WorkflowPanel } from '../components/issue-detail/WorkflowPanel';
 import { useIssue } from '../hooks/useIssue';
+import type { Alarm } from '../types';
 import { useCurrentUserStore } from '../stores/currentUserStore';
 import { api } from '../api/client';
+import { backend } from '../api/backendClient';
 
 export function IssueDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -50,8 +52,11 @@ export function IssueDetailPage() {
   useEffect(() => {
     if (!id) return;
     let cancelled = false;
-    api.getMergedInto(id).then((result) => {
-      if (!cancelled) setMergedInto(result?.targetIssueId ?? null);
+    backend.GET('/api/issues/{id}/merged-into', { params: { path: { id } } }).then(({ data }) => {
+      if (!cancelled) {
+        const result = data as unknown as { targetIssueId?: string } | undefined;
+        setMergedInto(result?.targetIssueId ?? null);
+      }
     });
     return () => { cancelled = true; };
   }, [id, issue?.status]);
@@ -63,29 +68,54 @@ export function IssueDetailPage() {
       return;
     }
     let cancelled = false;
-    api.getHistoricalAlarmsForIssue(id).then((rows) => {
-      if (!cancelled) setHistoricalAlarms(rows);
-    });
+    (async () => {
+      const { data } = await backend.GET('/api/issues/{id}/alarms/historical', {
+        params: { path: { id } },
+      });
+      if (!cancelled && data) {
+        const links = data as unknown as Array<{ alarmId: string; mergedToIssueId?: string }>;
+        const rows: HistoricalAlarmRow[] = [];
+        for (const link of links) {
+          if (!link.mergedToIssueId) continue;
+          const { data: alarmData } = await backend.GET('/api/alarms/{id}', {
+            params: { path: { id: link.alarmId } },
+          });
+          if (alarmData) {
+            rows.push({
+              alarm: alarmData as unknown as Alarm,
+              mergedToIssueId: link.mergedToIssueId,
+            });
+          }
+        }
+        setHistoricalAlarms(rows);
+      }
+    })();
     return () => { cancelled = true; };
   }, [id, isMerged]);
 
   const handleMergeConfirm = useCallback(async (targetId: string) => {
     if (!issue) return;
-    const result = await api.mergeIssues([issue.id], targetId, currentUser);
-    if (result.ok) {
+    const { error } = await backend.POST('/api/issues/{id}/merge', {
+      params: { path: { id: targetId } },
+      body: { sourceIds: [issue.id] } as any,
+    });
+    if (!error) {
       setShowMergeDialog(false);
       navigate(`/issues/${targetId}`);
     }
-  }, [issue, currentUser, navigate]);
+  }, [issue, navigate]);
 
   const handlePullConfirm = useCallback(async (sourceIds: string[]) => {
     if (!issue) return;
-    const result = await api.mergeIssues(sourceIds, issue.id, currentUser);
-    if (result.ok) {
+    const { error } = await backend.POST('/api/issues/{id}/merge', {
+      params: { path: { id: issue.id } },
+      body: { sourceIds } as any,
+    });
+    if (!error) {
       setShowPullDialog(false);
       reload();
     }
-  }, [issue, currentUser, reload]);
+  }, [issue, reload]);
 
   const mergeSources: MergeSource[] = issue ? [{ issue, alarms }] : [];
 

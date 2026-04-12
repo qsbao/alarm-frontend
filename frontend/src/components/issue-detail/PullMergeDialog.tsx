@@ -1,8 +1,7 @@
 import { AlertTriangle, GitMerge, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Alarm, Issue } from '../../types';
-import { api } from '../../api/client';
-import { getActiveAlarmsForIssue } from '../../lib/issueAlarms';
+import { backend } from '../../api/backendClient';
 import { StatusBadge } from '../issues/StatusBadge';
 import { getUserById } from '../../mocks/users';
 
@@ -30,8 +29,27 @@ export function PullMergeDialog({
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const list = await api.listMergeSourceCandidates(target.id, currentUserDepartment);
-      if (!cancelled) {
+      const { data } = await backend.GET('/api/issues/{id}/merge-candidates', {
+        params: { path: { id: target.id } },
+      });
+      if (!cancelled && data) {
+        const list = (data as unknown as Array<Record<string, any>>)
+          .sort((a, b) => new Date(b.date as string).getTime() - new Date(a.date as string).getTime())
+          .map((i) => ({
+            id: i.id as string,
+            title: i.title as string,
+            date: i.date as string,
+            alarmType: i.alarmType as Issue['alarmType'],
+            riskLevel: i.riskLevel as Issue['riskLevel'],
+            status: i.status as Issue['status'],
+            issueTime: i.issueTime as string,
+            operation: i.operation as string,
+            product: i.product as string,
+            ownerId: i.ownerId as string,
+            department: i.department as string,
+            description: (i.description ?? '') as string,
+            activity: [],
+          }));
         setCandidates(list);
         setLoading(false);
       }
@@ -56,10 +74,25 @@ export function PullMergeDialog({
     });
   };
 
+  const [alarmCounts, setAlarmCounts] = useState<Record<string, number>>({});
+
+  // Fetch alarm counts for candidates
+  useEffect(() => {
+    (async () => {
+      const counts: Record<string, number> = {};
+      for (const c of candidates) {
+        const { data } = await backend.GET('/api/issues/{id}/alarms', {
+          params: { path: { id: c.id } },
+        });
+        counts[c.id] = data ? (data as unknown as unknown[]).length : 0;
+      }
+      setAlarmCounts(counts);
+    })();
+  }, [candidates]);
+
   const selectedSources = candidates.filter((c) => selectedSourceIds.has(c.id));
   const totalSourceAlarms = selectedSources.reduce((sum, s) => {
-    const rows = getActiveAlarmsForIssue(s.id);
-    return sum + rows.length;
+    return sum + (alarmCounts[s.id] ?? 0);
   }, 0);
 
   const isResolvedOrClosed = target.status === 'Resolved' || target.status === 'Closed';
@@ -136,7 +169,7 @@ export function PullMergeDialog({
           ) : (
             <div className="flex flex-col gap-1.5 max-h-48 overflow-y-auto">
               {candidates.map((c) => {
-                const alarmCount = getActiveAlarmsForIssue(c.id).length;
+                const alarmCount = alarmCounts[c.id] ?? 0;
                 const selected = selectedSourceIds.has(c.id);
                 return (
                   <label
