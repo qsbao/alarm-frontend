@@ -1,15 +1,14 @@
 import { Bell, ExternalLink } from 'lucide-react';
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useAlarmStore } from '../stores/alarmStore';
 import { useCurrentUserStore } from '../stores/currentUserStore';
-import { isActive, filterAlarms, sortAlarms } from '../lib/alarmFiltering';
+import { isActive, sortAlarms } from '../lib/alarmFiltering';
 import { filtersToParams, paramsToFilters } from '../lib/alarmFilterUrl';
 import { getViews, saveView, deleteView, BUILTIN_VIEWS } from '../lib/savedViews';
 import type { SavedView } from '../lib/savedViews';
-import { useMockClockStore } from '../stores/mockClockStore';
 import { AlarmFilterBar } from '../components/alarms/AlarmFilterBar';
 import { QuickAckDrawer } from '../components/QuickAckDrawer';
+import { useAlarms } from '../hooks/useAlarms';
 import type { Alarm, AlarmFilters, AlarmSortKey, RiskLevel } from '../types';
 
 const SEVERITY_COLOR: Record<RiskLevel, string> = {
@@ -27,6 +26,17 @@ const STATUS_COLOR: Record<string, string> = {
 function formatTime(iso: string): string {
   const d = new Date(iso);
   return `${d.toISOString().slice(0, 10)} ${d.toISOString().slice(11, 16)}`;
+}
+
+// Default date range: 30 days back from now
+function defaultFrom(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - 90);
+  return d.toISOString();
+}
+
+function defaultTo(): string {
+  return new Date().toISOString();
 }
 
 function AlarmRow({
@@ -113,9 +123,8 @@ function defaultFilters(department: string): AlarmFilters {
 }
 
 export function AlarmListPage() {
-  const alarms = useAlarmStore((s) => s.alarms);
   const currentUser = useCurrentUserStore((s) => s.currentUser);
-  const now = useMockClockStore((s) => s.now);
+  const now = Date.now();
   const [drawerAlarmId, setDrawerAlarmId] = useState<string | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const [views, setViews] = useState(getViews);
@@ -162,12 +171,18 @@ export function AlarmListPage() {
     }
   }, [searchParams, setSearchParams, currentUser.department]);
 
-  const filtered = useMemo(
-    () => sortAlarms(filterAlarms(alarms, filters, now), sortKey),
-    [alarms, filters, now, sortKey],
+  // Fetch alarms from backend with filters applied server-side
+  const { alarms, loading } = useAlarms(filters, defaultFrom(), defaultTo());
+
+  const sorted = useMemo(
+    () => sortAlarms(alarms, sortKey),
+    [alarms, sortKey],
   );
 
-  const filterOptions = useFilterOptions(alarms);
+  // For filter option dropdowns, we need unfiltered alarms
+  // Fetch all alarms within the date range for filter options
+  const { alarms: allAlarms } = useAlarms({}, defaultFrom(), defaultTo());
+  const filterOptions = useFilterOptions(allAlarms);
 
   const updateUrl = useCallback(
     (f: AlarmFilters, sk: AlarmSortKey, viewName?: string | null) => {
@@ -227,7 +242,7 @@ export function AlarmListPage() {
           <div className="flex-1">
             <h1 className="text-lg font-semibold text-theme-primary">Alarm Queue</h1>
             <p className="text-xs text-theme-muted">
-              {filtered.length} of {alarms.length} alarms
+              {loading ? 'Loading...' : `${sorted.length} alarms`}
             </p>
           </div>
           {isDeptScoped && (
@@ -269,14 +284,20 @@ export function AlarmListPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.length === 0 ? (
+                {loading ? (
+                  <tr>
+                    <td colSpan={11} className="px-3 py-8 text-center text-xs text-theme-muted">
+                      Loading alarms...
+                    </td>
+                  </tr>
+                ) : sorted.length === 0 ? (
                   <tr>
                     <td colSpan={11} className="px-3 py-8 text-center text-xs text-theme-muted">
                       No alarms match the current filters.
                     </td>
                   </tr>
                 ) : (
-                  filtered.map((alarm) => (
+                  sorted.map((alarm) => (
                     <AlarmRow
                       key={alarm.id}
                       alarm={alarm}
