@@ -388,10 +388,15 @@ class WorkflowEndpointTest {
                 "/api/issues/" + issueId + "/workflow/steps/l4_review/complete",
                 HttpMethod.POST, withAuth("user-tanaka", Map.of()), Map.class);
 
-        // Complete pi_comment → meeting should now be ongoing
+        // Complete pi_comment
         restTemplate.exchange(
                 "/api/issues/" + issueId + "/workflow/steps/pi_comment/complete",
                 HttpMethod.POST, withAuth("user-tanaka", Map.of()), Map.class);
+
+        // Skip attach_report → meeting should now be ongoing (l4 + pi + attach_report done)
+        restTemplate.exchange(
+                "/api/issues/" + issueId + "/workflow/steps/attach_report/skip",
+                HttpMethod.POST, withAuth("user-tanaka"), Map.class);
 
         // Skip meeting (risk=Low, so skippable)
         ResponseEntity<Map> response = restTemplate.exchange(
@@ -441,6 +446,8 @@ class WorkflowEndpointTest {
                 HttpMethod.POST, withAuth("user-tanaka", Map.of()), Map.class);
         restTemplate.exchange("/api/issues/" + issueId + "/workflow/steps/pi_comment/complete",
                 HttpMethod.POST, withAuth("user-tanaka", Map.of()), Map.class);
+        restTemplate.exchange("/api/issues/" + issueId + "/workflow/steps/attach_report/skip",
+                HttpMethod.POST, withAuth("user-tanaka"), Map.class);
 
         // Try to skip meeting (risk=High, not skippable)
         ResponseEntity<Map> response = restTemplate.exchange(
@@ -468,6 +475,8 @@ class WorkflowEndpointTest {
                 HttpMethod.POST, withAuth("user-tanaka", Map.of()), Map.class);
         restTemplate.exchange("/api/issues/" + issueId + "/workflow/steps/pi_comment/complete",
                 HttpMethod.POST, withAuth("user-tanaka", Map.of()), Map.class);
+        restTemplate.exchange("/api/issues/" + issueId + "/workflow/steps/attach_report/skip",
+                HttpMethod.POST, withAuth("user-tanaka"), Map.class);
 
         // Skip meeting
         restTemplate.exchange("/api/issues/" + issueId + "/workflow/steps/meeting/skip",
@@ -501,6 +510,8 @@ class WorkflowEndpointTest {
                 HttpMethod.POST, withAuth("user-tanaka", Map.of()), Map.class);
         restTemplate.exchange("/api/issues/" + issueId + "/workflow/steps/pi_comment/complete",
                 HttpMethod.POST, withAuth("user-tanaka", Map.of()), Map.class);
+        restTemplate.exchange("/api/issues/" + issueId + "/workflow/steps/attach_report/skip",
+                HttpMethod.POST, withAuth("user-tanaka"), Map.class);
 
         // Skip meeting, then complete resolved
         restTemplate.exchange("/api/issues/" + issueId + "/workflow/steps/meeting/skip",
@@ -598,16 +609,18 @@ class WorkflowEndpointTest {
         assertEquals("ongoing", ((Map) stepStates.get("chart_owner_comment")).get("status"));
         assertEquals("pending", ((Map) stepStates.get("l5_review")).get("status"));
         assertEquals("pending", ((Map) stepStates.get("pi_comment")).get("status"));
+        assertEquals("pending", ((Map) stepStates.get("attach_report")).get("status"));
 
-        // Complete chart_owner_comment → should activate l5_review AND pi_comment (parallel)
+        // Complete chart_owner_comment → should activate l5_review, pi_comment, AND attach_report (parallel)
         ResponseEntity<Map> completeRes = restTemplate.exchange(
                 "/api/issues/" + issueId + "/workflow/steps/chart_owner_comment/complete",
                 HttpMethod.POST, withAuth("user-tanaka", Map.of()), Map.class);
         stepStates = (Map<String, Object>) completeRes.getBody().get("stepStates");
         assertEquals("ongoing", ((Map) stepStates.get("l5_review")).get("status"));
         assertEquals("ongoing", ((Map) stepStates.get("pi_comment")).get("status"));
+        assertEquals("ongoing", ((Map) stepStates.get("attach_report")).get("status"));
         assertEquals("pending", ((Map) stepStates.get("l4_review")).get("status")); // needs l5 first
-        assertEquals("pending", ((Map) stepStates.get("meeting")).get("status")); // needs l4 + pi
+        assertEquals("pending", ((Map) stepStates.get("meeting")).get("status")); // needs l4 + pi + attach_report
 
         // Complete l5_review → activates l4_review
         completeRes = restTemplate.exchange(
@@ -617,14 +630,21 @@ class WorkflowEndpointTest {
         assertEquals("ongoing", ((Map) stepStates.get("l4_review")).get("status"));
         assertEquals("pending", ((Map) stepStates.get("meeting")).get("status")); // still needs pi
 
-        // Complete l4_review (meeting still needs pi_comment)
+        // Complete l4_review (meeting still needs pi_comment + attach_report)
         restTemplate.exchange("/api/issues/" + issueId + "/workflow/steps/l4_review/complete",
                 HttpMethod.POST, withAuth("user-tanaka", Map.of()), Map.class);
 
-        // Complete pi_comment → meeting should now be ongoing (both l4 and pi done)
+        // Complete pi_comment (meeting still needs attach_report)
         completeRes = restTemplate.exchange(
                 "/api/issues/" + issueId + "/workflow/steps/pi_comment/complete",
                 HttpMethod.POST, withAuth("user-tanaka", Map.of()), Map.class);
+        stepStates = (Map<String, Object>) completeRes.getBody().get("stepStates");
+        assertEquals("pending", ((Map) stepStates.get("meeting")).get("status"));
+
+        // Skip attach_report → meeting should now be ongoing (l4 + pi + attach_report done)
+        completeRes = restTemplate.exchange(
+                "/api/issues/" + issueId + "/workflow/steps/attach_report/skip",
+                HttpMethod.POST, withAuth("user-tanaka"), Map.class);
         stepStates = (Map<String, Object>) completeRes.getBody().get("stepStates");
         assertEquals("ongoing", ((Map) stepStates.get("meeting")).get("status"));
     }
