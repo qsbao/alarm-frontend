@@ -39,6 +39,7 @@ const INITIAL: Pick<
   | 'sortDir'
   | 'page'
   | 'pageSize'
+  | 'selectedIds'
 > = {
   search: '',
   riskFilter: 'all',

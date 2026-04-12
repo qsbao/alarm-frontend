@@ -2,6 +2,7 @@ import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useIssues } from '../../hooks/useIssues';
 import { useIssueStore, type SortKey } from '../../stores/issueStore';
 import { IssueRow } from './IssueRow';
+import { SelectionToolbar } from './SelectionToolbar';
 
 interface SortableHeaderProps {
   label: string;
@@ -37,16 +38,56 @@ function PlainHeader({ label }: { label: string }) {
   );
 }
 
+function SelectAllCheckbox({ pageItems }: { pageItems: { id: string; status: string }[] }) {
+  const selectedIds = useIssueStore((s) => s.selectedIds);
+  const toggleSelected = useIssueStore((s) => s.toggleSelected);
+
+  const triageIds = pageItems.filter((i) => i.status === 'Triage').map((i) => i.id);
+  const allTriageSelected = triageIds.length > 0 && triageIds.every((id) => selectedIds.has(id));
+  const someSelected = triageIds.some((id) => selectedIds.has(id));
+
+  const handleChange = () => {
+    if (allTriageSelected) {
+      // Deselect all triage on this page
+      for (const id of triageIds) {
+        if (selectedIds.has(id)) toggleSelected(id);
+      }
+    } else {
+      // Select all triage on this page
+      for (const id of triageIds) {
+        if (!selectedIds.has(id)) toggleSelected(id);
+      }
+    }
+  };
+
+  return (
+    <th className="px-3 py-2 w-8">
+      <input
+        type="checkbox"
+        checked={allTriageSelected}
+        ref={(el) => { if (el) el.indeterminate = someSelected && !allTriageSelected; }}
+        onChange={handleChange}
+        disabled={triageIds.length === 0}
+        className="accent-theme-accent cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
+        aria-label="Select all Triage issues on this page"
+      />
+    </th>
+  );
+}
+
 export function IssueTable() {
   const { pageItems, filtered, totalPages, page } = useIssues();
   const setPage = useIssueStore((s) => s.setPage);
+  const selectedIds = useIssueStore((s) => s.selectedIds);
 
   return (
     <div className="card overflow-hidden">
+      {selectedIds.size > 0 && <SelectionToolbar pageItems={pageItems} />}
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead className="border-b border-border-default/40 bg-surface-overlay/30">
             <tr>
+              <SelectAllCheckbox pageItems={pageItems} />
               <SortableHeader label="date" columnKey="date" />
               <PlainHeader label="alarm_type" />
               <SortableHeader label="risk_level" columnKey="risk_level" />
@@ -64,7 +105,7 @@ export function IssueTable() {
           <tbody>
             {pageItems.length === 0 ? (
               <tr>
-                <td colSpan={12} className="px-4 py-12 text-center text-sm text-theme-muted">
+                <td colSpan={13} className="px-4 py-12 text-center text-sm text-theme-muted">
                   No issues match the current filters.
                 </td>
               </tr>

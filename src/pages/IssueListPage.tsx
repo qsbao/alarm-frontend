@@ -1,9 +1,15 @@
+import { useEffect } from 'react';
 import { FilterBar } from '../components/issues/FilterBar';
 import { IssueTable } from '../components/issues/IssueTable';
 import { useIssues } from '../hooks/useIssues';
+import { useIssueStore } from '../stores/issueStore';
 
 export function IssueListPage() {
   const { loading } = useIssues();
+  const clearSelection = useIssueStore((s) => s.clearSelection);
+
+  // Clear selection on unmount
+  useEffect(() => () => clearSelection(), [clearSelection]);
 
   return (
     <div className="h-full flex flex-col bg-surface-base">

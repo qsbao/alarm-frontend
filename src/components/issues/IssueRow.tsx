@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import type { Issue } from '../../types';
 import { getUserById } from '../../mocks/users';
 import { useCurrentUserStore } from '../../stores/currentUserStore';
+import { useIssueStore } from '../../stores/issueStore';
 import { awaitingMyAction, getOngoingStepLabels } from '../../lib/workflows/discovery';
 import { getDefinition } from '../../lib/workflows/registry';
 import { RiskBadge } from './RiskBadge';
@@ -22,14 +23,30 @@ function formatDateTime(iso: string): string {
 export function IssueRow({ issue }: { issue: Issue }) {
   const navigate = useNavigate();
   const currentUser = useCurrentUserStore((s) => s.currentUser);
+  const selectedIds = useIssueStore((s) => s.selectedIds);
+  const toggleSelected = useIssueStore((s) => s.toggleSelected);
   const awaiting = awaitingMyAction(issue, currentUser, getDefinition);
   const ongoingLabels = getOngoingStepLabels(issue, getDefinition);
+
+  const isTriage = issue.status === 'Triage';
+  const isSelected = selectedIds.has(issue.id);
 
   return (
     <tr
       onClick={() => navigate(`/issues/${issue.id}`)}
       className="cursor-pointer hover:bg-surface-overlay/40 transition-colors border-b border-border-subtle/40"
     >
+      <td className="px-3 py-2 w-8">
+        <input
+          type="checkbox"
+          checked={isSelected}
+          disabled={!isTriage}
+          onChange={() => toggleSelected(issue.id)}
+          onClick={(e) => e.stopPropagation()}
+          className="accent-theme-accent cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
+          aria-label={`Select ${issue.id}`}
+        />
+      </td>
       <td className="px-3 py-2 text-sm text-theme-secondary whitespace-nowrap">
         {formatDate(issue.date)}
       </td>
