@@ -129,6 +129,9 @@ export function AlarmListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [views, setViews] = useState(getViews);
   const initializedRef = useRef(false);
+  const from = useMemo(() => defaultFrom(), []);
+  const to = useMemo(() => defaultTo(), []);
+  const emptyFilters = useMemo<AlarmFilters>(() => ({}), []);
 
   // Parse URL params into filters/sort, or apply default on first load
   const { filters, sortKey, activeViewName } = useMemo(() => {
@@ -172,7 +175,7 @@ export function AlarmListPage() {
   }, [searchParams, setSearchParams, currentUser.department]);
 
   // Fetch alarms from backend with filters applied server-side
-  const { alarms, loading } = useAlarms(filters, defaultFrom(), defaultTo());
+  const { alarms, loading } = useAlarms(filters, from, to);
 
   const sorted = useMemo(
     () => sortAlarms(alarms, sortKey),
@@ -181,7 +184,7 @@ export function AlarmListPage() {
 
   // For filter option dropdowns, we need unfiltered alarms
   // Fetch all alarms within the date range for filter options
-  const { alarms: allAlarms } = useAlarms({}, defaultFrom(), defaultTo());
+  const { alarms: allAlarms } = useAlarms(emptyFilters, from, to);
   const filterOptions = useFilterOptions(allAlarms);
 
   const updateUrl = useCallback(
