@@ -5,9 +5,10 @@ import type { WorkflowDefinition } from '../types';
  *
  * DAG:
  *   chart_owner_comment
- *     ├── l5_review → l4_review ──┐
- *     ├── pi_comment ─────────────┤
- *     └── attach_report ──────────┼── meeting → resolved → closed
+ *     ├── l5_review → l4_review ──────────┐
+ *     ├── pi_comment ─────────────────────┤
+ *     ├── attach_report ──────────────────┼── meeting → resolved → closed
+ *     └── verify_calibration ─────────────┘
  */
 export const spcOocBranchingDefinition: WorkflowDefinition = {
   id: 'spc_ooc_branching_v1',
@@ -54,16 +55,30 @@ export const spcOocBranchingDefinition: WorkflowDefinition = {
       },
     },
     {
+      id: 'verify_calibration',
+      label: 'Verify Equipment Calibration',
+      order: 6,
+      preSteps: ['chart_owner_comment'],
+      skippableIf: () => true,
+      payloadSchema: {
+        calibrationId: {
+          kind: 'calibration-reference',
+          label: 'Calibration ID',
+          required: false,
+        },
+      },
+    },
+    {
       id: 'meeting',
       label: 'Meeting',
-      order: 6,
-      preSteps: ['l4_review', 'pi_comment', 'attach_report'],
+      order: 7,
+      preSteps: ['l4_review', 'pi_comment', 'attach_report', 'verify_calibration'],
       skippableIf: (issue) => issue.riskLevel === 'Low',
     },
     {
       id: 'resolved',
       label: 'Resolved',
-      order: 7,
+      order: 8,
       preSteps: ['meeting'],
       gate: ({ user, issue }) => user.id === issue.ownerId,
       payloadSchema: {
@@ -78,7 +93,7 @@ export const spcOocBranchingDefinition: WorkflowDefinition = {
     {
       id: 'closed',
       label: 'Closed',
-      order: 8,
+      order: 9,
       preSteps: ['resolved'],
       gate: ({ user, issue }) => user.id === issue.ownerId,
       payloadSchema: {

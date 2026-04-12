@@ -4,6 +4,7 @@ import type { Issue } from '../../types';
 import type { BlockerInfo } from '../../hooks/useIssue';
 import type { PayloadFieldSchema, Step, StepStatus } from '../../lib/workflows/types';
 import { ReportReferenceField } from './ReportReferenceField';
+import { CalibrationReferenceField } from './CalibrationReferenceField';
 import type { HighlightCandidate } from '../../lib/relations/highlightCandidates';
 import { getDefinition } from '../../lib/workflows/definitions';
 import { getStepDisplayList, canUserActOnStep, canSkipStep, canReviveStep, canEditStep } from '../../lib/workflows/panelHelpers';
@@ -416,6 +417,18 @@ function SchemaField({
         onChange={onChange}
         readOnly={stepStatus === 'completed' || stepStatus === 'skipped'}
         stepStatus={stepStatus}
+      />
+    );
+  }
+
+  if (schema.kind === 'calibration-reference') {
+    return (
+      <CalibrationReferenceField
+        value={value}
+        onChange={onChange}
+        readOnly={stepStatus === 'completed' || stepStatus === 'skipped'}
+        stepStatus={stepStatus}
+        issue={issue}
       />
     );
   }
