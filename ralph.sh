@@ -245,6 +245,12 @@ work_on_issue() {
     return 0
   fi
 
+  log "Running mvn compile..."
+  if ! (cd "$WORKDIR/backend" && ./mvnw compile) 2>&1 | tee -a "$logfile"; then
+    log "mvn compile failed for issue #$n — skipping"
+    return 0
+  fi
+
   local timeout_cmd=()
   if command -v timeout >/dev/null 2>&1; then
     timeout_cmd=(timeout "$PER_ISSUE_TIMEOUT")
