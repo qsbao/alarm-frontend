@@ -4,6 +4,9 @@ import {
   removeBlocker,
   getBlockers,
   isBlocked,
+  addMergedInto,
+  getMergedInto,
+  getMergedSources,
   resetRelations,
 } from './issueRelations';
 import type { Issue, IssueStatus } from '../../types';
@@ -109,6 +112,50 @@ describe('issueRelations', () => {
     it('treats unknown status (undefined) as non-terminal', () => {
       addBlocker('iss-001', 'iss-002', 'user-a');
       expect(isBlocked('iss-001', () => undefined)).toBe(true);
+    });
+  });
+
+  describe('addMergedInto / getMergedInto / getMergedSources', () => {
+    it('adds a merged_into relation and retrieves it', () => {
+      const rel = addMergedInto('iss-001', 'iss-002', 'user-a');
+      expect(rel.fromIssueId).toBe('iss-001');
+      expect(rel.toIssueId).toBe('iss-002');
+      expect(rel.type).toBe('merged_into');
+
+      const target = getMergedInto('iss-001');
+      expect(target).toBeDefined();
+      expect(target!.toIssueId).toBe('iss-002');
+    });
+
+    it('getMergedSources returns all sources for a target', () => {
+      addMergedInto('iss-001', 'iss-010', 'user-a');
+      addMergedInto('iss-002', 'iss-010', 'user-a');
+
+      const sources = getMergedSources('iss-010');
+      expect(sources).toHaveLength(2);
+      expect(sources.map((r) => r.fromIssueId).sort()).toEqual(['iss-001', 'iss-002']);
+    });
+
+    it('getMergedInto returns undefined when no merge relation', () => {
+      expect(getMergedInto('iss-999')).toBeUndefined();
+    });
+
+    it('getMergedSources returns empty when no sources', () => {
+      expect(getMergedSources('iss-999')).toEqual([]);
+    });
+
+    it('does not duplicate identical merged_into relation', () => {
+      addMergedInto('iss-001', 'iss-002', 'user-a');
+      addMergedInto('iss-001', 'iss-002', 'user-b');
+      expect(getMergedSources('iss-002')).toHaveLength(1);
+    });
+
+    it('does not interfere with blockers', () => {
+      addBlocker('iss-001', 'iss-002', 'user-a');
+      addMergedInto('iss-001', 'iss-003', 'user-a');
+
+      expect(getBlockers('iss-001')).toHaveLength(1);
+      expect(getMergedInto('iss-001')!.toIssueId).toBe('iss-003');
     });
   });
 

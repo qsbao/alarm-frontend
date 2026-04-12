@@ -4,7 +4,7 @@ export interface IssueRelation {
   id: string;
   fromIssueId: string;
   toIssueId: string;
-  type: 'blocks';
+  type: 'blocks' | 'merged_into';
   createdAt: string;
   createdBy: string;
 }
@@ -59,6 +59,36 @@ export function isBlocked(
     const status = getIssueStatus(r.toIssueId);
     return !status || !TERMINAL_STATUSES.includes(status);
   });
+}
+
+export function addMergedInto(
+  fromIssueId: string,
+  toIssueId: string,
+  createdBy: string,
+): IssueRelation {
+  const existing = relations.find(
+    (r) => r.fromIssueId === fromIssueId && r.toIssueId === toIssueId && r.type === 'merged_into',
+  );
+  if (existing) return existing;
+
+  const relation: IssueRelation = {
+    id: `rel-${nextId++}`,
+    fromIssueId,
+    toIssueId,
+    type: 'merged_into',
+    createdAt: new Date().toISOString(),
+    createdBy,
+  };
+  relations.push(relation);
+  return relation;
+}
+
+export function getMergedInto(issueId: string): IssueRelation | undefined {
+  return relations.find((r) => r.fromIssueId === issueId && r.type === 'merged_into');
+}
+
+export function getMergedSources(issueId: string): IssueRelation[] {
+  return relations.filter((r) => r.toIssueId === issueId && r.type === 'merged_into');
 }
 
 export function resetRelations(): void {
