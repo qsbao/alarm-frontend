@@ -10,6 +10,7 @@ interface IssueHeaderProps {
   issue: Issue;
   onAssign: (ownerId: string) => Promise<void> | void;
   onMerge?: () => void;
+  disabled?: boolean;
 }
 
 function formatDateTime(iso: string): string {
@@ -35,7 +36,7 @@ function Chip({
   );
 }
 
-export function IssueHeader({ issue, onAssign, onMerge }: IssueHeaderProps) {
+export function IssueHeader({ issue, onAssign, onMerge, disabled }: IssueHeaderProps) {
   const ownerName = getUserById(issue.ownerId)?.name ?? issue.ownerId;
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(ownerName);
@@ -89,53 +90,55 @@ export function IssueHeader({ issue, onAssign, onMerge }: IssueHeaderProps) {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {issue.status !== 'Merged' && onMerge && (
-            <div className="relative group">
-              <button
-                onClick={issue.status === 'Triage' ? onMerge : undefined}
-                disabled={issue.status !== 'Triage'}
-                className="btn-secondary btn-sm"
-              >
-                <GitMerge size={13} />
-                Merge into...
+        {!disabled && (
+          <div className="flex items-center gap-2">
+            {issue.status !== 'Merged' && onMerge && (
+              <div className="relative group">
+                <button
+                  onClick={issue.status === 'Triage' ? onMerge : undefined}
+                  disabled={issue.status !== 'Triage'}
+                  className="btn-secondary btn-sm"
+                >
+                  <GitMerge size={13} />
+                  Merge into...
+                </button>
+                {issue.status !== 'Triage' && (
+                  <div className="absolute right-0 top-full mt-1 z-10 hidden group-hover:block w-56 px-3 py-2 text-xs text-theme-secondary bg-surface-overlay border border-border-subtle rounded-lg shadow-lg">
+                    Only Triage issues can be merged. Use <em>moveAlarm</em> to transfer individual alarms instead.
+                  </div>
+                )}
+              </div>
+            )}
+            {editing ? (
+              <>
+                <input
+                  autoFocus
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') save();
+                    if (e.key === 'Escape') cancel();
+                  }}
+                  placeholder="Owner name"
+                  className="input-base w-44"
+                  disabled={saving}
+                />
+                <button onClick={save} disabled={saving} className="btn-primary btn-sm">
+                  <Check size={13} />
+                  Save
+                </button>
+                <button onClick={cancel} disabled={saving} className="btn-ghost btn-sm">
+                  <X size={13} />
+                </button>
+              </>
+            ) : (
+              <button onClick={startEdit} className="btn-secondary btn-sm">
+                <Pencil size={13} />
+                Assign owner
               </button>
-              {issue.status !== 'Triage' && (
-                <div className="absolute right-0 top-full mt-1 z-10 hidden group-hover:block w-56 px-3 py-2 text-xs text-theme-secondary bg-surface-overlay border border-border-subtle rounded-lg shadow-lg">
-                  Only Triage issues can be merged. Use <em>moveAlarm</em> to transfer individual alarms instead.
-                </div>
-              )}
-            </div>
-          )}
-          {editing ? (
-            <>
-              <input
-                autoFocus
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') save();
-                  if (e.key === 'Escape') cancel();
-                }}
-                placeholder="Owner name"
-                className="input-base w-44"
-                disabled={saving}
-              />
-              <button onClick={save} disabled={saving} className="btn-primary btn-sm">
-                <Check size={13} />
-                Save
-              </button>
-              <button onClick={cancel} disabled={saving} className="btn-ghost btn-sm">
-                <X size={13} />
-              </button>
-            </>
-          ) : (
-            <button onClick={startEdit} className="btn-secondary btn-sm">
-              <Pencil size={13} />
-              Assign owner
-            </button>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
