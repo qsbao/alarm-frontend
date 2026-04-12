@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { api } from '../api/client';
+import { backend } from '../api/backendClient';
 import { refreshEvents } from '../lib/refreshEvents';
 import { useIssueStore } from '../stores/issueStore';
 import { useCurrentUserStore } from '../stores/currentUserStore';
@@ -14,6 +14,39 @@ const RISK_RANK: Record<RiskLevel, number> = {
   High: 2,
   Critical: 3,
 };
+
+interface BackendIssue {
+  id: string;
+  title: string;
+  date: string;
+  alarmType: string;
+  riskLevel: string;
+  status: string;
+  issueTime: string;
+  operation: string;
+  product: string;
+  ownerId: string;
+  department: string;
+  description: string;
+}
+
+function toIssue(raw: BackendIssue): Issue {
+  return {
+    id: raw.id,
+    title: raw.title,
+    date: raw.date,
+    alarmType: raw.alarmType as Issue['alarmType'],
+    riskLevel: raw.riskLevel as Issue['riskLevel'],
+    status: raw.status as Issue['status'],
+    issueTime: raw.issueTime,
+    operation: raw.operation,
+    product: raw.product,
+    ownerId: raw.ownerId,
+    department: raw.department,
+    description: raw.description ?? '',
+    activity: [],
+  };
+}
 
 export function useIssues() {
   const [allIssues, setAllIssues] = useState<Issue[]>([]);
@@ -34,8 +67,11 @@ export function useIssues() {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const list = await api.listIssues();
-      setAllIssues(list);
+      const { data } = await backend.GET('/api/issues', {
+        params: { query: {} },
+      });
+      const raw = (data ?? []) as unknown as BackendIssue[];
+      setAllIssues(raw.map(toIssue));
     } finally {
       setLoading(false);
     }
