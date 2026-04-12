@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../api/client';
 import { refreshEvents } from '../lib/refreshEvents';
-import { getUserById } from '../mocks/users';
 import { useIssueStore } from '../stores/issueStore';
 import { useCurrentUserStore } from '../stores/currentUserStore';
 import { ISSUE_BUILTIN_VIEWS } from '../lib/issueSavedViews';
 import { getDefinition } from '../lib/workflows/registry';
+import { matchesFilters } from './useFilteredIssues';
 import type { Issue, RiskLevel } from '../types';
 
 const RISK_RANK: Record<RiskLevel, number> = {
@@ -28,6 +28,7 @@ export function useIssues() {
   const sortDir = useIssueStore((s) => s.sortDir);
   const page = useIssueStore((s) => s.page);
   const pageSize = useIssueStore((s) => s.pageSize);
+  const showMerged = useIssueStore((s) => s.showMerged);
   const currentUser = useCurrentUserStore((s) => s.currentUser);
 
   const refresh = useCallback(async () => {
@@ -48,22 +49,15 @@ export function useIssues() {
   useEffect(() => refreshEvents.subscribe(() => refresh()), [refresh]);
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
     const activeView = activeViewName
       ? ISSUE_BUILTIN_VIEWS.find((v) => v.name === activeViewName)
       : null;
 
+    const filterParams = { statusFilter, riskFilter, alarmTypeFilter, search, showMerged };
+
     let list = allIssues.filter((i) => {
       if (activeView && !activeView.predicate(i, currentUser, getDefinition)) return false;
-      if (riskFilter !== 'all' && i.riskLevel !== riskFilter) return false;
-      if (statusFilter !== 'all' && i.status !== statusFilter) return false;
-      if (alarmTypeFilter !== 'all' && i.alarmType !== alarmTypeFilter) return false;
-      if (q) {
-        const ownerName = getUserById(i.ownerId)?.name ?? i.ownerId;
-        const hay = `${i.title} ${ownerName} ${i.product} ${i.id}`.toLowerCase();
-        if (!hay.includes(q)) return false;
-      }
-      return true;
+      return matchesFilters(i, filterParams);
     });
 
     list = [...list].sort((a, b) => {
@@ -77,7 +71,7 @@ export function useIssues() {
     });
 
     return list;
-  }, [allIssues, search, riskFilter, statusFilter, alarmTypeFilter, activeViewName, currentUser, sortKey, sortDir]);
+  }, [allIssues, search, riskFilter, statusFilter, alarmTypeFilter, showMerged, activeViewName, currentUser, sortKey, sortDir]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const safePage = Math.min(page, totalPages);
