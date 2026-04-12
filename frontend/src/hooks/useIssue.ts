@@ -1,15 +1,70 @@
 import { useCallback, useEffect, useState } from 'react';
+import { backend } from '../api/backendClient';
 import { api } from '../api/client';
 import { refreshEvents } from '../lib/refreshEvents';
 import { useAlarmStore } from '../stores/alarmStore';
 import { useCurrentUserStore } from '../stores/currentUserStore';
-import type { Alarm, Issue } from '../types';
+import type { Alarm, Issue, ActivityEntry } from '../types';
 import type { HighlightCandidate } from '../lib/relations/highlightCandidates';
 
 export interface BlockerInfo {
   issueId: string;
   title: string;
   status: string;
+}
+
+interface BackendIssue {
+  id: string;
+  title: string;
+  date: string;
+  alarmType: string;
+  riskLevel: string;
+  status: string;
+  issueTime: string;
+  operation: string;
+  product: string;
+  ownerId: string;
+  department: string;
+  description: string;
+}
+
+interface BackendActivity {
+  id: number;
+  issueId: string;
+  type: string;
+  timestamp: string;
+  author: string;
+  text?: string;
+  assignedTo?: string;
+}
+
+function toIssue(raw: BackendIssue, activity: ActivityEntry[]): Issue {
+  return {
+    id: raw.id,
+    title: raw.title,
+    date: raw.date,
+    alarmType: raw.alarmType as Issue['alarmType'],
+    riskLevel: raw.riskLevel as Issue['riskLevel'],
+    status: raw.status as Issue['status'],
+    issueTime: raw.issueTime,
+    operation: raw.operation,
+    product: raw.product,
+    ownerId: raw.ownerId,
+    department: raw.department,
+    description: raw.description ?? '',
+    activity,
+  };
+}
+
+function toActivityEntry(raw: BackendActivity): ActivityEntry {
+  return {
+    id: String(raw.id),
+    type: raw.type as ActivityEntry['type'],
+    timestamp: raw.timestamp,
+    author: raw.author,
+    text: raw.text,
+    assignedTo: raw.assignedTo,
+  };
 }
 
 export function useIssue(id: string | undefined) {
@@ -27,18 +82,35 @@ export function useIssue(id: string | undefined) {
     }
     setLoading(true);
     try {
-      const found = await api.getIssue(id);
-      setIssue(found);
-      if (found) {
-        const list = await api.getAlarmsForIssue(id);
-        setAlarms(list);
+      const [issueRes, activityRes] = await Promise.all([
+        backend.GET('/api/issues/{id}', { params: { path: { id } } }),
+        backend.GET('/api/issues/{id}/activity', { params: { path: { id } } }),
+      ]);
+
+      if (issueRes.data) {
+        const rawIssue = issueRes.data as unknown as BackendIssue;
+        const rawActivity = (activityRes.data ?? []) as unknown as BackendActivity[];
+        const found = toIssue(rawIssue, rawActivity.map(toActivityEntry));
+        setIssue(found);
+
+        // Alarms are still from mock client until issue-alarm linking is built
+        try {
+          const list = await api.getAlarmsForIssue(id);
+          setAlarms(list);
+        } catch {
+          setAlarms([]);
+        }
+
+        // Blockers still from mock client
+        try {
+          const blockerList = await api.getBlockers(id);
+          setBlockers(blockerList);
+        } catch {
+          setBlockers([]);
+        }
       } else {
+        setIssue(undefined);
         setAlarms([]);
-      }
-      if (found) {
-        const blockerList = await api.getBlockers(id);
-        setBlockers(blockerList);
-      } else {
         setBlockers([]);
       }
     } finally {
@@ -50,36 +122,38 @@ export function useIssue(id: string | undefined) {
     reload();
   }, [reload]);
 
-  // Re-fetch when external mutations (e.g. dev panel) signal a change.
   useEffect(() => refreshEvents.subscribe(() => reload()), [reload]);
-
-  // After a mutation, sync the local issue + reload its alarms (only when the
-  // alarm set could have changed).
-  const applyIssue = useCallback(async (next: Issue, refetchAlarms: boolean) => {
-    setIssue(next);
-    if (refetchAlarms) {
-      const list = await api.getAlarmsForIssue(next.id);
-      setAlarms(list);
-    }
-  }, []);
 
   const assignOwner = useCallback(
     async (owner: string) => {
       if (!id) return;
-      const updated = await api.assignIssueOwner(id, owner);
-      await applyIssue(updated, false);
+      const { data } = await backend.PUT('/api/issues/{id}/owner', {
+        params: { path: { id } },
+        body: { ownerId: owner } as any,
+      });
+      if (data) {
+        // Refetch to get updated activity
+        await reload();
+      }
     },
-    [id, applyIssue],
+    [id, reload],
   );
 
   const addComment = useCallback(
     async (text: string) => {
       if (!id) return;
-      const updated = await api.addComment(id, text);
-      await applyIssue(updated, false);
+      const { data } = await backend.POST('/api/issues/{id}/comments', {
+        params: { path: { id } },
+        body: { text } as any,
+      });
+      if (data) {
+        await reload();
+      }
     },
-    [id, applyIssue],
+    [id, reload],
   );
+
+  // --- Below methods still use mock client (out of scope for this slice) ---
 
   const linkAlarm = useCallback(
     async (alarmId: string) => {
@@ -87,9 +161,11 @@ export function useIssue(id: string | undefined) {
       const currentUser = useCurrentUserStore.getState().currentUser;
       useAlarmStore.getState().linkAlarm(alarmId, id, currentUser);
       const updated = await api.linkAlarm(id, alarmId);
-      await applyIssue(updated, true);
+      setIssue(updated);
+      const list = await api.getAlarmsForIssue(id);
+      setAlarms(list);
     },
-    [id, applyIssue],
+    [id],
   );
 
   const unlinkAlarm = useCallback(
@@ -98,45 +174,47 @@ export function useIssue(id: string | undefined) {
       const currentUser = useCurrentUserStore.getState().currentUser;
       useAlarmStore.getState().unlinkAlarm(alarmId, currentUser);
       const updated = await api.unlinkAlarm(id, alarmId);
-      await applyIssue(updated, true);
+      setIssue(updated);
+      const list = await api.getAlarmsForIssue(id);
+      setAlarms(list);
     },
-    [id, applyIssue],
+    [id],
   );
 
   const completeWorkflowStep = useCallback(
     async (stepId: string, actorId: string, payload: Record<string, unknown>) => {
       if (!id) return;
       const updated = await api.completeStep(id, stepId, actorId, payload);
-      await applyIssue(updated, false);
+      setIssue(updated);
     },
-    [id, applyIssue],
+    [id],
   );
 
   const skipWorkflowStep = useCallback(
     async (stepId: string, actorId: string) => {
       if (!id) return;
       const updated = await api.skipStep(id, stepId, actorId);
-      await applyIssue(updated, false);
+      setIssue(updated);
     },
-    [id, applyIssue],
+    [id],
   );
 
   const reviveWorkflowStep = useCallback(
     async (stepId: string, actorId: string) => {
       if (!id) return;
       const updated = await api.reviveStep(id, stepId, actorId);
-      await applyIssue(updated, false);
+      setIssue(updated);
     },
-    [id, applyIssue],
+    [id],
   );
 
   const editWorkflowStep = useCallback(
     async (stepId: string, actorId: string, payload: Record<string, unknown>) => {
       if (!id) return;
       const updated = await api.editCompletedStep(id, stepId, actorId, payload);
-      await applyIssue(updated, false);
+      setIssue(updated);
     },
-    [id, applyIssue],
+    [id],
   );
 
   const addBlocker = useCallback(
@@ -144,11 +222,11 @@ export function useIssue(id: string | undefined) {
       if (!id) return;
       const currentUser = useCurrentUserStore.getState().currentUser;
       const updated = await api.addBlocker(id, blockerIssueId, currentUser.id);
-      await applyIssue(updated, false);
+      setIssue(updated);
       const blockerList = await api.getBlockers(id);
       setBlockers(blockerList);
     },
-    [id, applyIssue],
+    [id],
   );
 
   const removeBlocker = useCallback(
@@ -156,11 +234,11 @@ export function useIssue(id: string | undefined) {
       if (!id) return;
       const currentUser = useCurrentUserStore.getState().currentUser;
       const updated = await api.removeBlocker(id, blockerIssueId, currentUser.id);
-      await applyIssue(updated, false);
+      setIssue(updated);
       const blockerList = await api.getBlockers(id);
       setBlockers(blockerList);
     },
-    [id, applyIssue],
+    [id],
   );
 
   const fetchHighlightCandidates = useCallback(async (): Promise<HighlightCandidate[]> => {
@@ -173,11 +251,11 @@ export function useIssue(id: string | undefined) {
       if (!id) return;
       const currentUser = useCurrentUserStore.getState().currentUser;
       const { parent: updated } = await api.createHighlightedIssue(id, targetOperationId, currentUser.id);
-      await applyIssue(updated, false);
+      setIssue(updated);
       const blockerList = await api.getBlockers(id);
       setBlockers(blockerList);
     },
-    [id, applyIssue],
+    [id],
   );
 
   const moveAlarm = useCallback(
@@ -186,11 +264,9 @@ export function useIssue(id: string | undefined) {
       const currentUser = useCurrentUserStore.getState().currentUser;
       const result = await api.moveAlarm(alarmId, targetIssueId, currentUser.department);
       useAlarmStore.getState().moveAlarm(alarmId, result.fromIssueId, result.toIssueId, currentUser);
-      // Reload both issue and alarms since alarm moved away
-      const updated = await api.getIssue(id);
-      if (updated) await applyIssue(updated, true);
+      await reload();
     },
-    [id, applyIssue],
+    [id, reload],
   );
 
   const linkExistingIssueAsHighlight = useCallback(
@@ -198,11 +274,11 @@ export function useIssue(id: string | undefined) {
       if (!id) return;
       const currentUser = useCurrentUserStore.getState().currentUser;
       const updated = await api.linkExistingIssueAsHighlight(id, existingIssueId, currentUser.id);
-      await applyIssue(updated, false);
+      setIssue(updated);
       const blockerList = await api.getBlockers(id);
       setBlockers(blockerList);
     },
-    [id, applyIssue],
+    [id],
   );
 
   return {
