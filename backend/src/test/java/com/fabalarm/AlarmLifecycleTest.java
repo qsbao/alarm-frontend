@@ -155,10 +155,10 @@ class AlarmLifecycleTest {
         // alm-021 is Etch, user-chen is Etch
         ResponseEntity<Map> response = restTemplate.exchange(
                 "/api/alarms/alm-021/risk", HttpMethod.POST,
-                withAuth("user-chen", Map.of("risk", "high")),
+                withAuth("user-chen", Map.of("risk", "HIGH_RISK")),
                 Map.class);
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals("high", response.getBody().get("humanRisk"));
+        assertEquals("HIGH_RISK", response.getBody().get("riskLevel"));
     }
 
     @Test
@@ -166,11 +166,11 @@ class AlarmLifecycleTest {
         // alm-010 is Etch, user-chen is Etch — set middle then high
         restTemplate.exchange(
                 "/api/alarms/alm-010/risk", HttpMethod.POST,
-                withAuth("user-chen", Map.of("risk", "middle")),
+                withAuth("user-chen", Map.of("risk", "MIDDLE_RISK")),
                 Map.class);
         restTemplate.exchange(
                 "/api/alarms/alm-010/risk", HttpMethod.POST,
-                withAuth("user-chen", Map.of("risk", "high")),
+                withAuth("user-chen", Map.of("risk", "HIGH_RISK")),
                 Map.class);
 
         ResponseEntity<List> activityResponse = restTemplate.exchange(
@@ -179,10 +179,10 @@ class AlarmLifecycleTest {
                 List.class);
         List<Map<String, Object>> activities = activityResponse.getBody();
         Map<String, Object> entry = activities.stream()
-                .filter(a -> "risk_changed".equals(a.get("type")) && "high".equals(a.get("toRisk")))
+                .filter(a -> "risk_changed".equals(a.get("type")) && "HIGH_RISK".equals(a.get("toRisk")))
                 .findFirst().orElseThrow();
-        assertEquals("middle", entry.get("fromRisk"));
-        assertEquals("high", entry.get("toRisk"));
+        assertEquals("MIDDLE_RISK", entry.get("fromRisk"));
+        assertEquals("HIGH_RISK", entry.get("toRisk"));
     }
 
     // --- RECOVER ---

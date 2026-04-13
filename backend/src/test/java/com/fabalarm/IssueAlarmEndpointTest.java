@@ -242,7 +242,7 @@ class IssueAlarmEndpointTest {
         Map<String, String> body = new HashMap<>();
         body.put("id", "iss-test-from-alarm");
         body.put("title", "Issue from alarm test");
-        body.put("riskLevel", "High");
+        body.put("riskLevel", "HIGH_RISK");
         body.put("issueTime", "2025-06-15T10:00:00Z");
         body.put("operName", "Exposure");
         body.put("product", "A7-Litho");

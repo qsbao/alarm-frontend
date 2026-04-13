@@ -73,8 +73,8 @@ describe('spcOocBranchingDefinition', () => {
   it('lot_disposition is auto-skipped when riskLevel is Low', () => {
     const step = spcOocBranchingDefinition.steps.find((s) => s.id === 'lot_disposition')!;
     expect(step.defaultSkipIf).toBeDefined();
-    expect(step.defaultSkipIf!({ riskLevel: 'Low' } as any)).toBe(true);
-    expect(step.defaultSkipIf!({ riskLevel: 'High' } as any)).toBe(false);
+    expect(step.defaultSkipIf!({ riskLevel: 'LOW_RISK' } as any)).toBe(true);
+    expect(step.defaultSkipIf!({ riskLevel: 'HIGH_RISK' } as any)).toBe(false);
   });
 
   it('lot_disposition has lot-disposition payload schema', () => {

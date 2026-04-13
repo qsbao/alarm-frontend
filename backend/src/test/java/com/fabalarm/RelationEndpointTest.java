@@ -180,7 +180,7 @@ class RelationEndpointTest {
         Map<String, String> body = Map.of(
                 "id", "iss-test-hl-cand",
                 "title", "Test highlight candidates",
-                "riskLevel", "High",
+                "riskLevel", "HIGH_RISK",
                 "issueTime", "2025-06-15T10:00:00Z",
                 "operName", "Endpoint detect",
                 "product", "A7-Litho",
@@ -213,7 +213,7 @@ class RelationEndpointTest {
         Map<String, String> body = Map.of(
                 "id", "iss-test-hl-first",
                 "title", "Test first op",
-                "riskLevel", "Low",
+                "riskLevel", "LOW_RISK",
                 "issueTime", "2025-06-15T10:00:00Z",
                 "operName", "Lot start",
                 "product", "A7-Litho",
@@ -247,7 +247,7 @@ class RelationEndpointTest {
         Map<String, String> parentBody = Map.of(
                 "id", "iss-test-hl-parent",
                 "title", "Test highlight parent",
-                "riskLevel", "High",
+                "riskLevel", "HIGH_RISK",
                 "issueTime", "2025-06-15T10:00:00Z",
                 "operName", "Endpoint detect",
                 "product", "B3-Etch",

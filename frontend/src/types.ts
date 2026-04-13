@@ -36,7 +36,7 @@ export interface TempSpikeDetails {
 export type AlarmDetails = SpcOocDetails | TempSpikeDetails;
 
 export type AlarmStatus = 'Open' | 'Acked';
-export type HumanRisk = 'high' | 'middle' | 'low';
+export type HumanRiskLevel = 'HIGH_RISK' | 'MIDDLE_RISK' | 'LOW_RISK';
 export type AlarmLabel =
   | 'FalsePositive'
   | 'Recurring'
@@ -82,8 +82,8 @@ export interface AlarmActivityEntry {
   author: string;
   note?: string;
   label?: AlarmLabel;
-  fromRisk?: RiskLevel;
-  toRisk?: RiskLevel;
+  fromRisk?: HumanRiskLevel;
+  toRisk?: HumanRiskLevel;
   issueId?: string;
   fromIssueId?: string;
   toIssueId?: string;
@@ -123,7 +123,7 @@ export interface Alarm {
   chartOwnerId?: string; // UserId — engineer responsible for the SPC chart
   // Mutable triage layer
   status: AlarmStatus;
-  riskLevel?: RiskLevel;
+  riskLevel?: HumanRiskLevel;
   labels: AlarmLabel[];
   activity: AlarmActivityEntry[];
   details?: AlarmDetails;
@@ -174,7 +174,7 @@ export interface Issue {
   id: string; // "iss-001"
   title: string;
   date: string; // ISO 8601 — creation date (table column "date")
-  riskLevel: RiskLevel;
+  riskLevel: HumanRiskLevel;
   status: IssueStatus;
   // context columns
   issueTime: string; // when it physically happened
@@ -195,7 +195,7 @@ export interface Issue {
 export type IssueDraft = Omit<Issue, 'id' | 'activity'>;
 
 export const ALL_ALARM_STATUSES: AlarmStatus[] = ['Open', 'Acked'];
-export const ALL_HUMAN_RISKS: HumanRisk[] = ['high', 'middle', 'low'];
+export const ALL_HUMAN_RISK_LEVELS: HumanRiskLevel[] = ['HIGH_RISK', 'MIDDLE_RISK', 'LOW_RISK'];
 export const ALL_ALARM_LABELS: AlarmLabel[] = [
   'FalsePositive',
   'Recurring',
@@ -219,7 +219,7 @@ export interface AlarmFilters {
   status?: AlarmStatus[];
   department?: string[];
   severity?: RiskLevel[];
-  riskLevel?: RiskLevel[];
+  riskLevel?: HumanRiskLevel[];
   alarmType?: AlarmType[];
   owner?: string[];
   eqpId?: string[];

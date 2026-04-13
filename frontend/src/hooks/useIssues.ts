@@ -6,13 +6,12 @@ import { useCurrentUserStore } from '../stores/currentUserStore';
 import { ISSUE_BUILTIN_VIEWS } from '../lib/issueSavedViews';
 import { getDefinition } from '../lib/workflows/definitions';
 import { matchesFilters } from './useFilteredIssues';
-import type { Issue, RiskLevel, AlarmLabel, Module } from '../types';
+import type { Issue, HumanRiskLevel, AlarmLabel, Module } from '../types';
 
-const RISK_RANK: Record<RiskLevel, number> = {
-  P3: 0,
-  P2: 1,
-  P1: 2,
-  P0: 3,
+const RISK_RANK: Record<HumanRiskLevel, number> = {
+  LOW_RISK: 0,
+  MIDDLE_RISK: 1,
+  HIGH_RISK: 2,
 };
 
 interface BackendIssue {

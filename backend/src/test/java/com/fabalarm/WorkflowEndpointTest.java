@@ -36,7 +36,7 @@ class WorkflowEndpointTest {
         Map<String, String> body = Map.of(
                 "id", issueId,
                 "title", "Test workflow issue " + issueId,
-                "riskLevel", "High",
+                "riskLevel", "HIGH_RISK",
                 "issueTime", "2025-06-15T10:00:00Z",
                 "operName", "Endpoint detect",
                 "product", "A7-Litho",
@@ -365,7 +365,7 @@ class WorkflowEndpointTest {
     @Test
     void skipStepTransitionsAndActivatesDownstream() {
         // SPC OOC with Low risk — meeting is skippable
-        String issueId = createTestIssueWithRisk("iss-wf-skip-1", "user-tanaka", "Low");
+        String issueId = createTestIssueWithRisk("iss-wf-skip-1", "user-tanaka", "LOW_RISK");
 
         Map<String, String> attachBody = Map.of("definitionId", "spc_ooc_branching_v1");
         restTemplate.exchange("/api/issues/" + issueId + "/workflow", HttpMethod.POST,
@@ -434,7 +434,7 @@ class WorkflowEndpointTest {
     @Test
     void skipStepRejectsHighRiskMeetingSkip() {
         // SPC OOC with High risk — meeting is NOT skippable
-        String issueId = createTestIssueWithRisk("iss-wf-sk-hi", "user-tanaka", "High");
+        String issueId = createTestIssueWithRisk("iss-wf-sk-hi", "user-tanaka", "HIGH_RISK");
 
         Map<String, String> attachBody = Map.of("definitionId", "spc_ooc_branching_v1");
         restTemplate.exchange("/api/issues/" + issueId + "/workflow", HttpMethod.POST,
@@ -463,7 +463,7 @@ class WorkflowEndpointTest {
 
     @Test
     void reviveStepMovesSkippedToOngoing() {
-        String issueId = createTestIssueWithRisk("iss-wf-revive-1", "user-tanaka", "Low");
+        String issueId = createTestIssueWithRisk("iss-wf-revive-1", "user-tanaka", "LOW_RISK");
 
         Map<String, String> attachBody = Map.of("definitionId", "spc_ooc_branching_v1");
         restTemplate.exchange("/api/issues/" + issueId + "/workflow", HttpMethod.POST,
@@ -500,7 +500,7 @@ class WorkflowEndpointTest {
 
     @Test
     void reviveStepRejectsAfterResolvedCompleted() {
-        String issueId = createTestIssueWithRisk("iss-wf-rv-blk", "user-tanaka", "Low");
+        String issueId = createTestIssueWithRisk("iss-wf-rv-blk", "user-tanaka", "LOW_RISK");
 
         Map<String, String> attachBody = Map.of("definitionId", "spc_ooc_branching_v1");
         restTemplate.exchange("/api/issues/" + issueId + "/workflow", HttpMethod.POST,

@@ -1,7 +1,7 @@
 package com.fabalarm.workflow;
 
+import com.fabalarm.model.HumanRiskLevel;
 import com.fabalarm.model.IssueStatus;
-import com.fabalarm.model.RiskLevel;
 
 import java.util.List;
 import java.util.Map;
@@ -41,12 +41,12 @@ public final class SpcOocBranchingDefinition {
                             .build(),
                     StepDefinition.builder("meeting", "Meeting", 7)
                             .preSteps("l4_review", "pi_comment", "attach_report", "verify_calibration")
-                            .skippableIf(issue -> issue.getRiskLevel() == RiskLevel.P3)
+                            .skippableIf(issue -> issue.getRiskLevel() == HumanRiskLevel.LOW_RISK)
                             .build(),
                     StepDefinition.builder("lot_disposition", "Lot Disposition", 8)
                             .preSteps("meeting")
                             .skippableIf(issue -> true)
-                            .defaultSkipIf(issue -> issue.getRiskLevel() == RiskLevel.P3)
+                            .defaultSkipIf(issue -> issue.getRiskLevel() == HumanRiskLevel.LOW_RISK)
                             .payloadSchema(Map.of(
                                     "lotId", PayloadFieldSchema.lotDisposition("Lot ID", false)
                             ))

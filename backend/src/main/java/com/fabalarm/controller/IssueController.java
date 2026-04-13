@@ -38,7 +38,7 @@ public class IssueController {
             @RequestParam(required = false) List<String> riskLevel) {
 
         List<IssueStatus> statusFilter = parseEnums(status, IssueStatus.class);
-        List<RiskLevel> riskFilter = parseEnums(riskLevel, RiskLevel.class);
+        List<HumanRiskLevel> riskFilter = parseEnums(riskLevel, HumanRiskLevel.class);
 
         List<Issue> issues = issueService.findAll(search, statusFilter, riskFilter);
 
@@ -63,13 +63,13 @@ public class IssueController {
         Issue issue = new Issue();
         issue.setId((String) body.get("id"));
         issue.setTitle((String) body.get("title"));
-        issue.setRiskLevel(RiskLevel.valueOf((String) body.get("riskLevel")));
+        issue.setRiskLevel(HumanRiskLevel.valueOf((String) body.get("riskLevel")));
         issue.setIssueTime(Instant.parse((String) body.get("issueTime")));
         issue.setOperName((String) body.get("operName"));
         issue.setOperNo((String) body.get("operNo"));
         String moduleStr = (String) body.get("module");
         if (moduleStr != null && !moduleStr.isBlank()) {
-            issue.setModule(Module.valueOf(moduleStr));
+            issue.setModule(com.fabalarm.model.Module.valueOf(moduleStr));
         }
         @SuppressWarnings("unchecked")
         List<String> labelStrs = (List<String>) body.get("labels");

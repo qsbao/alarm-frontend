@@ -49,7 +49,7 @@ class IssueMergeEndpointTest {
         Map<String, String> body = new HashMap<>();
         body.put("id", id);
         body.put("title", "Merge test issue " + id);
-        body.put("riskLevel", "Medium");
+        body.put("riskLevel", "MIDDLE_RISK");
         body.put("issueTime", "2025-06-15T10:00:00Z");
         body.put("operName", "Etch");
         body.put("product", "B3-Etch");

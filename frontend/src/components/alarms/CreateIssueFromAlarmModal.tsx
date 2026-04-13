@@ -1,12 +1,12 @@
 import { X } from 'lucide-react';
 import { useState } from 'react';
-import type { Alarm, IssueDraft, RiskLevel, User } from '../../types';
-import { ALL_RISK_LEVELS } from '../../types';
+import type { Alarm, IssueDraft, HumanRiskLevel, User } from '../../types';
+import { ALL_HUMAN_RISK_LEVELS } from '../../types';
 import { getDefaultWorkflowId } from '../../lib/workflows/workflowDefaults';
 import { getAllDefinitions } from '../../lib/workflows/definitions';
 
 function buildIssueFromAlarm(alarm: Alarm, now: string): IssueDraft {
-  const riskLevel: RiskLevel = alarm.riskLevel ?? alarm.severity;
+  const riskLevel: HumanRiskLevel = alarm.riskLevel ?? 'MIDDLE_RISK';
 
   return {
     title: alarm.message,
@@ -42,7 +42,7 @@ export function CreateIssueFromAlarmModal({
   const initial = buildIssueFromAlarm(alarm, new Date().toISOString());
   const [title, setTitle] = useState(initial.title);
   const [description, setDescription] = useState(initial.description);
-  const [riskLevel, setRiskLevel] = useState<RiskLevel>(initial.riskLevel);
+  const [riskLevel, setRiskLevel] = useState<HumanRiskLevel>(initial.riskLevel);
   const [product, setProduct] = useState(initial.product);
   const [operName, setOperName] = useState(initial.operName ?? '');
   const [ownerId, setOwnerId] = useState(initial.ownerId);
@@ -111,10 +111,10 @@ export function CreateIssueFromAlarmModal({
               <span className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted">Risk Level</span>
               <select
                 value={riskLevel}
-                onChange={(e) => setRiskLevel(e.target.value as RiskLevel)}
+                onChange={(e) => setRiskLevel(e.target.value as HumanRiskLevel)}
                 className="input-base text-xs"
               >
-                {ALL_RISK_LEVELS.map((r) => (
+                {ALL_HUMAN_RISK_LEVELS.map((r) => (
                   <option key={r} value={r}>{r}</option>
                 ))}
               </select>
@@ -141,8 +141,6 @@ export function CreateIssueFromAlarmModal({
                 className="input-base text-xs"
               />
             </label>
-
-          <div className="grid grid-cols-2 gap-3">
             <label className="flex flex-col gap-1">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted">Owner</span>
               <input

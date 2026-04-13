@@ -1,7 +1,7 @@
 import { Check, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import type { Alarm, AlarmLabel, RiskLevel } from '../types';
-import { ALL_ALARM_LABELS, ALL_RISK_LEVELS } from '../types';
+import type { Alarm, AlarmLabel, HumanRiskLevel, RiskLevel } from '../types';
+import { ALL_ALARM_LABELS, ALL_HUMAN_RISK_LEVELS } from '../types';
 import { useCurrentUserStore } from '../stores/currentUserStore';
 
 import { useAlarm, useAlarmActions, useAlarmActivity } from '../hooks/useAlarms';
@@ -18,18 +18,16 @@ const STATUS_COLOR: Record<string, string> = {
   Acked: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
 };
 
-const RISK_LABELS: Record<RiskLevel, string> = {
-  P0: 'P0',
-  P1: 'P1',
-  P2: 'P2',
-  P3: 'P3',
+const RISK_LABELS: Record<HumanRiskLevel, string> = {
+  HIGH_RISK: 'High',
+  MIDDLE_RISK: 'Middle',
+  LOW_RISK: 'Low',
 };
 
-const RISK_COLOR: Record<RiskLevel, string> = {
-  P0: 'bg-red-500/15 text-red-400 border-red-500/30',
-  P1: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
-  P2: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
-  P3: 'bg-slate-500/15 text-slate-400 border-slate-500/30',
+const RISK_COLOR: Record<HumanRiskLevel, string> = {
+  HIGH_RISK: 'bg-red-500/15 text-red-400 border-red-500/30',
+  MIDDLE_RISK: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+  LOW_RISK: 'bg-slate-500/15 text-slate-400 border-slate-500/30',
 };
 
 interface QuickAckDrawerProps {
@@ -72,7 +70,7 @@ export function QuickAckDrawer({ alarmId, onClose }: QuickAckDrawerProps) {
     await actions.setLabel(action, label);
   };
 
-  const handleRiskChange = async (risk: RiskLevel) => {
+  const handleRiskChange = async (risk: HumanRiskLevel) => {
     await actions.setRisk(risk);
   };
 
@@ -186,7 +184,7 @@ export function QuickAckDrawer({ alarmId, onClose }: QuickAckDrawerProps) {
           <div className="border-t border-border-subtle/40 pt-4">
             <h3 className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted mb-2">Risk Level</h3>
             <div className="flex gap-1.5">
-              {ALL_RISK_LEVELS.map((risk) => {
+              {ALL_HUMAN_RISK_LEVELS.map((risk) => {
                 const isActive = alarm.riskLevel === risk;
                 return (
                   <button

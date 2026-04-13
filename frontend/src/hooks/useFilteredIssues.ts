@@ -1,9 +1,9 @@
-import type { Issue, IssueStatus, RiskLevel } from '../types';
+import type { Issue, IssueStatus, HumanRiskLevel } from '../types';
 import { getUserById } from '../lib/users';
 
 export interface IssueFilterParams {
   statusFilter: IssueStatus | 'all';
-  riskFilter: RiskLevel | 'all';
+  riskFilter: HumanRiskLevel | 'all';
   search: string;
   showMerged: boolean;
 }

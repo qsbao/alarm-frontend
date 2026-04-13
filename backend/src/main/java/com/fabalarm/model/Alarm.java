@@ -107,8 +107,8 @@ public class Alarm {
     private AlarmStatus status;
 
     @Enumerated(EnumType.STRING)
-    @Column(length = 10)
-    private RiskLevel riskLevel;
+    @Column(length = 11)
+    private HumanRiskLevel riskLevel;
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "alarm_label", joinColumns = @JoinColumn(name = "alarm_id"))
@@ -231,8 +231,8 @@ public class Alarm {
     public AlarmStatus getStatus() { return status; }
     public void setStatus(AlarmStatus status) { this.status = status; }
 
-    public RiskLevel getRiskLevel() { return riskLevel; }
-    public void setRiskLevel(RiskLevel riskLevel) { this.riskLevel = riskLevel; }
+    public HumanRiskLevel getRiskLevel() { return riskLevel; }
+    public void setRiskLevel(HumanRiskLevel riskLevel) { this.riskLevel = riskLevel; }
 
     public Set<AlarmLabel> getLabels() { return labels; }
     public void setLabels(Set<AlarmLabel> labels) { this.labels = labels; }

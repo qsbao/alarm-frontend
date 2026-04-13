@@ -235,12 +235,12 @@ class AlarmEndpointTest {
     @Test
     void listAlarmsFilterByHumanRisk() {
         ResponseEntity<List> response = restTemplate.exchange(
-                "/api/alarms?from=2025-01-01T00:00:00Z&to=2026-12-31T23:59:59Z&humanRisk=high",
+                "/api/alarms?from=2025-01-01T00:00:00Z&to=2026-12-31T23:59:59Z&riskLevel=HIGH_RISK",
                 HttpMethod.GET, withAuth(), List.class);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         List<Map<String, Object>> alarms = response.getBody();
         for (Map<String, Object> alarm : alarms) {
-            assertEquals("high", alarm.get("humanRisk"));
+            assertEquals("HIGH_RISK", alarm.get("riskLevel"));
         }
     }
 }

@@ -6,12 +6,12 @@ function makeAlarm(overrides: Partial<Alarm> = {}): Alarm {
   return {
     id: 'alm-001',
     type: 'TempSpike',
-    severity: 'High',
+    severity: 'P1',
     message: 'test',
-    time: '2026-01-15T10:00:00Z',
-    machineId: 'LITHO-07',
-    product: 'A7-Litho',
-    operation: 'Wafer transfer',
+    alarmTime: '2026-01-15T10:00:00Z',
+    eqpId: 'LITHO-07',
+    productId: 'A7-Litho',
+    operName: 'Wafer transfer',
     owner: 'H. Tanaka',
     department: 'Litho',
     status: 'Open',
@@ -73,10 +73,10 @@ describe('filterAlarms', () => {
   const now = new Date('2026-01-15T12:00:00Z').getTime();
 
   const alarms: Alarm[] = [
-    makeAlarm({ id: 'alm-001', status: 'Open', department: 'Litho', severity: 'High', type: 'TempSpike', owner: 'H. Tanaka', machineId: 'LITHO-07', product: 'A7-Litho', labels: ['Recurring'] }),
-    makeAlarm({ id: 'alm-002', status: 'Acked', department: 'Etch', severity: 'Low', type: 'PressureDrop', owner: 'M. Chen', machineId: 'ETCH-03', product: 'B2-Etch', recoveryTime: '2026-01-15T11:00:00Z', labels: [] }),
-    makeAlarm({ id: 'alm-003', status: 'Open', department: 'Litho', severity: 'Critical', type: 'ChamberLeak', owner: 'L. Rossi', machineId: 'LITHO-02', product: 'A7-Litho', recoveryTime: '2026-01-15T11:30:00Z', humanRisk: 'high', labels: ['LotImpacting'] }),
-    makeAlarm({ id: 'alm-004', status: 'Acked', department: 'Facilities', severity: 'Medium', type: 'VoltageSag', owner: 'K. Müller', machineId: 'FAC-01', product: 'C1-Fac', labels: [] }),
+    makeAlarm({ id: 'alm-001', status: 'Open', department: 'Litho', severity: 'P1', type: 'TempSpike', owner: 'H. Tanaka', eqpId: 'LITHO-07', productId: 'A7-Litho', labels: ['Recurring'] }),
+    makeAlarm({ id: 'alm-002', status: 'Acked', department: 'Etch', severity: 'P3', type: 'ChamberLeak', owner: 'M. Chen', eqpId: 'ETCH-03', productId: 'B2-Etch', recoveryTime: '2026-01-15T11:00:00Z', labels: [] }),
+    makeAlarm({ id: 'alm-003', status: 'Open', department: 'Litho', severity: 'P0', type: 'ChamberLeak', owner: 'L. Rossi', eqpId: 'LITHO-02', productId: 'A7-Litho', recoveryTime: '2026-01-15T11:30:00Z', riskLevel: 'HIGH_RISK', labels: ['LotImpacting'] }),
+    makeAlarm({ id: 'alm-004', status: 'Acked', department: 'Facilities', severity: 'P2', type: 'spc_ooc', owner: 'K. Müller', eqpId: 'FAC-01', productId: 'C1-Fac', labels: [] }),
   ];
 
   it('returns all alarms with empty filters', () => {
@@ -94,7 +94,7 @@ describe('filterAlarms', () => {
   });
 
   it('filters by severity', () => {
-    const result = filterAlarms(alarms, { severity: ['Critical'] }, now);
+    const result = filterAlarms(alarms, { severity: ['P0'] }, now);
     expect(result.map((a) => a.id)).toEqual(['alm-003']);
   });
 
@@ -113,8 +113,8 @@ describe('filterAlarms', () => {
     expect(result.map((a) => a.id)).toEqual(['alm-001']);
   });
 
-  it('filters by humanRisk', () => {
-    const result = filterAlarms(alarms, { humanRisk: ['high'] }, now);
+  it('filters by riskLevel', () => {
+    const result = filterAlarms(alarms, { riskLevel: ['HIGH_RISK'] }, now);
     expect(result.map((a) => a.id)).toEqual(['alm-003']);
   });
 
@@ -160,24 +160,24 @@ describe('filterAlarms', () => {
 
 describe('sortAlarms', () => {
   const alarms: Alarm[] = [
-    makeAlarm({ id: 'alm-001', time: '2026-01-15T10:00:00Z', severity: 'High', type: 'TempSpike', department: 'Litho' }),
-    makeAlarm({ id: 'alm-002', time: '2026-01-15T08:00:00Z', severity: 'Critical', type: 'PressureDrop', department: 'Etch' }),
-    makeAlarm({ id: 'alm-003', time: '2026-01-15T12:00:00Z', severity: 'Low', type: 'ChamberLeak', department: 'Facilities' }),
+    makeAlarm({ id: 'alm-001', alarmTime: '2026-01-15T10:00:00Z', severity: 'P1', type: 'TempSpike', department: 'Litho' }),
+    makeAlarm({ id: 'alm-002', alarmTime: '2026-01-15T08:00:00Z', severity: 'P0', type: 'ChamberLeak', department: 'Etch' }),
+    makeAlarm({ id: 'alm-003', alarmTime: '2026-01-15T12:00:00Z', severity: 'P3', type: 'spc_ooc', department: 'Facilities' }),
   ];
 
   it('sorts by time descending (newest first)', () => {
-    const result = sortAlarms(alarms, 'time');
+    const result = sortAlarms(alarms, 'alarmTime');
     expect(result.map((a) => a.id)).toEqual(['alm-003', 'alm-001', 'alm-002']);
   });
 
-  it('sorts by severity (Critical first)', () => {
+  it('sorts by severity (P0 first)', () => {
     const result = sortAlarms(alarms, 'severity');
     expect(result.map((a) => a.id)).toEqual(['alm-002', 'alm-001', 'alm-003']);
   });
 
   it('sorts by type alphabetically', () => {
     const result = sortAlarms(alarms, 'type');
-    expect(result.map((a) => a.id)).toEqual(['alm-003', 'alm-002', 'alm-001']);
+    expect(result.map((a) => a.id)).toEqual(['alm-002', 'alm-003', 'alm-001']);
   });
 
   it('sorts by department alphabetically', () => {
@@ -187,7 +187,7 @@ describe('sortAlarms', () => {
 
   it('does not mutate the input array', () => {
     const original = [...alarms];
-    sortAlarms(alarms, 'time');
+    sortAlarms(alarms, 'alarmTime');
     expect(alarms.map((a) => a.id)).toEqual(original.map((a) => a.id));
   });
 });

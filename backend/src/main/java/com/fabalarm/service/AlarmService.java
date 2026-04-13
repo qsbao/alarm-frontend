@@ -83,11 +83,11 @@ public class AlarmService {
     }
 
     @Transactional
-    public Alarm setRisk(String alarmId, User user, RiskLevel risk) {
+    public Alarm setRisk(String alarmId, User user, HumanRiskLevel risk) {
         Alarm alarm = alarmRepository.findByIdWithLabels(alarmId);
         if (alarm == null) return null;
 
-        RiskLevel fromRisk = alarm.getRiskLevel();
+        HumanRiskLevel fromRisk = alarm.getRiskLevel();
         alarm.setRiskLevel(risk);
         alarmRepository.save(alarm);
 
@@ -140,7 +140,7 @@ public class AlarmService {
                                         List<AlarmStatus> status,
                                         List<String> department,
                                         List<RiskLevel> severity,
-                                        List<RiskLevel> riskLevel,
+                                        List<HumanRiskLevel> riskLevel,
                                         List<AlarmType> alarmType,
                                         List<String> owner,
                                         List<String> eqpId,

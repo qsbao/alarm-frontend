@@ -55,12 +55,12 @@ class IssueEndpointTest {
     @Test
     void listIssuesFilterByRiskLevel() {
         ResponseEntity<List> response = restTemplate.exchange(
-                "/api/issues?riskLevel=Critical", HttpMethod.GET, withAuth(), List.class);
+                "/api/issues?riskLevel=HIGH_RISK", HttpMethod.GET, withAuth(), List.class);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         List<Map<String, Object>> issues = response.getBody();
         assertTrue(issues.size() > 0);
         for (Map<String, Object> issue : issues) {
-            assertEquals("Critical", issue.get("riskLevel"));
+            assertEquals("HIGH_RISK", issue.get("riskLevel"));
         }
     }
 
@@ -110,7 +110,7 @@ class IssueEndpointTest {
         Map<String, Object> body = Map.of(
                 "id", "iss-test-create",
                 "title", "Test issue creation",
-                "riskLevel", "High",
+                "riskLevel", "HIGH_RISK",
                 "issueTime", "2025-06-15T10:00:00Z",
                 "operName", "Exposure",
                 "operNo", "OP-1010",
@@ -133,7 +133,7 @@ class IssueEndpointTest {
         Map<String, Object> body = Map.of(
                 "id", "iss-test-act",
                 "title", "Test activity logging",
-                "riskLevel", "Medium",
+                "riskLevel", "MIDDLE_RISK",
                 "issueTime", "2025-06-15T11:00:00Z",
                 "operName", "Etch",
                 "product", "B3-Etch",

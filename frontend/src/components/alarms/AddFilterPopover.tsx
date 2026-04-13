@@ -5,12 +5,12 @@ import type {
   AlarmLabel,
   AlarmStatus,
   AlarmType,
-  RiskLevel,
 } from '../../types';
 import {
   ALL_ALARM_LABELS,
   ALL_ALARM_STATUSES,
   ALL_ALARM_TYPES,
+  ALL_HUMAN_RISK_LEVELS,
   ALL_RISK_LEVELS,
 } from '../../types';
 
@@ -57,7 +57,7 @@ export function AddFilterPopover({
       heading: 'Triage',
       items: [
         { key: 'status', label: 'Status', options: ALL_ALARM_STATUSES as unknown as string[] },
-        { key: 'riskLevel', label: 'Risk Level', options: ALL_RISK_LEVELS as unknown as string[] },
+        { key: 'riskLevel', label: 'Risk Level', options: ALL_HUMAN_RISK_LEVELS as unknown as string[] },
         { key: 'severity', label: 'System Severity', options: ALL_RISK_LEVELS as unknown as string[] },
       ],
     },

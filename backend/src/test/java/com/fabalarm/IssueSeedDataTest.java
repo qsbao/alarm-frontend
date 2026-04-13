@@ -29,7 +29,7 @@ class IssueSeedDataTest {
         assertEquals("Temperature excursion on LITHO-07", issue.get().getTitle());
         assertEquals("Litho", issue.get().getDepartment());
         assertEquals("LITHO", issue.get().getModule().name());
-        assertEquals("Critical", issue.get().getRiskLevel().name());
+        assertEquals("HIGH_RISK", issue.get().getRiskLevel().name());
         assertEquals("Investigating", issue.get().getStatus().name());
     }
 

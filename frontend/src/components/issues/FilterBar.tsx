@@ -2,9 +2,9 @@ import { Search, X } from 'lucide-react';
 import { useIssueStore } from '../../stores/issueStore';
 import { ISSUE_BUILTIN_VIEWS } from '../../lib/issueSavedViews';
 import {
-  ALL_RISK_LEVELS,
+  ALL_HUMAN_RISK_LEVELS,
   type IssueStatus,
-  type RiskLevel,
+  type HumanRiskLevel,
 } from '../../types';
 
 /** Statuses shown in the dropdown — Merged gets its own chip. */
@@ -62,11 +62,11 @@ export function FilterBar() {
 
       <select
         value={riskFilter}
-        onChange={(e) => setRiskFilter(e.target.value as RiskLevel | 'all')}
+        onChange={(e) => setRiskFilter(e.target.value as HumanRiskLevel | 'all')}
         className="input-base w-auto"
       >
         <option value="all">All risk</option>
-        {ALL_RISK_LEVELS.map((r) => (
+        {ALL_HUMAN_RISK_LEVELS.map((r) => (
           <option key={r} value={r}>
             {r}
           </option>

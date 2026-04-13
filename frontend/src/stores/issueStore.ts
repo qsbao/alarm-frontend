@@ -1,12 +1,12 @@
 import { create } from 'zustand';
-import type { IssueStatus, RiskLevel } from '../types';
+import type { IssueStatus, HumanRiskLevel } from '../types';
 
 export type SortKey = 'date' | 'risk_level';
 export type SortDir = 'asc' | 'desc';
 
 interface IssueStore {
   search: string;
-  riskFilter: RiskLevel | 'all';
+  riskFilter: HumanRiskLevel | 'all';
   statusFilter: IssueStatus | 'all';
   activeViewName: string | null;
   sortKey: SortKey;
@@ -17,7 +17,7 @@ interface IssueStore {
   showMerged: boolean;
 
   setSearch: (s: string) => void;
-  setRiskFilter: (r: RiskLevel | 'all') => void;
+  setRiskFilter: (r: HumanRiskLevel | 'all') => void;
   setStatusFilter: (s: IssueStatus | 'all') => void;
   setActiveViewName: (name: string | null) => void;
   setShowMerged: (v: boolean) => void;

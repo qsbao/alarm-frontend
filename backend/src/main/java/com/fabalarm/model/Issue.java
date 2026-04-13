@@ -20,8 +20,8 @@ public class Issue {
     private Instant date;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "risk_level", nullable = false, length = 10)
-    private RiskLevel riskLevel;
+    @Column(name = "risk_level", nullable = false, length = 11)
+    private HumanRiskLevel riskLevel;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 15)
@@ -74,8 +74,8 @@ public class Issue {
     public Instant getDate() { return date; }
     public void setDate(Instant date) { this.date = date; }
 
-    public RiskLevel getRiskLevel() { return riskLevel; }
-    public void setRiskLevel(RiskLevel riskLevel) { this.riskLevel = riskLevel; }
+    public HumanRiskLevel getRiskLevel() { return riskLevel; }
+    public void setRiskLevel(HumanRiskLevel riskLevel) { this.riskLevel = riskLevel; }
 
     public IssueStatus getStatus() { return status; }
     public void setStatus(IssueStatus status) { this.status = status; }

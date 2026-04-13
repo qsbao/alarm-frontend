@@ -1,16 +1,21 @@
-import type { RiskLevel } from '../../types';
+import type { HumanRiskLevel } from '../../types';
 
-const RISK_CLASSES: Record<RiskLevel, string> = {
-  P0: 'text-red-400 bg-red-500/10 border-red-500/20',
-  P1: 'text-orange-400 bg-orange-500/10 border-orange-500/20',
-  P2: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
-  P3: 'text-slate-400 bg-slate-500/10 border-slate-500/20',
+const RISK_CLASSES: Record<HumanRiskLevel, string> = {
+  HIGH_RISK: 'text-red-400 bg-red-500/10 border-red-500/20',
+  MIDDLE_RISK: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
+  LOW_RISK: 'text-slate-400 bg-slate-500/10 border-slate-500/20',
 };
 
-export function RiskBadge({ level }: { level: RiskLevel }) {
+const RISK_DISPLAY: Record<HumanRiskLevel, string> = {
+  HIGH_RISK: 'High',
+  MIDDLE_RISK: 'Middle',
+  LOW_RISK: 'Low',
+};
+
+export function RiskBadge({ level }: { level: HumanRiskLevel }) {
   return (
     <span className={`badge border ${RISK_CLASSES[level]}`}>
-      {level}
+      {RISK_DISPLAY[level]}
     </span>
   );
 }

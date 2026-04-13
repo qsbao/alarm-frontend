@@ -14,7 +14,7 @@ function makeIssue(workflow?: WorkflowInstance): Issue {
     title: 'Test',
     date: '2025-01-15T10:00:00Z',
     alarmType: 'TempSpike',
-    riskLevel: 'High',
+    riskLevel: 'HIGH_RISK',
     status: 'Investigating',
     issueTime: '2025-01-15T09:55:00Z',
     operation: 'Lithography',

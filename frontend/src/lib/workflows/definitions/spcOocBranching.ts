@@ -73,7 +73,7 @@ export const spcOocBranchingDefinition: WorkflowDefinition = {
       label: 'Meeting',
       order: 7,
       preSteps: ['l4_review', 'pi_comment', 'attach_report', 'verify_calibration'],
-      skippableIf: (issue) => issue.riskLevel === 'P3',
+      skippableIf: (issue) => issue.riskLevel === 'LOW_RISK',
     },
     {
       id: 'lot_disposition',
@@ -81,7 +81,7 @@ export const spcOocBranchingDefinition: WorkflowDefinition = {
       order: 8,
       preSteps: ['meeting'],
       skippableIf: () => true,
-      defaultSkipIf: (issue) => issue.riskLevel === 'P3',
+      defaultSkipIf: (issue) => issue.riskLevel === 'LOW_RISK',
       payloadSchema: {
         lotId: {
           kind: 'lot-disposition',

@@ -33,8 +33,8 @@ describe('filtersToParams', () => {
     expect(params.get('sort')).toBe('severity');
   });
 
-  it('omits default sort key (time)', () => {
-    const params = filtersToParams({}, 'time');
+  it('omits default sort key (alarmTime)', () => {
+    const params = filtersToParams({}, 'alarmTime');
     expect(params.has('sort')).toBe(false);
   });
 
@@ -53,13 +53,13 @@ describe('filtersToParams', () => {
       search: 'test',
       status: ['Open'],
       department: ['Etch'],
-      severity: ['High'],
-      humanRisk: ['high'],
+      severity: ['P1'],
+      riskLevel: ['HIGH_RISK'],
       alarmType: ['TempSpike'],
       owner: ['M. Chen'],
-      machineId: ['ETCH-03'],
-      product: ['B2-Etch'],
-      operation: ['Etching'],
+      eqpId: ['ETCH-03'],
+      productId: ['B2-Etch'],
+      operName: ['Etching'],
       labels: ['Recurring'],
       active: 'recovered',
     };
@@ -67,13 +67,13 @@ describe('filtersToParams', () => {
     expect(params.get('q')).toBe('test');
     expect(params.get('status')).toBe('Open');
     expect(params.get('department')).toBe('Etch');
-    expect(params.get('severity')).toBe('High');
-    expect(params.get('humanRisk')).toBe('high');
+    expect(params.get('severity')).toBe('P1');
+    expect(params.get('riskLevel')).toBe('HIGH_RISK');
     expect(params.get('alarmType')).toBe('TempSpike');
     expect(params.get('owner')).toBe('M. Chen');
-    expect(params.get('machineId')).toBe('ETCH-03');
-    expect(params.get('product')).toBe('B2-Etch');
-    expect(params.get('operation')).toBe('Etching');
+    expect(params.get('eqpId')).toBe('ETCH-03');
+    expect(params.get('productId')).toBe('B2-Etch');
+    expect(params.get('operName')).toBe('Etching');
     expect(params.get('labels')).toBe('Recurring');
     expect(params.get('active')).toBe('recovered');
     expect(params.get('sort')).toBe('severity');
@@ -85,7 +85,7 @@ describe('paramsToFilters', () => {
     const params = new URLSearchParams();
     const { filters, sortKey } = paramsToFilters(params);
     expect(filters).toEqual({});
-    expect(sortKey).toBe('time');
+    expect(sortKey).toBe('alarmTime');
   });
 
   it('parses search', () => {
@@ -112,10 +112,10 @@ describe('paramsToFilters', () => {
     expect(sortKey).toBe('severity');
   });
 
-  it('defaults sort key to time', () => {
+  it('defaults sort key to alarmTime', () => {
     const params = new URLSearchParams('status=Open');
     const { sortKey } = paramsToFilters(params);
-    expect(sortKey).toBe('time');
+    expect(sortKey).toBe('alarmTime');
   });
 
   it('ignores unknown params', () => {
@@ -134,7 +134,7 @@ describe('paramsToFilters', () => {
   it('ignores invalid sort values', () => {
     const params = new URLSearchParams('sort=invalid');
     const { sortKey } = paramsToFilters(params);
-    expect(sortKey).toBe('time');
+    expect(sortKey).toBe('alarmTime');
   });
 });
 
@@ -144,7 +144,7 @@ describe('round-trip serialization', () => {
       search: 'leak',
       status: ['Open'],
       department: ['Litho', 'Etch'],
-      severity: ['High', 'Critical'],
+      severity: ['P1', 'P0'],
       alarmType: ['TempSpike'],
       labels: ['Recurring'],
       active: 'active',
@@ -162,6 +162,6 @@ describe('round-trip serialization', () => {
     const params = filtersToParams({});
     const { filters, sortKey } = paramsToFilters(params);
     expect(filters).toEqual({});
-    expect(sortKey).toBe('time');
+    expect(sortKey).toBe('alarmTime');
   });
 });

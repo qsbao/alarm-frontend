@@ -30,7 +30,7 @@ public class IssueService {
     }
 
     public List<Issue> findAll(String search, List<IssueStatus> status,
-                               List<RiskLevel> riskLevel) {
+                               List<HumanRiskLevel> riskLevel) {
         List<Issue> issues = issueRepository.findAll();
         return issues.stream()
                 .filter(i -> matchSearch(i, search))

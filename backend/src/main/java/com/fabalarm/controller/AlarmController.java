@@ -70,7 +70,7 @@ public class AlarmController {
 
         List<AlarmStatus> statusFilter = parseEnums(status, AlarmStatus.class);
         List<RiskLevel> severityFilter = parseEnums(severity, RiskLevel.class);
-        List<RiskLevel> riskLevelFilter = parseEnums(riskLevel, RiskLevel.class);
+        List<HumanRiskLevel> riskLevelFilter = parseEnums(riskLevel, HumanRiskLevel.class);
         List<AlarmType> alarmTypeFilter = parseEnums(alarmType, AlarmType.class);
         List<AlarmLabel> labelsFilter = parseEnums(labels, AlarmLabel.class);
 
@@ -122,7 +122,7 @@ public class AlarmController {
     @Operation(summary = "Set risk level on alarm", description = "Set risk level assessment on an alarm")
     @PostMapping("/{id}/risk")
     public ResponseEntity<?> setRisk(@PathVariable String id, @RequestBody Map<String, String> body) {
-        RiskLevel risk = RiskLevel.valueOf(body.get("risk"));
+        HumanRiskLevel risk = HumanRiskLevel.valueOf(body.get("risk"));
         Alarm alarm = alarmService.setRisk(id, CurrentUserHolder.get(), risk);
         if (alarm == null) return ResponseEntity.notFound().build();
         return ResponseEntity.ok(toDto(alarm));

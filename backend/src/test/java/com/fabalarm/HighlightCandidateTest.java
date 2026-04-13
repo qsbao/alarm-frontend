@@ -42,7 +42,7 @@ class HighlightCandidateTest {
         issue.setStatus(status);
         issue.setDate(Instant.now());
         issue.setIssueTime(Instant.now());
-        issue.setRiskLevel(RiskLevel.P2);
+        issue.setRiskLevel(HumanRiskLevel.MIDDLE_RISK);
         issue.setOwnerId("user-test");
         issue.setDepartment("Litho");
         return issue;
