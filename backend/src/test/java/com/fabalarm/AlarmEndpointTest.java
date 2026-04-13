@@ -91,12 +91,12 @@ class AlarmEndpointTest {
     @Test
     void listAlarmsFilterBySeverity() {
         ResponseEntity<List> response = restTemplate.exchange(
-                "/api/alarms?from=2025-01-01T00:00:00Z&to=2026-12-31T23:59:59Z&severity=Critical",
+                "/api/alarms?from=2025-01-01T00:00:00Z&to=2026-12-31T23:59:59Z&severity=P1",
                 HttpMethod.GET, withAuth(), List.class);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         List<Map<String, Object>> alarms = response.getBody();
         for (Map<String, Object> alarm : alarms) {
-            assertEquals("Critical", alarm.get("severity"));
+            assertEquals("P1", alarm.get("severity"));
         }
     }
 
@@ -140,26 +140,26 @@ class AlarmEndpointTest {
     }
 
     @Test
-    void listAlarmsFilterByMachineId() {
+    void listAlarmsFilterByEqpId() {
         ResponseEntity<List> response = restTemplate.exchange(
-                "/api/alarms?from=2025-01-01T00:00:00Z&to=2026-12-31T23:59:59Z&machineId=LITHO-07",
+                "/api/alarms?from=2025-01-01T00:00:00Z&to=2026-12-31T23:59:59Z&eqpId=LITHO-07",
                 HttpMethod.GET, withAuth(), List.class);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         List<Map<String, Object>> alarms = response.getBody();
         for (Map<String, Object> alarm : alarms) {
-            assertEquals("LITHO-07", alarm.get("machineId"));
+            assertEquals("LITHO-07", alarm.get("eqpId"));
         }
     }
 
     @Test
-    void listAlarmsFilterByProduct() {
+    void listAlarmsFilterByProductId() {
         ResponseEntity<List> response = restTemplate.exchange(
-                "/api/alarms?from=2025-01-01T00:00:00Z&to=2026-12-31T23:59:59Z&product=A7-Litho",
+                "/api/alarms?from=2025-01-01T00:00:00Z&to=2026-12-31T23:59:59Z&productId=A7-Litho",
                 HttpMethod.GET, withAuth(), List.class);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         List<Map<String, Object>> alarms = response.getBody();
         for (Map<String, Object> alarm : alarms) {
-            assertEquals("A7-Litho", alarm.get("product"));
+            assertEquals("A7-Litho", alarm.get("productId"));
         }
     }
 
@@ -206,8 +206,8 @@ class AlarmEndpointTest {
         assertNotNull(alarm.get("type"));
         assertNotNull(alarm.get("severity"));
         assertNotNull(alarm.get("message"));
-        assertNotNull(alarm.get("time"));
-        assertNotNull(alarm.get("machineId"));
+        assertNotNull(alarm.get("alarmTime"));
+        assertNotNull(alarm.get("eqpId"));
         assertNotNull(alarm.get("status"));
         assertNotNull(alarm.get("labels"));
     }

@@ -275,7 +275,7 @@ class RelationEndpointTest {
         assertEquals(HttpStatus.OK, childResponse.getStatusCode());
         Map<String, Object> child = childResponse.getBody();
         assertEquals("Highlight: Lot start on B3-Etch", child.get("title"));
-        assertEquals("Lot start", child.get("operation"));
+        assertEquals("Lot start", child.get("operName"));
         assertEquals("B3-Etch", child.get("product"));
         assertEquals("Triage", child.get("status"));
 
