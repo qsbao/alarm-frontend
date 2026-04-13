@@ -3,6 +3,7 @@ package com.fabalarm.service;
 import com.fabalarm.model.Alarm;
 import com.fabalarm.model.AlarmDetails;
 import com.fabalarm.model.SpcOocDetails;
+import com.fabalarm.model.TempSpikeDetails;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -19,6 +20,10 @@ public class IngestProjector {
                 alarm.setValue(null);
                 alarm.setUnit(null);
             }
+        } else if (details instanceof TempSpikeDetails tempSpike) {
+            double delta = tempSpike.currentTemp() - tempSpike.thresholdTemp();
+            alarm.setValue(delta);
+            alarm.setUnit("°C");
         }
     }
 }
