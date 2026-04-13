@@ -5,8 +5,11 @@ import {
   Building2,
   Calendar,
   Check,
+  ChevronDown,
+  ChevronUp,
   Clock,
   Cpu,
+  ExternalLink,
   Gauge,
   Link as LinkIcon,
   MessageSquare,
@@ -30,6 +33,7 @@ import { backend } from '../api/backendClient';
 import { LinkedIssueCard } from '../components/alarms/LinkedIssueCard';
 import { CreateIssueFromAlarmModal } from '../components/alarms/CreateIssueFromAlarmModal';
 import { AlarmDetailsPanel } from '../components/alarms/AlarmDetailsPanel';
+import { getAlarmSourceUrl, getAlarmSourceLabel } from '../lib/external-systems/alarmSources';
 
 const SEVERITY_COLOR: Record<string, string> = {
   P0: 'bg-red-500/15 text-red-400 border-red-500/30',
@@ -237,6 +241,69 @@ function ActionPanel({
   );
 }
 
+// --- External Source Panel ---
+
+function ExternalSourcePanel({ alarm }: { alarm: Alarm }) {
+  const [showSourceBody, setShowSourceBody] = useState(false);
+
+  if (!alarm.source) return null;
+
+  return (
+    <div className="card p-5">
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-theme-muted mb-3">External Source</h2>
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="text-xs text-theme-secondary">
+            <span className="text-theme-muted">Source:</span> {getAlarmSourceLabel(alarm.source)}
+          </div>
+          {alarm.source && alarm.sourceAlarmId && (
+            <a
+              href={getAlarmSourceUrl(alarm.source, alarm.sourceAlarmId)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-theme-accent hover:underline"
+            >
+              View in {getAlarmSourceLabel(alarm.source)}
+              <ExternalLink size={10} />
+            </a>
+          )}
+        </div>
+        {alarm.sourceAlarmId && (
+          <div className="text-xs text-theme-secondary">
+            <span className="text-theme-muted">Source Alarm ID:</span> <span className="font-mono">{alarm.sourceAlarmId}</span>
+          </div>
+        )}
+        {alarm.externalStatus && (
+          <div className="text-xs text-theme-secondary">
+            <span className="text-theme-muted">Upstream Status:</span> {alarm.externalStatus}
+            {alarm.externalStatusUpdatedAt && (
+              <span className="text-theme-muted ml-2">({formatDateTime(alarm.externalStatusUpdatedAt)})</span>
+            )}
+          </div>
+        )}
+        {alarm.sourceAlarmBody && (
+          <div>
+            <button
+              onClick={() => setShowSourceBody(!showSourceBody)}
+              className="inline-flex items-center gap-1 text-xs text-theme-muted hover:text-theme-secondary"
+            >
+              {showSourceBody ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+              {showSourceBody ? 'Hide' : 'Show'} raw source payload
+            </button>
+            {showSourceBody && (
+              <div className="mt-2 p-3 bg-surface-overlay/30 rounded border border-border-subtle/30">
+                <pre className="text-[10px] text-theme-secondary overflow-x-auto font-mono whitespace-pre-wrap">
+                  {alarm.sourceAlarmBody}
+                </pre>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // --- Main Page ---
 
 export function AlarmDetailPage() {
@@ -375,9 +442,15 @@ export function AlarmDetailPage() {
                 <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border ${SEVERITY_COLOR[alarm.severity]}`}>
                   {alarm.severity}
                 </span>
-                <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border ${STATUS_COLOR[alarm.status]}`}>
-                  {alarm.status}
-                </span>
+                {alarm.externalStatus ? (
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border bg-slate-500/15 text-slate-300 border-slate-500/30">
+                    Upstream: {alarm.externalStatus} · Local: {alarm.status}
+                  </span>
+                ) : (
+                  <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border ${STATUS_COLOR[alarm.status]}`}>
+                    {alarm.status}
+                  </span>
+                )}
                 <span className="badge text-[10px]">{alarm.type}</span>
                 {alarm.riskLevel && (
                   <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border ${RISK_COLOR[alarm.riskLevel]}`}>
@@ -403,6 +476,9 @@ export function AlarmDetailPage() {
           <div className="lg:col-span-2 flex flex-col gap-5">
             <FourWPanels alarm={alarm} now={now} />
             <AlarmDetailsPanel alarm={alarm} />
+            {alarm.source && (
+              <ExternalSourcePanel alarm={alarm} />
+            )}
           </div>
 
           <div className="flex flex-col gap-5">
