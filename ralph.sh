@@ -182,7 +182,7 @@ for line in sys.stdin:
                 inp = json.dumps(c.get("input", {}), ensure_ascii=False)
                 if len(inp) > 240:
                     inp = inp[:240] + "..."
-                print(f"\u25B8 {name} {inp}", flush=True)
+                print(f"> {name} {inp}", flush=True)
     elif t == "user":
         for c in (o.get("message", {}) or {}).get("content", []) or []:
             if c.get("type") == "tool_result":
@@ -195,7 +195,7 @@ for line in sys.stdin:
                 content = str(content).replace("\n", " ")
                 if len(content) > 240:
                     content = content[:240] + "..."
-                print(f"  \u25C2 {content}", flush=True)
+                print(f"  < {content}", flush=True)
     elif t == "system":
         sub = o.get("subtype", "system")
         print(f"[{sub}]", flush=True)
