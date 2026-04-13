@@ -1,8 +1,8 @@
 package com.fabalarm.model;
 
 public enum RiskLevel {
-    Low,
-    Medium,
-    High,
-    Critical
+    P0,
+    P1,
+    P2,
+    P3
 }

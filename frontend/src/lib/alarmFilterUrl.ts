@@ -1,11 +1,11 @@
 import type { AlarmFilters, AlarmSortKey } from '../types';
 
 const ARRAY_KEYS = [
-  'status', 'department', 'severity', 'humanRisk', 'alarmType',
-  'owner', 'machineId', 'chamberId', 'product', 'operation', 'labels',
+  'status', 'department', 'severity', 'riskLevel', 'alarmType',
+  'owner', 'eqpId', 'chamberId', 'productId', 'operName', 'labels',
 ] as const;
 
-const VALID_SORT_KEYS: AlarmSortKey[] = ['time', 'severity', 'type', 'department'];
+const VALID_SORT_KEYS: AlarmSortKey[] = ['alarmTime', 'severity', 'type', 'department'];
 const VALID_ACTIVE = ['active', 'recovered'] as const;
 
 /** Serialize AlarmFilters + sortKey into URLSearchParams. */
@@ -15,14 +15,14 @@ export function filtersToParams(filters: AlarmFilters, sortKey?: AlarmSortKey): 
   if (filters.search) params.set('q', filters.search);
 
   for (const key of ARRAY_KEYS) {
-    const val = filters[key];
-    if (val && val.length > 0) {
+    const val = filters[key as keyof AlarmFilters];
+    if (Array.isArray(val) && val.length > 0) {
       params.set(key, val.join(','));
     }
   }
 
   if (filters.active) params.set('active', filters.active);
-  if (sortKey && sortKey !== 'time') params.set('sort', sortKey);
+  if (sortKey && sortKey !== 'alarmTime') params.set('sort', sortKey);
 
   return params;
 }
@@ -49,7 +49,7 @@ export function paramsToFilters(params: URLSearchParams): { filters: AlarmFilter
   const sort = params.get('sort');
   const sortKey: AlarmSortKey = sort && (VALID_SORT_KEYS as string[]).includes(sort)
     ? (sort as AlarmSortKey)
-    : 'time';
+    : 'alarmTime';
 
   return { filters, sortKey };
 }

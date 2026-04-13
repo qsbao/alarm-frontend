@@ -2,6 +2,7 @@ package com.fabalarm.model;
 
 import jakarta.persistence.*;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -31,21 +32,64 @@ public class Alarm {
     private String unit;
 
     @Column(name = "alarm_time", nullable = false)
-    private Instant time;
+    private Instant alarmTime;
+
+    private Instant eventTime;
+
+    private LocalDate alarmDate;
 
     private Instant recoveryTime;
 
     @Column(nullable = false, length = 20)
-    private String machineId;
+    private String eqpId;
 
     @Column(length = 5)
     private String chamberId;
 
     @Column(nullable = false, length = 20)
-    private String product;
+    private String productId;
 
-    @Column(nullable = false, length = 40)
-    private String operation;
+    @Column(length = 40)
+    private String operName;
+
+    @Column(length = 20)
+    private String operNo;
+
+    @Column(length = 20)
+    private String technologyId;
+
+    @Column(length = 20)
+    private String productGroupId;
+
+    @Column(length = 40)
+    private String processOperName;
+
+    @Column(length = 20)
+    private String processOperNo;
+
+    @Column(length = 20)
+    private String lotId;
+
+    private Integer lotPriority;
+
+    @Column(length = 20)
+    private String waferId;
+
+    @Column(length = 20)
+    private String recipeId;
+
+    @Column(length = 20)
+    private String routeId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private Module module;
+
+    @Column(length = 100)
+    private String moduleOwner;
+
+    @Column(length = 100)
+    private String piOwner;
 
     @Column(nullable = false, length = 100)
     private String owner;
@@ -62,7 +106,7 @@ public class Alarm {
 
     @Enumerated(EnumType.STRING)
     @Column(length = 10)
-    private HumanRisk humanRisk;
+    private RiskLevel riskLevel;
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "alarm_label", joinColumns = @JoinColumn(name = "alarm_id"))
@@ -71,8 +115,6 @@ public class Alarm {
     private Set<AlarmLabel> labels = new HashSet<>();
 
     public Alarm() {}
-
-    // Getters and setters
 
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
@@ -92,23 +134,68 @@ public class Alarm {
     public String getUnit() { return unit; }
     public void setUnit(String unit) { this.unit = unit; }
 
-    public Instant getTime() { return time; }
-    public void setTime(Instant time) { this.time = time; }
+    public Instant getAlarmTime() { return alarmTime; }
+    public void setAlarmTime(Instant alarmTime) { this.alarmTime = alarmTime; }
+
+    public Instant getEventTime() { return eventTime; }
+    public void setEventTime(Instant eventTime) { this.eventTime = eventTime; }
+
+    public LocalDate getAlarmDate() { return alarmDate; }
+    public void setAlarmDate(LocalDate alarmDate) { this.alarmDate = alarmDate; }
 
     public Instant getRecoveryTime() { return recoveryTime; }
     public void setRecoveryTime(Instant recoveryTime) { this.recoveryTime = recoveryTime; }
 
-    public String getMachineId() { return machineId; }
-    public void setMachineId(String machineId) { this.machineId = machineId; }
+    public String getEqpId() { return eqpId; }
+    public void setEqpId(String eqpId) { this.eqpId = eqpId; }
 
     public String getChamberId() { return chamberId; }
     public void setChamberId(String chamberId) { this.chamberId = chamberId; }
 
-    public String getProduct() { return product; }
-    public void setProduct(String product) { this.product = product; }
+    public String getProductId() { return productId; }
+    public void setProductId(String productId) { this.productId = productId; }
 
-    public String getOperation() { return operation; }
-    public void setOperation(String operation) { this.operation = operation; }
+    public String getOperName() { return operName; }
+    public void setOperName(String operName) { this.operName = operName; }
+
+    public String getOperNo() { return operNo; }
+    public void setOperNo(String operNo) { this.operNo = operNo; }
+
+    public String getTechnologyId() { return technologyId; }
+    public void setTechnologyId(String technologyId) { this.technologyId = technologyId; }
+
+    public String getProductGroupId() { return productGroupId; }
+    public void setProductGroupId(String productGroupId) { this.productGroupId = productGroupId; }
+
+    public String getProcessOperName() { return processOperName; }
+    public void setProcessOperName(String processOperName) { this.processOperName = processOperName; }
+
+    public String getProcessOperNo() { return processOperNo; }
+    public void setProcessOperNo(String processOperNo) { this.processOperNo = processOperNo; }
+
+    public String getLotId() { return lotId; }
+    public void setLotId(String lotId) { this.lotId = lotId; }
+
+    public Integer getLotPriority() { return lotPriority; }
+    public void setLotPriority(Integer lotPriority) { this.lotPriority = lotPriority; }
+
+    public String getWaferId() { return waferId; }
+    public void setWaferId(String waferId) { this.waferId = waferId; }
+
+    public String getRecipeId() { return recipeId; }
+    public void setRecipeId(String recipeId) { this.recipeId = recipeId; }
+
+    public String getRouteId() { return routeId; }
+    public void setRouteId(String routeId) { this.routeId = routeId; }
+
+    public Module getModule() { return module; }
+    public void setModule(Module module) { this.module = module; }
+
+    public String getModuleOwner() { return moduleOwner; }
+    public void setModuleOwner(String moduleOwner) { this.moduleOwner = moduleOwner; }
+
+    public String getPiOwner() { return piOwner; }
+    public void setPiOwner(String piOwner) { this.piOwner = piOwner; }
 
     public String getOwner() { return owner; }
     public void setOwner(String owner) { this.owner = owner; }
@@ -122,8 +209,8 @@ public class Alarm {
     public AlarmStatus getStatus() { return status; }
     public void setStatus(AlarmStatus status) { this.status = status; }
 
-    public HumanRisk getHumanRisk() { return humanRisk; }
-    public void setHumanRisk(HumanRisk humanRisk) { this.humanRisk = humanRisk; }
+    public RiskLevel getRiskLevel() { return riskLevel; }
+    public void setRiskLevel(RiskLevel riskLevel) { this.riskLevel = riskLevel; }
 
     public Set<AlarmLabel> getLabels() { return labels; }
     public void setLabels(Set<AlarmLabel> labels) { this.labels = labels; }

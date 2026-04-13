@@ -10,10 +10,10 @@ export interface SavedView {
 const STORAGE_KEY = 'fab-alarm-saved-views';
 
 export const BUILTIN_VIEWS: SavedView[] = [
-  { name: 'Needs attention', filters: { status: ['Open'], active: 'active' }, sortKey: 'time', builtin: true },
-  { name: 'In progress', filters: { status: ['Acked'], active: 'active' }, sortKey: 'time', builtin: true },
-  { name: 'Missed', filters: { status: ['Open'], active: 'recovered' }, sortKey: 'time', builtin: true },
-  { name: 'Resolved', filters: { status: ['Acked'], active: 'recovered' }, sortKey: 'time', builtin: true },
+  { name: 'Needs attention', filters: { status: ['Open'], active: 'active' }, sortKey: 'alarmTime', builtin: true },
+  { name: 'In progress', filters: { status: ['Acked'], active: 'active' }, sortKey: 'alarmTime', builtin: true },
+  { name: 'Missed', filters: { status: ['Open'], active: 'recovered' }, sortKey: 'alarmTime', builtin: true },
+  { name: 'Resolved', filters: { status: ['Acked'], active: 'recovered' }, sortKey: 'alarmTime', builtin: true },
 ];
 
 const BUILTIN_NAMES = new Set(BUILTIN_VIEWS.map((v) => v.name));

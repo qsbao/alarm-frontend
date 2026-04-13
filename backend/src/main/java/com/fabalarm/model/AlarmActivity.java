@@ -33,11 +33,11 @@ public class AlarmActivity {
 
     @Enumerated(EnumType.STRING)
     @Column(length = 10)
-    private HumanRisk fromRisk;
+    private RiskLevel fromRisk;
 
     @Enumerated(EnumType.STRING)
     @Column(length = 10)
-    private HumanRisk toRisk;
+    private RiskLevel toRisk;
 
     public AlarmActivity() {}
 
@@ -64,9 +64,9 @@ public class AlarmActivity {
     public AlarmLabel getLabel() { return label; }
     public void setLabel(AlarmLabel label) { this.label = label; }
 
-    public HumanRisk getFromRisk() { return fromRisk; }
-    public void setFromRisk(HumanRisk fromRisk) { this.fromRisk = fromRisk; }
+    public RiskLevel getFromRisk() { return fromRisk; }
+    public void setFromRisk(RiskLevel fromRisk) { this.fromRisk = fromRisk; }
 
-    public HumanRisk getToRisk() { return toRisk; }
-    public void setToRisk(HumanRisk toRisk) { this.toRisk = toRisk; }
+    public RiskLevel getToRisk() { return toRisk; }
+    public void setToRisk(RiskLevel toRisk) { this.toRisk = toRisk; }
 }

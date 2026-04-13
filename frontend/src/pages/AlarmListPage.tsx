@@ -12,10 +12,10 @@ import { useAlarms } from '../hooks/useAlarms';
 import type { Alarm, AlarmFilters, AlarmSortKey, RiskLevel } from '../types';
 
 const SEVERITY_COLOR: Record<RiskLevel, string> = {
-  Critical: 'bg-red-500/15 text-red-400 border-red-500/30',
-  High: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
-  Medium: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
-  Low: 'bg-slate-500/15 text-slate-400 border-slate-500/30',
+  P0: 'bg-red-500/15 text-red-400 border-red-500/30',
+  P1: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
+  P2: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+  P3: 'bg-slate-500/15 text-slate-400 border-slate-500/30',
 };
 
 const STATUS_COLOR: Record<string, string> = {
@@ -67,11 +67,11 @@ function AlarmRow({
       </td>
       <td className="px-3 py-2.5 text-xs text-theme-primary truncate max-w-[240px]">{alarm.message}</td>
       <td className="px-3 py-2.5 text-xs font-mono text-theme-secondary">
-        {alarm.machineId}{alarm.chamberId ? `/${alarm.chamberId}` : ''}
+        {alarm.eqpId}{alarm.chamberId ? `/${alarm.chamberId}` : ''}
       </td>
       <td className="px-3 py-2.5 text-xs text-theme-secondary">{alarm.department}</td>
       <td className="px-3 py-2.5 text-xs text-theme-secondary">{alarm.owner}</td>
-      <td className="px-3 py-2.5 text-[10px] text-theme-muted">{formatTime(alarm.time)}</td>
+      <td className="px-3 py-2.5 text-[10px] text-theme-muted">{formatTime(alarm.alarmTime)}</td>
       <td className="px-3 py-2.5">
         <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border ${STATUS_COLOR[alarm.status]}`}>
           {alarm.status}
@@ -110,10 +110,10 @@ function useFilterOptions(alarms: Alarm[]) {
     return {
       departments: unique((a) => a.department),
       owners: unique((a) => a.owner),
-      machines: unique((a) => a.machineId),
+      machines: unique((a) => a.eqpId),
       chambers: unique((a) => a.chamberId),
-      products: unique((a) => a.product),
-      operations: unique((a) => a.operation),
+      products: unique((a) => a.productId),
+      operations: unique((a) => a.operName),
     };
   }, [alarms]);
 }
@@ -137,8 +137,8 @@ export function AlarmListPage() {
   const { filters, sortKey, activeViewName } = useMemo(() => {
     // If URL has filter params, use them
     const hasFilterParams = [...searchParams.keys()].some((k) =>
-      ['q', 'status', 'department', 'severity', 'humanRisk', 'alarmType', 'owner',
-       'machineId', 'chamberId', 'product', 'operation', 'labels', 'active', 'sort', 'view'].includes(k)
+      ['q', 'status', 'department', 'severity', 'riskLevel', 'alarmType', 'owner',
+       'eqpId', 'chamberId', 'productId', 'operName', 'labels', 'active', 'sort', 'view'].includes(k)
     );
 
     if (hasFilterParams) {
@@ -151,12 +151,12 @@ export function AlarmListPage() {
     if (!initializedRef.current) {
       return {
         filters: defaultFilters(currentUser.department),
-        sortKey: 'time' as AlarmSortKey,
+        sortKey: 'alarmTime' as AlarmSortKey,
         activeViewName: 'Needs attention',
       };
     }
 
-    return { filters: {} as AlarmFilters, sortKey: 'time' as AlarmSortKey, activeViewName: null };
+    return { filters: {} as AlarmFilters, sortKey: 'alarmTime' as AlarmSortKey, activeViewName: null };
   }, [searchParams, currentUser.department]);
 
   // Apply default URL params on first mount if no params present
@@ -164,11 +164,11 @@ export function AlarmListPage() {
     if (initializedRef.current) return;
     initializedRef.current = true;
     const hasFilterParams = [...searchParams.keys()].some((k) =>
-      ['q', 'status', 'department', 'severity', 'humanRisk', 'alarmType', 'owner',
-       'machineId', 'chamberId', 'product', 'operation', 'labels', 'active', 'sort', 'view'].includes(k)
+      ['q', 'status', 'department', 'severity', 'riskLevel', 'alarmType', 'owner',
+       'eqpId', 'chamberId', 'productId', 'operName', 'labels', 'active', 'sort', 'view'].includes(k)
     );
     if (!hasFilterParams) {
-      const params = filtersToParams(defaultFilters(currentUser.department), 'time');
+      const params = filtersToParams(defaultFilters(currentUser.department), 'alarmTime');
       params.set('view', 'Needs attention');
       setSearchParams(params, { replace: true });
     }
@@ -206,7 +206,7 @@ export function AlarmListPage() {
 
   function handleSelectView(view: SavedView) {
     const f = view.filters;
-    const sk = view.sortKey ?? 'time';
+    const sk = view.sortKey ?? 'alarmTime';
     // For "Needs attention" view, scope to current user's department if not already scoped
     const finalFilters = view.name === 'Needs attention' && !f.department
       ? { ...f, department: [currentUser.department] }
@@ -279,7 +279,7 @@ export function AlarmListPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border-default">
-                  {['ID', 'Type', 'Severity', 'Message', 'Machine', 'Dept', 'Owner', 'Time', 'Status', 'Active', ''].map((h, i) => (
+                  {['ID', 'Type', 'Severity', 'Message', 'Equipment', 'Dept', 'Owner', 'Time', 'Status', 'Active', ''].map((h, i) => (
                     <th key={i} className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-theme-muted text-left">
                       {h}
                     </th>

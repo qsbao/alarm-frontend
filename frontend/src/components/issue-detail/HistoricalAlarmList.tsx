@@ -12,10 +12,10 @@ interface HistoricalAlarmListProps {
 }
 
 const SEVERITY_DOT: Record<RiskLevel, string> = {
-  Critical: 'bg-red-500',
-  High: 'bg-orange-500',
-  Medium: 'bg-amber-500',
-  Low: 'bg-slate-500',
+  P0: 'bg-red-500',
+  P1: 'bg-orange-500',
+  P2: 'bg-amber-500',
+  P3: 'bg-slate-500',
 };
 
 export function HistoricalAlarmList({ rows }: HistoricalAlarmListProps) {

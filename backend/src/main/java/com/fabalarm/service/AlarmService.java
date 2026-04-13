@@ -71,12 +71,12 @@ public class AlarmService {
     }
 
     @Transactional
-    public Alarm setRisk(String alarmId, User user, HumanRisk risk) {
+    public Alarm setRisk(String alarmId, User user, RiskLevel risk) {
         Alarm alarm = alarmRepository.findByIdWithLabels(alarmId);
         if (alarm == null) return null;
 
-        HumanRisk fromRisk = alarm.getHumanRisk();
-        alarm.setHumanRisk(risk);
+        RiskLevel fromRisk = alarm.getRiskLevel();
+        alarm.setRiskLevel(risk);
         alarmRepository.save(alarm);
 
         AlarmActivity activity = new AlarmActivity();
@@ -128,13 +128,13 @@ public class AlarmService {
                                         List<AlarmStatus> status,
                                         List<String> department,
                                         List<RiskLevel> severity,
-                                        List<HumanRisk> humanRisk,
+                                        List<RiskLevel> riskLevel,
                                         List<AlarmType> alarmType,
                                         List<String> owner,
-                                        List<String> machineId,
+                                        List<String> eqpId,
                                         List<String> chamberId,
-                                        List<String> product,
-                                        List<String> operation,
+                                        List<String> productId,
+                                        List<String> operName,
                                         List<AlarmLabel> labels,
                                         String active) {
         List<Alarm> alarms = alarmRepository.findByTimeRange(from, to);
@@ -143,13 +143,13 @@ public class AlarmService {
                 .filter(a -> matchList(a.getStatus(), status))
                 .filter(a -> matchStringList(a.getDepartment(), department))
                 .filter(a -> matchList(a.getSeverity(), severity))
-                .filter(a -> matchNullableList(a.getHumanRisk(), humanRisk))
+                .filter(a -> matchNullableList(a.getRiskLevel(), riskLevel))
                 .filter(a -> matchList(a.getType(), alarmType))
                 .filter(a -> matchStringList(a.getOwner(), owner))
-                .filter(a -> matchStringList(a.getMachineId(), machineId))
+                .filter(a -> matchStringList(a.getEqpId(), eqpId))
                 .filter(a -> matchNullableStringList(a.getChamberId(), chamberId))
-                .filter(a -> matchStringList(a.getProduct(), product))
-                .filter(a -> matchStringList(a.getOperation(), operation))
+                .filter(a -> matchStringList(a.getProductId(), productId))
+                .filter(a -> matchStringList(a.getOperName(), operName))
                 .filter(a -> matchLabels(a.getLabels(), labels))
                 .filter(a -> matchActive(a, active))
                 .collect(Collectors.toList());
@@ -163,7 +163,7 @@ public class AlarmService {
     private boolean matchSearch(Alarm a, String search) {
         if (search == null || search.isBlank()) return true;
         String q = search.toLowerCase();
-        String haystack = (a.getId() + " " + a.getMessage() + " " + a.getType() + " " + a.getMachineId() + " " + a.getOwner()).toLowerCase();
+        String haystack = (a.getId() + " " + a.getMessage() + " " + a.getType() + " " + a.getEqpId() + " " + a.getOwner()).toLowerCase();
         return haystack.contains(q);
     }
 
@@ -196,9 +196,11 @@ public class AlarmService {
 
     private boolean matchActive(Alarm a, String active) {
         if (active == null || active.isBlank()) return true;
-        boolean isActive = a.getRecoveryTime() == null || a.getRecoveryTime().isAfter(Instant.now());
-        if ("active".equals(active)) return isActive;
-        if ("recovered".equals(active)) return !isActive;
+        if ("active".equals(active)) {
+            return a.getRecoveryTime() == null;
+        } else if ("recovered".equals(active)) {
+            return a.getRecoveryTime() != null;
+        }
         return true;
     }
 }
