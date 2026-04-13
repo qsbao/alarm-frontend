@@ -21,7 +21,7 @@
 #   SLEEP_BETWEEN_NO_WORK=300       # idle sleep when nothing is available
 #   MODEL=opus                      # claude model alias (default = claude default)
 #
-# Requires: git, gh (authenticated), claude CLI, python3 on PATH.
+# Requires: git, gh (authenticated), claude CLI, python on PATH.
 #
 # DESTRUCTIVE: runs `claude --dangerously-skip-permissions`, which means every
 # tool call (Bash, Edit, Write, gh, git push) executes without prompting. Run
@@ -158,7 +158,7 @@ EOF
 
 format_stream() {
   # Reads claude stream-json on stdin, prints human-readable lines on stdout.
-  python3 -u -c '
+  python -u -c '
 import sys, json
 for line in sys.stdin:
     line = line.strip()
