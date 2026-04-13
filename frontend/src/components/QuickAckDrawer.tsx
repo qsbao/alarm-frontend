@@ -3,8 +3,8 @@ import { useCallback, useEffect, useState } from 'react';
 import type { Alarm, AlarmLabel, RiskLevel } from '../types';
 import { ALL_ALARM_LABELS, ALL_RISK_LEVELS } from '../types';
 import { useCurrentUserStore } from '../stores/currentUserStore';
-import { isActive } from '../lib/alarmFiltering';
-import { useAlarm, useAlarmActions } from '../hooks/useAlarms';
+
+import { useAlarm, useAlarmActions, useAlarmActivity } from '../hooks/useAlarms';
 
 const SEVERITY_COLOR: Record<RiskLevel, string> = {
   P0: 'bg-red-500/15 text-red-400 border-red-500/30',
@@ -39,10 +39,10 @@ interface QuickAckDrawerProps {
 
 export function QuickAckDrawer({ alarmId, onClose }: QuickAckDrawerProps) {
   const { alarm, refresh } = useAlarm(alarmId);
+  const { activity, refresh: refreshActivity } = useAlarmActivity(alarmId);
   const currentUser = useCurrentUserStore((s) => s.currentUser);
-  const actions = useAlarmActions(alarmId, refresh);
+  const actions = useAlarmActions(alarmId, () => { refresh(); refreshActivity(); });
   const [comment, setComment] = useState('');
-  const now = Date.now();
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -60,7 +60,6 @@ export function QuickAckDrawer({ alarmId, onClose }: QuickAckDrawerProps) {
   if (!alarm) return null;
 
   const canAck = currentUser.department !== '' && currentUser.department === alarm.department;
-  const active = isActive(alarm, now);
 
   const handleAck = async () => {
     await actions.ack(comment || undefined);
@@ -108,13 +107,6 @@ export function QuickAckDrawer({ alarmId, onClose }: QuickAckDrawerProps) {
               <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border ${STATUS_COLOR[alarm.status]}`}>
                 {alarm.status}
               </span>
-              <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border ${
-                active
-                  ? 'bg-rose-500/15 text-rose-400 border-rose-500/30'
-                  : 'bg-slate-500/15 text-slate-400 border-slate-500/30'
-              }`}>
-                {active ? 'Active' : 'Recovered'}
-              </span>
             </div>
             <div className="text-xs text-theme-secondary space-y-0.5">
               <div><span className="text-theme-muted">Machine:</span> <span className="font-mono">{alarm.eqpId}</span>{alarm.chamberId && ` / ${alarm.chamberId}`}</div>
@@ -151,11 +143,21 @@ export function QuickAckDrawer({ alarmId, onClose }: QuickAckDrawerProps) {
             </div>
           )}
 
-          {alarm.status === 'Acked' && (
-            <div className="border-t border-border-subtle/40 pt-4">
-              <div className="text-xs text-theme-muted italic">This alarm has been acknowledged.</div>
-            </div>
-          )}
+          {alarm.status === 'Acked' && (() => {
+            const ackEntry = activity.find((e) => e.type === 'acked' || e.type === 'acked_via_issue');
+            return (
+              <div className="border-t border-border-subtle/40 pt-4">
+                <div className="text-xs text-theme-muted italic">
+                  Acknowledged{ackEntry?.author ? ` by ${ackEntry.author}` : ''}
+                </div>
+                {ackEntry?.note && (
+                  <div className="mt-2 px-3 py-2 bg-surface-overlay/40 rounded border border-border-subtle/40 text-xs text-theme-secondary">
+                    {ackEntry.note}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Labels */}
           <div className="border-t border-border-subtle/40 pt-4">

@@ -2,9 +2,9 @@ import { Bell, ExternalLink } from 'lucide-react';
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useCurrentUserStore } from '../stores/currentUserStore';
-import { isActive, sortAlarms } from '../lib/alarmFiltering';
+import { sortAlarms } from '../lib/alarmFiltering';
 import { filtersToParams, paramsToFilters } from '../lib/alarmFilterUrl';
-import { getViews, saveView, deleteView, BUILTIN_VIEWS } from '../lib/savedViews';
+import { getViews, saveView, deleteView } from '../lib/savedViews';
 import type { SavedView } from '../lib/savedViews';
 import { AlarmFilterBar } from '../components/alarms/AlarmFilterBar';
 import { QuickAckDrawer } from '../components/QuickAckDrawer';
@@ -41,15 +41,12 @@ function defaultTo(): string {
 
 function AlarmRow({
   alarm,
-  now,
   onRowClick,
 }: {
   alarm: Alarm;
-  now: number;
   onRowClick: (id: string) => void;
 }) {
   const navigate = useNavigate();
-  const active = isActive(alarm, now);
 
   return (
     <tr
@@ -75,15 +72,6 @@ function AlarmRow({
       <td className="px-3 py-2.5">
         <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border ${STATUS_COLOR[alarm.status]}`}>
           {alarm.status}
-        </span>
-      </td>
-      <td className="px-3 py-2.5">
-        <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border ${
-          active
-            ? 'bg-rose-500/15 text-rose-400 border-rose-500/30'
-            : 'bg-slate-500/15 text-slate-400 border-slate-500/30'
-        }`}>
-          {active ? 'Active' : 'Recovered'}
         </span>
       </td>
       <td className="px-3 py-2.5">
@@ -119,12 +107,11 @@ function useFilterOptions(alarms: Alarm[]) {
 }
 
 function defaultFilters(department: string): AlarmFilters {
-  return { status: ['Open'], active: 'active', department: [department] };
+  return { department: [department] };
 }
 
 export function AlarmListPage() {
   const currentUser = useCurrentUserStore((s) => s.currentUser);
-  const now = Date.now();
   const [drawerAlarmId, setDrawerAlarmId] = useState<string | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const [views, setViews] = useState(getViews);
@@ -152,7 +139,7 @@ export function AlarmListPage() {
       return {
         filters: defaultFilters(currentUser.department),
         sortKey: 'alarmTime' as AlarmSortKey,
-        activeViewName: 'Needs attention',
+        activeViewName: null,
       };
     }
 
@@ -169,7 +156,6 @@ export function AlarmListPage() {
     );
     if (!hasFilterParams) {
       const params = filtersToParams(defaultFilters(currentUser.department), 'alarmTime');
-      params.set('view', 'Needs attention');
       setSearchParams(params, { replace: true });
     }
   }, [searchParams, setSearchParams, currentUser.department]);
@@ -279,7 +265,7 @@ export function AlarmListPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border-default">
-                  {['ID', 'Type', 'Severity', 'Message', 'Equipment', 'Dept', 'Owner', 'Time', 'Status', 'Active', ''].map((h, i) => (
+                  {['ID', 'Type', 'Severity', 'Message', 'Equipment', 'Dept', 'Owner', 'Time', 'Status', ''].map((h, i) => (
                     <th key={i} className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-theme-muted text-left">
                       {h}
                     </th>
@@ -289,13 +275,13 @@ export function AlarmListPage() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={11} className="px-3 py-8 text-center text-xs text-theme-muted">
+                    <td colSpan={10} className="px-3 py-8 text-center text-xs text-theme-muted">
                       Loading alarms...
                     </td>
                   </tr>
                 ) : sorted.length === 0 ? (
                   <tr>
-                    <td colSpan={11} className="px-3 py-8 text-center text-xs text-theme-muted">
+                    <td colSpan={10} className="px-3 py-8 text-center text-xs text-theme-muted">
                       No alarms match the current filters.
                     </td>
                   </tr>
@@ -304,7 +290,6 @@ export function AlarmListPage() {
                     <AlarmRow
                       key={alarm.id}
                       alarm={alarm}
-                      now={now}
                       onRowClick={setDrawerAlarmId}
                     />
                   ))

@@ -19,51 +19,22 @@ beforeEach(() => {
 });
 
 describe('BUILTIN_VIEWS', () => {
-  it('has four built-in views', () => {
-    expect(BUILTIN_VIEWS).toHaveLength(4);
-  });
-
-  it('includes Needs attention, In progress, Missed, Resolved', () => {
-    const names = BUILTIN_VIEWS.map((v) => v.name);
-    expect(names).toEqual(['Needs attention', 'In progress', 'Missed', 'Resolved']);
-  });
-
-  it('Needs attention filters: Open + active', () => {
-    const view = BUILTIN_VIEWS.find((v) => v.name === 'Needs attention')!;
-    expect(view.filters.status).toEqual(['Open']);
-    expect(view.filters.active).toBe('active');
-  });
-
-  it('In progress filters: Acked + active', () => {
-    const view = BUILTIN_VIEWS.find((v) => v.name === 'In progress')!;
-    expect(view.filters.status).toEqual(['Acked']);
-    expect(view.filters.active).toBe('active');
-  });
-
-  it('Missed filters: Open + recovered', () => {
-    const view = BUILTIN_VIEWS.find((v) => v.name === 'Missed')!;
-    expect(view.filters.status).toEqual(['Open']);
-    expect(view.filters.active).toBe('recovered');
-  });
-
-  it('Resolved filters: Acked + recovered', () => {
-    const view = BUILTIN_VIEWS.find((v) => v.name === 'Resolved')!;
-    expect(view.filters.status).toEqual(['Acked']);
-    expect(view.filters.active).toBe('recovered');
+  it('has no built-in views', () => {
+    expect(BUILTIN_VIEWS).toHaveLength(0);
   });
 });
 
 describe('getViews', () => {
-  it('returns builtins when no custom views saved', () => {
+  it('returns empty when no custom views saved', () => {
     const views = getViews();
-    expect(views).toHaveLength(4);
+    expect(views).toHaveLength(0);
   });
 
-  it('returns builtins plus custom views', () => {
+  it('returns custom views', () => {
     saveView('My view', { status: ['Open'] });
     const views = getViews();
-    expect(views).toHaveLength(5);
-    expect(views[4].name).toBe('My view');
+    expect(views).toHaveLength(1);
+    expect(views[0].name).toBe('My view');
   });
 });
 
@@ -92,10 +63,6 @@ describe('saveView', () => {
     expect(views[0].filters.status).toEqual(['Acked']);
   });
 
-  it('cannot overwrite a builtin view', () => {
-    expect(() => saveView('Needs attention', { status: ['Acked'] })).toThrow();
-  });
-
   it('saves sort key with the view', () => {
     saveView('Sorted', { status: ['Open'] }, 'severity');
     const view = getViews().find((v) => v.name === 'Sorted')!;
@@ -109,10 +76,6 @@ describe('deleteView', () => {
     deleteView('ToDelete');
     const views = getViews();
     expect(views.find((v) => v.name === 'ToDelete')).toBeUndefined();
-  });
-
-  it('cannot delete a builtin view', () => {
-    expect(() => deleteView('Needs attention')).toThrow();
   });
 
   it('persists deletion to localStorage', () => {

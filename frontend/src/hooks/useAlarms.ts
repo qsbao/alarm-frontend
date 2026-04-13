@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { backend } from '../api/backendClient';
-import type { Alarm, AlarmFilters, Module } from '../types';
+import type { Alarm, AlarmActivityEntry, AlarmFilters, Module } from '../types';
 
 interface BackendAlarm {
   id: string;
@@ -178,4 +178,29 @@ export function useAlarmActions(alarmId: string, onSuccess: () => void) {
   };
 
   return { ack, setLabel, setRisk };
+}
+
+export function useAlarmActivity(alarmId: string | undefined) {
+  const [activity, setActivity] = useState<AlarmActivityEntry[]>([]);
+
+  const fetch = useCallback(async () => {
+    if (!alarmId) {
+      setActivity([]);
+      return;
+    }
+    try {
+      const { data } = await backend.GET('/api/alarms/{id}/activity', {
+        params: { path: { id: alarmId } },
+      });
+      setActivity((data ?? []) as unknown as AlarmActivityEntry[]);
+    } catch {
+      setActivity([]);
+    }
+  }, [alarmId]);
+
+  useEffect(() => {
+    fetch();
+  }, [fetch]);
+
+  return { activity, refresh: fetch };
 }

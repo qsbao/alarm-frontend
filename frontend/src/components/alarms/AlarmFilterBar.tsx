@@ -1,5 +1,5 @@
-import { Search, X, Save, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { Search, X, Trash2 } from 'lucide-react';
+
 import type { AlarmFilters, AlarmSortKey } from '../../types';
 import type { SavedView } from '../../lib/savedViews';
 import { FilterChip } from './FilterChip';
@@ -68,9 +68,6 @@ function chipEntries(filters: AlarmFilters): { key: keyof AlarmFilters; label: s
       }
     }
   }
-  if (filters.active) {
-    entries.push({ key: 'active', label: 'Active', value: filters.active === 'active' ? 'Active' : 'Recovered' });
-  }
   return entries;
 }
 
@@ -92,12 +89,8 @@ export function AlarmFilterBar({
   products,
   operations,
 }: AlarmFilterBarProps) {
-  const [saveInput, setSaveInput] = useState('');
-  const [showSaveInput, setShowSaveInput] = useState(false);
   const chips = chipEntries(filters);
   const hasFilters = chips.length > 0 || filters.search;
-
-  const customViews = views.filter((v) => !v.builtin);
 
   function handleRemoveChip(key: keyof AlarmFilters, value: string) {
     if (key === 'active') {
@@ -112,71 +105,36 @@ export function AlarmFilterBar({
     onFiltersChange(toggleArrayFilter(filters, key, value));
   }
 
-  function handleSave() {
-    const name = saveInput.trim();
-    if (!name) return;
-    onSaveView(name);
-    setSaveInput('');
-    setShowSaveInput(false);
-  }
-
   return (
     <div className="space-y-2">
       {/* Row 1: Saved views selector */}
-      <div className="flex items-center gap-1.5 flex-wrap">
-        {views.map((view) => (
-          <div key={view.name} className="flex items-center">
-            <button
-              onClick={() => onSelectView(view)}
-              className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
-                activeViewName === view.name
-                  ? 'bg-accent-subtle text-theme-accent border border-theme-accent/30'
-                  : 'bg-surface-overlay/30 text-theme-secondary border border-border-subtle/40 hover:border-border-default hover:text-theme-primary'
-              }`}
-            >
-              {view.name}
-            </button>
-            {!view.builtin && (
+      {views.length > 0 && (
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {views.map((view) => (
+            <div key={view.name} className="flex items-center">
               <button
-                onClick={() => onDeleteView(view.name)}
-                className="ml-0.5 p-0.5 rounded hover:bg-red-500/15 text-theme-muted hover:text-red-400 transition-colors"
-                title={`Delete "${view.name}"`}
+                onClick={() => onSelectView(view)}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
+                  activeViewName === view.name
+                    ? 'bg-accent-subtle text-theme-accent border border-theme-accent/30'
+                    : 'bg-surface-overlay/30 text-theme-secondary border border-border-subtle/40 hover:border-border-default hover:text-theme-primary'
+                }`}
               >
-                <Trash2 size={10} />
+                {view.name}
               </button>
-            )}
-          </div>
-        ))}
-
-        <div className="w-px h-4 bg-border-subtle" />
-
-        {showSaveInput ? (
-          <div className="flex items-center gap-1">
-            <input
-              type="text"
-              value={saveInput}
-              onChange={(e) => setSaveInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSave()}
-              placeholder="View name..."
-              className="input-base text-[11px] w-28 py-0.5 px-2"
-              autoFocus
-            />
-            <button onClick={handleSave} className="btn-ghost text-[11px] py-0.5">Save</button>
-            <button onClick={() => setShowSaveInput(false)} className="btn-ghost text-[11px] py-0.5">
-              <X size={10} />
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={() => setShowSaveInput(true)}
-            className="btn-ghost text-[11px]"
-            title="Save current filters as a view"
-          >
-            <Save size={11} />
-            Save view
-          </button>
-        )}
-      </div>
+              {!view.builtin && (
+                <button
+                  onClick={() => onDeleteView(view.name)}
+                  className="ml-0.5 p-0.5 rounded hover:bg-red-500/15 text-theme-muted hover:text-red-400 transition-colors"
+                  title={`Delete "${view.name}"`}
+                >
+                  <Trash2 size={10} />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Row 2: Search + primary chips + add filter + sort + clear */}
       <div className="flex gap-2 flex-wrap items-center">
