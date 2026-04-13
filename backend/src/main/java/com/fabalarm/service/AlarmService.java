@@ -17,10 +17,19 @@ public class AlarmService {
 
     private final AlarmRepository alarmRepository;
     private final AlarmActivityRepository alarmActivityRepository;
+    private final IngestProjector ingestProjector;
 
-    public AlarmService(AlarmRepository alarmRepository, AlarmActivityRepository alarmActivityRepository) {
+    public AlarmService(AlarmRepository alarmRepository, AlarmActivityRepository alarmActivityRepository, IngestProjector ingestProjector) {
         this.alarmRepository = alarmRepository;
         this.alarmActivityRepository = alarmActivityRepository;
+        this.ingestProjector = ingestProjector;
+    }
+
+    @Transactional
+    public Alarm create(Alarm alarm) {
+        // Project value/unit from details - this overrides any caller-provided value/unit
+        ingestProjector.projectValueAndUnit(alarm);
+        return alarmRepository.save(alarm);
     }
 
     @Transactional
