@@ -38,24 +38,24 @@ SLEEP_BETWEEN_NO_WORK="${SLEEP_BETWEEN_NO_WORK:-300}"
 PER_ISSUE_TIMEOUT="${PER_ISSUE_TIMEOUT:-3600}"
 MODEL="${MODEL:-}"
 
-# Issue dependency graph from PRD #85. Keep in sync with the PRD if it changes.
+# Issue dependency graph from PRD #94. Keep in sync with the PRD if it changes.
 # (Function-based instead of `declare -A` so it works on macOS bash 3.2.)
 #
-#   #86 Slice 1: Report Reference + rich-field infrastructure    (no blockers)
-#   #87 Slice 2: Calibration Reference (pre-populated)           (needs 86)
-#   #88 Slice 3: Lot Disposition (search/picker)                 (needs 86)
-#   #89 Slice 4: Integration guide for developers                (needs 86, 87, 88)
+#   #95 Slice 1: Common alarm schema overhaul                    (no blockers)
+#   #96 Slice 2: Polymorphic details + SpcOocDetails + POST      (needs 95)
+#   #97 Slice 3: External-system surface                         (needs 95, 96)
+#   #98 Slice 4: Mock/seed rebuild + onboarding guide            (needs 96)
 #
 blockers_for() {
   case "$1" in
-    86) echo "" ;;
-    87) echo "86" ;;
-    88) echo "86" ;;
-    89) echo "86 87 88" ;;
+    95) echo "" ;;
+    96) echo "95" ;;
+    97) echo "95 96" ;;
+    98) echo "96" ;;
     *)  echo "" ;;
   esac
 }
-ALL_ISSUES="86 87 88 89"
+ALL_ISSUES="95 96 97 98"
 
 # -------------------------------------------------------------------- helpers
 
@@ -120,8 +120,8 @@ You are working autonomously on GitHub issue #$n in the repository $REPO.
 Step 1. Read the issue:
   gh issue view $n --repo $REPO
 
-Step 2. Read the parent PRD (issue #85) for full architectural context:
-  gh issue view 85 --repo $REPO
+Step 2. Read the parent PRD (issue #94) for full architectural context:
+  gh issue view 94 --repo $REPO
 
 Step 3. Use the tdd skill (red-green-refactor). For each acceptance criterion:
 write a failing test first, watch it fail, write the minimum code to make it
