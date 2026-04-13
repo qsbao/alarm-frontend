@@ -1,14 +1,7 @@
 package com.fabalarm.model;
 
 public enum AlarmType {
+    spc_ooc,
     TempSpike,
-    PressureDrop,
-    FlowAnomaly,
-    ChamberLeak,
-    VoltageSag,
-    ParticleCount,
-    VacuumFault,
-    RFMismatch,
-    GasFlowDeviation,
-    EndpointDrift
+    ChamberLeak
 }

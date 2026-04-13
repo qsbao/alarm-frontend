@@ -43,7 +43,7 @@ class HighlightCandidateTest {
         issue.setDate(Instant.now());
         issue.setIssueTime(Instant.now());
         issue.setAlarmType(AlarmType.TempSpike);
-        issue.setRiskLevel(RiskLevel.Medium);
+        issue.setRiskLevel(RiskLevel.P2);
         issue.setOwnerId("user-test");
         issue.setDepartment("Litho");
         return issue;

@@ -14,10 +14,10 @@ interface AlarmListProps {
 }
 
 const SEVERITY_DOT: Record<RiskLevel, string> = {
-  Critical: 'bg-red-500',
-  High: 'bg-orange-500',
-  Medium: 'bg-amber-500',
-  Low: 'bg-slate-500',
+  P0: 'bg-red-500',
+  P1: 'bg-orange-500',
+  P2: 'bg-amber-500',
+  P3: 'bg-slate-500',
 };
 
 const STATUS_PILL: Record<string, string> = {
@@ -32,16 +32,16 @@ interface BackendAlarm {
   message: string;
   value?: number;
   unit?: string;
-  time: string;
+  alarmTime: string;
   recoveryTime?: string;
-  machineId: string;
+  eqpId: string;
   chamberId?: string;
-  product: string;
-  operation: string;
+  productId: string;
+  operName?: string;
   owner: string;
   department: string;
   status: string;
-  humanRisk?: string;
+  riskLevel?: string;
   labels: string[];
 }
 
@@ -53,16 +53,16 @@ function toAlarm(raw: BackendAlarm): Alarm {
     message: raw.message,
     value: raw.value,
     unit: raw.unit,
-    time: raw.time,
+    alarmTime: raw.alarmTime,
     recoveryTime: raw.recoveryTime,
-    machineId: raw.machineId,
+    eqpId: raw.eqpId,
     chamberId: raw.chamberId,
-    product: raw.product,
-    operation: raw.operation,
+    productId: raw.productId,
+    operName: raw.operName,
     owner: raw.owner,
     department: raw.department,
     status: raw.status as Alarm['status'],
-    humanRisk: raw.humanRisk as Alarm['humanRisk'],
+    riskLevel: raw.riskLevel as Alarm['riskLevel'],
     labels: (raw.labels ?? []) as Alarm['labels'],
     activity: [],
   };
@@ -270,7 +270,7 @@ export function AlarmList({ alarms, issue, onLink, onUnlink, onMove }: AlarmList
                     <span className="text-[11px] text-theme-secondary shrink-0">{alarm.id}</span>
                     <span className="badge text-[10px] shrink-0">{alarm.type}</span>
                     <span className="text-xs text-theme-primary font-mono shrink-0">
-                      {alarm.machineId}
+                      {alarm.eqpId}
                     </span>
                     <span className="text-[10px] text-theme-muted truncate flex-1">
                       {alarm.message}

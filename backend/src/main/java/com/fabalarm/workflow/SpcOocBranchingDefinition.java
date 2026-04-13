@@ -41,12 +41,12 @@ public final class SpcOocBranchingDefinition {
                             .build(),
                     StepDefinition.builder("meeting", "Meeting", 7)
                             .preSteps("l4_review", "pi_comment", "attach_report", "verify_calibration")
-                            .skippableIf(issue -> issue.getRiskLevel() == RiskLevel.Low)
+                            .skippableIf(issue -> issue.getRiskLevel() == RiskLevel.P3)
                             .build(),
                     StepDefinition.builder("lot_disposition", "Lot Disposition", 8)
                             .preSteps("meeting")
                             .skippableIf(issue -> true)
-                            .defaultSkipIf(issue -> issue.getRiskLevel() == RiskLevel.Low)
+                            .defaultSkipIf(issue -> issue.getRiskLevel() == RiskLevel.P3)
                             .payloadSchema(Map.of(
                                     "lotId", PayloadFieldSchema.lotDisposition("Lot ID", false)
                             ))

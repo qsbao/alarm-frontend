@@ -26,7 +26,7 @@ export function linkAlarmCandidates(
   // Determine machine scope from existing linked alarms
   const machineScope =
     linkedAlarms.length > 0
-      ? new Set(linkedAlarms.map((a) => a.machineId))
+      ? new Set(linkedAlarms.map((a) => a.eqpId))
       : null;
 
   const issueCreatedMs = Date.parse(issue.date);
@@ -37,7 +37,7 @@ export function linkAlarmCandidates(
     // Machine scope: if we have linked alarms, restrict to same machine(s)
     if (machineScope && !machineScope.has(alarm.machineId)) return false;
     // Time window: +/-2h of issue creation
-    const alarmMs = Date.parse(alarm.time);
+    const alarmMs = Date.parse(alarm.alarmTime);
     if (Math.abs(alarmMs - issueCreatedMs) > TWO_HOURS_MS) return false;
     return true;
   });

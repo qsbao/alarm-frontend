@@ -1,16 +1,16 @@
 import { Check, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import type { Alarm, AlarmLabel, HumanRisk } from '../types';
-import { ALL_ALARM_LABELS, ALL_HUMAN_RISKS } from '../types';
+import type { Alarm, AlarmLabel, RiskLevel } from '../types';
+import { ALL_ALARM_LABELS, ALL_RISK_LEVELS } from '../types';
 import { useCurrentUserStore } from '../stores/currentUserStore';
 import { isActive } from '../lib/alarmFiltering';
 import { useAlarm, useAlarmActions } from '../hooks/useAlarms';
 
-const SEVERITY_COLOR: Record<string, string> = {
-  Critical: 'bg-red-500/15 text-red-400 border-red-500/30',
-  High: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
-  Medium: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
-  Low: 'bg-slate-500/15 text-slate-400 border-slate-500/30',
+const SEVERITY_COLOR: Record<RiskLevel, string> = {
+  P0: 'bg-red-500/15 text-red-400 border-red-500/30',
+  P1: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
+  P2: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+  P3: 'bg-slate-500/15 text-slate-400 border-slate-500/30',
 };
 
 const STATUS_COLOR: Record<string, string> = {
@@ -18,16 +18,18 @@ const STATUS_COLOR: Record<string, string> = {
   Acked: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
 };
 
-const RISK_LABELS: Record<HumanRisk, string> = {
-  high: 'High',
-  middle: 'Middle',
-  low: 'Low',
+const RISK_LABELS: Record<RiskLevel, string> = {
+  P0: 'P0',
+  P1: 'P1',
+  P2: 'P2',
+  P3: 'P3',
 };
 
-const RISK_COLOR: Record<HumanRisk, string> = {
-  high: 'bg-red-500/15 text-red-400 border-red-500/30',
-  middle: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
-  low: 'bg-slate-500/15 text-slate-400 border-slate-500/30',
+const RISK_COLOR: Record<RiskLevel, string> = {
+  P0: 'bg-red-500/15 text-red-400 border-red-500/30',
+  P1: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
+  P2: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+  P3: 'bg-slate-500/15 text-slate-400 border-slate-500/30',
 };
 
 interface QuickAckDrawerProps {
@@ -71,7 +73,7 @@ export function QuickAckDrawer({ alarmId, onClose }: QuickAckDrawerProps) {
     await actions.setLabel(action, label);
   };
 
-  const handleRiskChange = async (risk: HumanRisk) => {
+  const handleRiskChange = async (risk: RiskLevel) => {
     await actions.setRisk(risk);
   };
 
@@ -115,7 +117,7 @@ export function QuickAckDrawer({ alarmId, onClose }: QuickAckDrawerProps) {
               </span>
             </div>
             <div className="text-xs text-theme-secondary space-y-0.5">
-              <div><span className="text-theme-muted">Machine:</span> <span className="font-mono">{alarm.machineId}</span>{alarm.chamberId && ` / ${alarm.chamberId}`}</div>
+              <div><span className="text-theme-muted">Machine:</span> <span className="font-mono">{alarm.eqpId}</span>{alarm.chamberId && ` / ${alarm.chamberId}`}</div>
               <div><span className="text-theme-muted">Owner:</span> {alarm.owner} <span className="text-theme-muted">({alarm.department})</span></div>
             </div>
           </div>
@@ -180,10 +182,10 @@ export function QuickAckDrawer({ alarmId, onClose }: QuickAckDrawerProps) {
 
           {/* Risk picker */}
           <div className="border-t border-border-subtle/40 pt-4">
-            <h3 className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted mb-2">Human Risk</h3>
+            <h3 className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted mb-2">Risk Level</h3>
             <div className="flex gap-1.5">
-              {ALL_HUMAN_RISKS.map((risk) => {
-                const isActive = alarm.humanRisk === risk;
+              {ALL_RISK_LEVELS.map((risk) => {
+                const isActive = alarm.riskLevel === risk;
                 return (
                   <button
                     key={risk}

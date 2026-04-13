@@ -1,34 +1,26 @@
 import { X } from 'lucide-react';
 import { useState } from 'react';
-import type { Alarm, AlarmType, HumanRisk, IssueDraft, RiskLevel, User } from '../../types';
+import type { Alarm, AlarmType, IssueDraft, RiskLevel, User } from '../../types';
 import { ALL_ALARM_TYPES, ALL_RISK_LEVELS } from '../../types';
 import { getDefaultWorkflowId } from '../../lib/workflows/workflowDefaults';
 import { getAllDefinitions } from '../../lib/workflows/definitions';
 
-const HUMAN_RISK_TO_RISK_LEVEL: Record<HumanRisk, RiskLevel> = {
-  high: 'High',
-  middle: 'Medium',
-  low: 'Low',
-};
-
 function buildIssueFromAlarm(alarm: Alarm, now: string): IssueDraft {
-  const riskLevel: RiskLevel = alarm.humanRisk
-    ? HUMAN_RISK_TO_RISK_LEVEL[alarm.humanRisk]
-    : alarm.severity;
+  const riskLevel: RiskLevel = alarm.riskLevel ?? alarm.severity;
 
   return {
     title: alarm.message,
     description:
       `Escalated from alarm ${alarm.id}: ${alarm.message}. ` +
-      `Machine: ${alarm.machineId}. Product: ${alarm.product}. Operation: ${alarm.operation}. ` +
+      `Equipment: ${alarm.eqpId}. Product: ${alarm.productId}. Operation: ${alarm.operName ?? 'N/A'}. ` +
       `Department: ${alarm.department}. Owner: ${alarm.owner}.`,
     date: now,
     alarmType: alarm.type,
     riskLevel,
     status: 'Triage',
-    issueTime: alarm.time,
-    operation: alarm.operation,
-    product: alarm.product,
+    issueTime: alarm.alarmTime,
+    operation: alarm.operName ?? '',
+    product: alarm.productId,
     ownerId: alarm.owner,
     department: alarm.department,
   };

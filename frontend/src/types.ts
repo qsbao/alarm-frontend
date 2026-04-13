@@ -4,7 +4,7 @@ export interface User {
   department: string;
 }
 
-export type RiskLevel = 'Low' | 'Medium' | 'High' | 'Critical';
+export type RiskLevel = 'P0' | 'P1' | 'P2' | 'P3';
 export type IssueStatus = 'Triage' | 'Investigating' | 'Resolved' | 'Closed' | 'Merged';
 export type AlarmType =
   | 'TempSpike'
@@ -27,6 +27,19 @@ export type AlarmLabel =
   | 'NeedsEngReview'
   | 'UnderObservation';
 
+export type Module =
+  | 'LITHO'
+  | 'ETCH'
+  | 'CVD'
+  | 'PVD'
+  | 'DIFFUSION'
+  | 'IMPLANT'
+  | 'CMP'
+  | 'METROLOGY'
+  | 'CLEAN'
+  | 'WET'
+  | 'TEST';
+
 export type AlarmActivityType =
   | 'created'
   | 'acked'
@@ -47,8 +60,8 @@ export interface AlarmActivityEntry {
   author: string;
   note?: string;
   label?: AlarmLabel;
-  fromRisk?: HumanRisk;
-  toRisk?: HumanRisk;
+  fromRisk?: RiskLevel;
+  toRisk?: RiskLevel;
   issueId?: string;
   fromIssueId?: string;
   toIssueId?: string;
@@ -62,18 +75,33 @@ export interface Alarm {
   message: string;
   value?: number;
   unit?: string;
-  time: string; // ISO 8601 — When
+  alarmTime: string; // ISO 8601 — When
+  eventTime?: string; // ISO 8601 — When the event actually occurred
+  alarmDate?: string; // ISO 8601 date — Fab shift day
   recoveryTime?: string; // ISO 8601 — once set, immutable
-  machineId: string; // Where — "LITHO-07"
+  eqpId: string; // Where — "LITHO-07"
   chamberId?: string;
-  product: string; // Where context
-  operation: string; // Where context
+  productId: string; // Where context
+  operName?: string; // Where context
+  operNo?: string; // Where context
+  technologyId?: string;
+  productGroupId?: string;
+  processOperName?: string;
+  processOperNo?: string;
+  lotId?: string;
+  lotPriority?: number;
+  waferId?: string;
+  recipeId?: string;
+  routeId?: string;
+  module?: Module;
+  moduleOwner?: string;
+  piOwner?: string;
   owner: string; // Who — set at fire-time, immutable
   department: string; // Who — set at fire-time, immutable
   chartOwnerId?: string; // UserId — engineer responsible for the SPC chart
   // Mutable triage layer
   status: AlarmStatus;
-  humanRisk?: HumanRisk;
+  riskLevel?: RiskLevel;
   labels: AlarmLabel[];
   activity: AlarmActivityEntry[];
 }
@@ -145,7 +173,7 @@ export const ALL_ALARM_LABELS: AlarmLabel[] = [
   'UnderObservation',
 ];
 
-export const ALL_RISK_LEVELS: RiskLevel[] = ['Low', 'Medium', 'High', 'Critical'];
+export const ALL_RISK_LEVELS: RiskLevel[] = ['P0', 'P1', 'P2', 'P3'];
 export const ALL_ISSUE_STATUSES: IssueStatus[] = ['Triage', 'Investigating', 'Resolved', 'Closed', 'Merged'];
 export const ALL_ALARM_TYPES: AlarmType[] = [
   'TempSpike',
@@ -160,20 +188,20 @@ export const ALL_ALARM_TYPES: AlarmType[] = [
   'EndpointDrift',
 ];
 
-export type AlarmSortKey = 'time' | 'severity' | 'type' | 'department';
+export type AlarmSortKey = 'alarmTime' | 'severity' | 'type' | 'department';
 
 export interface AlarmFilters {
   search?: string;
   status?: AlarmStatus[];
   department?: string[];
   severity?: RiskLevel[];
-  humanRisk?: HumanRisk[];
+  riskLevel?: RiskLevel[];
   alarmType?: AlarmType[];
   owner?: string[];
-  machineId?: string[];
+  eqpId?: string[];
   chamberId?: string[];
-  product?: string[];
-  operation?: string[];
+  productId?: string[];
+  operName?: string[];
   labels?: AlarmLabel[];
   active?: 'active' | 'recovered';
 }

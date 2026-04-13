@@ -10,7 +10,7 @@ import java.util.List;
 
 public interface AlarmRepository extends JpaRepository<Alarm, String> {
 
-    @Query("SELECT a FROM Alarm a LEFT JOIN FETCH a.labels WHERE a.time >= :from AND a.time <= :to ORDER BY a.time DESC")
+    @Query("SELECT a FROM Alarm a LEFT JOIN FETCH a.labels WHERE a.alarmTime >= :from AND a.alarmTime <= :to ORDER BY a.alarmTime DESC")
     List<Alarm> findByTimeRange(@Param("from") Instant from, @Param("to") Instant to);
 
     @Query("SELECT a FROM Alarm a LEFT JOIN FETCH a.labels WHERE a.id = :id")

@@ -25,7 +25,7 @@ interface AlarmFilterBarProps {
 }
 
 const SORT_OPTIONS: { key: AlarmSortKey; label: string }[] = [
-  { key: 'time', label: 'Newest first' },
+  { key: 'alarmTime', label: 'Newest first' },
   { key: 'severity', label: 'Severity' },
   { key: 'type', label: 'Alarm type' },
   { key: 'department', label: 'Department' },
@@ -51,13 +51,13 @@ function chipEntries(filters: AlarmFilters): { key: keyof AlarmFilters; label: s
     ['status', 'Status'],
     ['department', 'Dept'],
     ['severity', 'Severity'],
-    ['humanRisk', 'Risk'],
+    ['riskLevel', 'Risk'],
     ['alarmType', 'Type'],
     ['owner', 'Owner'],
-    ['machineId', 'Machine'],
+    ['eqpId', 'Equipment'],
     ['chamberId', 'Chamber'],
-    ['product', 'Product'],
-    ['operation', 'Operation'],
+    ['productId', 'Product'],
+    ['operName', 'Operation'],
     ['labels', 'Label'],
   ];
   for (const [key, label] of arrayDims) {
@@ -187,7 +187,7 @@ export function AlarmFilterBar({
           />
           <input
             type="text"
-            placeholder="Search id, message, type, machine..."
+            placeholder="Search id, message, type, equipment..."
             value={filters.search ?? ''}
             onChange={(e) => onFiltersChange({ ...filters, search: e.target.value || undefined })}
             className="input-base pl-8 text-[11px]"

@@ -33,13 +33,13 @@ public class AlarmController {
             @RequestParam(required = false) List<String> status,
             @RequestParam(required = false) List<String> department,
             @RequestParam(required = false) List<String> severity,
-            @RequestParam(required = false) List<String> humanRisk,
+            @RequestParam(required = false) List<String> riskLevel,
             @RequestParam(required = false) List<String> alarmType,
             @RequestParam(required = false) List<String> owner,
-            @RequestParam(required = false) List<String> machineId,
+            @RequestParam(required = false) List<String> eqpId,
             @RequestParam(required = false) List<String> chamberId,
-            @RequestParam(required = false) List<String> product,
-            @RequestParam(required = false) List<String> operation,
+            @RequestParam(required = false) List<String> productId,
+            @RequestParam(required = false) List<String> operName,
             @RequestParam(required = false) List<String> labels,
             @RequestParam(required = false) String active) {
 
@@ -58,15 +58,15 @@ public class AlarmController {
 
         List<AlarmStatus> statusFilter = parseEnums(status, AlarmStatus.class);
         List<RiskLevel> severityFilter = parseEnums(severity, RiskLevel.class);
-        List<HumanRisk> humanRiskFilter = parseEnums(humanRisk, HumanRisk.class);
+        List<RiskLevel> riskLevelFilter = parseEnums(riskLevel, RiskLevel.class);
         List<AlarmType> alarmTypeFilter = parseEnums(alarmType, AlarmType.class);
         List<AlarmLabel> labelsFilter = parseEnums(labels, AlarmLabel.class);
 
         List<Alarm> alarms = alarmService.findByDateRange(
                 fromInstant, toInstant, search,
                 statusFilter, department, severityFilter,
-                humanRiskFilter, alarmTypeFilter,
-                owner, machineId, chamberId, product, operation,
+                riskLevelFilter, alarmTypeFilter,
+                owner, eqpId, chamberId, productId, operName,
                 labelsFilter, active);
 
         List<Map<String, Object>> result = alarms.stream()
@@ -107,10 +107,10 @@ public class AlarmController {
         return ResponseEntity.ok(toDto(alarm));
     }
 
-    @Operation(summary = "Set human risk on alarm", description = "Set human risk assessment on an alarm")
+    @Operation(summary = "Set risk level on alarm", description = "Set risk level assessment on an alarm")
     @PostMapping("/{id}/risk")
     public ResponseEntity<?> setRisk(@PathVariable String id, @RequestBody Map<String, String> body) {
-        HumanRisk risk = HumanRisk.valueOf(body.get("risk"));
+        RiskLevel risk = RiskLevel.valueOf(body.get("risk"));
         Alarm alarm = alarmService.setRisk(id, CurrentUserHolder.get(), risk);
         if (alarm == null) return ResponseEntity.notFound().build();
         return ResponseEntity.ok(toDto(alarm));
@@ -163,17 +163,32 @@ public class AlarmController {
         dto.put("message", a.getMessage());
         if (a.getValue() != null) dto.put("value", a.getValue());
         if (a.getUnit() != null) dto.put("unit", a.getUnit());
-        dto.put("time", a.getTime().toString());
+        dto.put("alarmTime", a.getAlarmTime().toString());
+        if (a.getEventTime() != null) dto.put("eventTime", a.getEventTime().toString());
+        if (a.getAlarmDate() != null) dto.put("alarmDate", a.getAlarmDate().toString());
         if (a.getRecoveryTime() != null) dto.put("recoveryTime", a.getRecoveryTime().toString());
-        dto.put("machineId", a.getMachineId());
+        dto.put("eqpId", a.getEqpId());
         if (a.getChamberId() != null) dto.put("chamberId", a.getChamberId());
-        dto.put("product", a.getProduct());
-        dto.put("operation", a.getOperation());
+        dto.put("productId", a.getProductId());
+        if (a.getOperName() != null) dto.put("operName", a.getOperName());
+        if (a.getOperNo() != null) dto.put("operNo", a.getOperNo());
+        if (a.getTechnologyId() != null) dto.put("technologyId", a.getTechnologyId());
+        if (a.getProductGroupId() != null) dto.put("productGroupId", a.getProductGroupId());
+        if (a.getProcessOperName() != null) dto.put("processOperName", a.getProcessOperName());
+        if (a.getProcessOperNo() != null) dto.put("processOperNo", a.getProcessOperNo());
+        if (a.getLotId() != null) dto.put("lotId", a.getLotId());
+        if (a.getLotPriority() != null) dto.put("lotPriority", a.getLotPriority());
+        if (a.getWaferId() != null) dto.put("waferId", a.getWaferId());
+        if (a.getRecipeId() != null) dto.put("recipeId", a.getRecipeId());
+        if (a.getRouteId() != null) dto.put("routeId", a.getRouteId());
+        if (a.getModule() != null) dto.put("module", a.getModule().name());
+        if (a.getModuleOwner() != null) dto.put("moduleOwner", a.getModuleOwner());
+        if (a.getPiOwner() != null) dto.put("piOwner", a.getPiOwner());
         dto.put("owner", a.getOwner());
         dto.put("department", a.getDepartment());
         if (a.getChartOwnerId() != null) dto.put("chartOwnerId", a.getChartOwnerId());
         dto.put("status", a.getStatus().name());
-        if (a.getHumanRisk() != null) dto.put("humanRisk", a.getHumanRisk().name());
+        if (a.getRiskLevel() != null) dto.put("riskLevel", a.getRiskLevel().name());
         dto.put("labels", a.getLabels().stream().map(AlarmLabel::name).sorted().collect(Collectors.toList()));
         return dto;
     }

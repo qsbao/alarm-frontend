@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { backend } from '../api/backendClient';
-import type { Alarm, AlarmFilters } from '../types';
+import type { Alarm, AlarmFilters, Module } from '../types';
 
 interface BackendAlarm {
   id: string;
@@ -9,17 +9,32 @@ interface BackendAlarm {
   message: string;
   value?: number;
   unit?: string;
-  time: string;
+  alarmTime: string;
+  eventTime?: string;
+  alarmDate?: string;
   recoveryTime?: string;
-  machineId: string;
+  eqpId: string;
   chamberId?: string;
-  product: string;
-  operation: string;
+  productId: string;
+  operName?: string;
+  operNo?: string;
+  technologyId?: string;
+  productGroupId?: string;
+  processOperName?: string;
+  processOperNo?: string;
+  lotId?: string;
+  lotPriority?: number;
+  waferId?: string;
+  recipeId?: string;
+  routeId?: string;
+  module?: string;
+  moduleOwner?: string;
+  piOwner?: string;
   owner: string;
   department: string;
   chartOwnerId?: string;
   status: string;
-  humanRisk?: string;
+  riskLevel?: string;
   labels: string[];
 }
 
@@ -31,17 +46,32 @@ function toAlarm(raw: BackendAlarm): Alarm {
     message: raw.message,
     value: raw.value,
     unit: raw.unit,
-    time: raw.time,
+    alarmTime: raw.alarmTime,
+    eventTime: raw.eventTime,
+    alarmDate: raw.alarmDate,
     recoveryTime: raw.recoveryTime,
-    machineId: raw.machineId,
+    eqpId: raw.eqpId,
     chamberId: raw.chamberId,
-    product: raw.product,
-    operation: raw.operation,
+    productId: raw.productId,
+    operName: raw.operName,
+    operNo: raw.operNo,
+    technologyId: raw.technologyId,
+    productGroupId: raw.productGroupId,
+    processOperName: raw.processOperName,
+    processOperNo: raw.processOperNo,
+    lotId: raw.lotId,
+    lotPriority: raw.lotPriority,
+    waferId: raw.waferId,
+    recipeId: raw.recipeId,
+    routeId: raw.routeId,
+    module: raw.module as Module,
+    moduleOwner: raw.moduleOwner,
+    piOwner: raw.piOwner,
     owner: raw.owner,
     department: raw.department,
     chartOwnerId: raw.chartOwnerId,
     status: raw.status as Alarm['status'],
-    humanRisk: raw.humanRisk as Alarm['humanRisk'],
+    riskLevel: raw.riskLevel as Alarm['riskLevel'],
     labels: (raw.labels ?? []) as Alarm['labels'],
     activity: [],
   };
@@ -59,13 +89,13 @@ export function useAlarms(filters: AlarmFilters, from: string, to: string) {
       if (filters.status?.length) params.status = filters.status;
       if (filters.department?.length) params.department = filters.department;
       if (filters.severity?.length) params.severity = filters.severity;
-      if (filters.humanRisk?.length) params.humanRisk = filters.humanRisk;
+      if (filters.riskLevel?.length) params.riskLevel = filters.riskLevel;
       if (filters.alarmType?.length) params.alarmType = filters.alarmType;
       if (filters.owner?.length) params.owner = filters.owner;
-      if (filters.machineId?.length) params.machineId = filters.machineId;
+      if (filters.eqpId?.length) params.eqpId = filters.eqpId;
       if (filters.chamberId?.length) params.chamberId = filters.chamberId;
-      if (filters.product?.length) params.product = filters.product;
-      if (filters.operation?.length) params.operation = filters.operation;
+      if (filters.productId?.length) params.productId = filters.productId;
+      if (filters.operName?.length) params.operName = filters.operName;
       if (filters.labels?.length) params.labels = filters.labels;
       if (filters.active) params.active = filters.active;
 

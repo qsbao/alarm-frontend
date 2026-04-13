@@ -21,8 +21,8 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import type { Alarm, AlarmLabel, HumanRisk, Issue, IssueDraft } from '../types';
-import { ALL_ALARM_LABELS, ALL_HUMAN_RISKS } from '../types';
+import type { Alarm, AlarmLabel, RiskLevel, Issue, IssueDraft } from '../types';
+import { ALL_ALARM_LABELS, ALL_RISK_LEVELS } from '../types';
 import { useCurrentUserStore } from '../stores/currentUserStore';
 import { isActive } from '../lib/alarmFiltering';
 import { useAlarm, useAlarmActions } from '../hooks/useAlarms';
@@ -31,10 +31,10 @@ import { LinkedIssueCard } from '../components/alarms/LinkedIssueCard';
 import { CreateIssueFromAlarmModal } from '../components/alarms/CreateIssueFromAlarmModal';
 
 const SEVERITY_COLOR: Record<string, string> = {
-  Critical: 'bg-red-500/15 text-red-400 border-red-500/30',
-  High: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
-  Medium: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
-  Low: 'bg-slate-500/15 text-slate-400 border-slate-500/30',
+  P0: 'bg-red-500/15 text-red-400 border-red-500/30',
+  P1: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
+  P2: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+  P3: 'bg-slate-500/15 text-slate-400 border-slate-500/30',
 };
 
 const STATUS_COLOR: Record<string, string> = {
@@ -42,16 +42,18 @@ const STATUS_COLOR: Record<string, string> = {
   Acked: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
 };
 
-const RISK_LABELS: Record<HumanRisk, string> = {
-  high: 'High',
-  middle: 'Middle',
-  low: 'Low',
+const RISK_LABELS: Record<RiskLevel, string> = {
+  P0: 'P0',
+  P1: 'P1',
+  P2: 'P2',
+  P3: 'P3',
 };
 
-const RISK_COLOR: Record<HumanRisk, string> = {
-  high: 'bg-red-500/15 text-red-400 border-red-500/30',
-  middle: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
-  low: 'bg-slate-500/15 text-slate-400 border-slate-500/30',
+const RISK_COLOR: Record<RiskLevel, string> = {
+  P0: 'bg-red-500/15 text-red-400 border-red-500/30',
+  P1: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
+  P2: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+  P3: 'bg-slate-500/15 text-slate-400 border-slate-500/30',
 };
 
 function formatDateTime(iso: string): string {
@@ -103,7 +105,13 @@ function FourWPanels({ alarm, now }: { alarm: Alarm; now: number }) {
       <div className="card p-4">
         <h3 className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted mb-2">When</h3>
         <div className="text-xs text-theme-secondary space-y-1">
-          <div><span className="text-theme-muted">Fired:</span> {formatDateTime(alarm.time)}</div>
+          <div><span className="text-theme-muted">Fired:</span> {formatDateTime(alarm.alarmTime)}</div>
+          {alarm.eventTime && (
+            <div><span className="text-theme-muted">Event:</span> {formatDateTime(alarm.eventTime)}</div>
+          )}
+          {alarm.alarmDate && (
+            <div><span className="text-theme-muted">Alarm Date:</span> {alarm.alarmDate}</div>
+          )}
           {alarm.recoveryTime && (
             <div><span className="text-theme-muted">Recovered:</span> {formatDateTime(alarm.recoveryTime)}</div>
           )}
@@ -120,9 +128,16 @@ function FourWPanels({ alarm, now }: { alarm: Alarm; now: number }) {
       <div className="card p-4">
         <h3 className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted mb-2">Where</h3>
         <div className="text-xs text-theme-secondary space-y-1">
-          <div><span className="text-theme-muted">Machine:</span> <span className="font-mono">{alarm.machineId}</span>{alarm.chamberId && ` / ${alarm.chamberId}`}</div>
-          <div><span className="text-theme-muted">Product:</span> {alarm.product}</div>
-          <div><span className="text-theme-muted">Operation:</span> {alarm.operation}</div>
+          <div><span className="text-theme-muted">Equipment:</span> <span className="font-mono">{alarm.eqpId}</span>{alarm.chamberId && ` / ${alarm.chamberId}`}</div>
+          <div><span className="text-theme-muted">Product:</span> {alarm.productId}</div>
+          {alarm.operName && <div><span className="text-theme-muted">Operation:</span> {alarm.operName}</div>}
+          {alarm.operNo && <div><span className="text-theme-muted">Oper No:</span> {alarm.operNo}</div>}
+          {alarm.technologyId && <div><span className="text-theme-muted">Tech:</span> {alarm.technologyId}</div>}
+          {alarm.productGroupId && <div><span className="text-theme-muted">Product Group:</span> {alarm.productGroupId}</div>}
+          {alarm.lotId && <div><span className="text-theme-muted">Lot:</span> {alarm.lotId}</div>}
+          {alarm.waferId && <div><span className="text-theme-muted">Wafer:</span> {alarm.waferId}</div>}
+          {alarm.recipeId && <div><span className="text-theme-muted">Recipe:</span> {alarm.recipeId}</div>}
+          {alarm.routeId && <div><span className="text-theme-muted">Route:</span> {alarm.routeId}</div>}
         </div>
       </div>
 
@@ -131,6 +146,9 @@ function FourWPanels({ alarm, now }: { alarm: Alarm; now: number }) {
         <div className="text-xs text-theme-secondary space-y-1">
           <div><span className="text-theme-muted">Owner:</span> {alarm.owner}</div>
           <div><span className="text-theme-muted">Department:</span> {alarm.department}</div>
+          {alarm.module && <div><span className="text-theme-muted">Module:</span> {alarm.module}</div>}
+          {alarm.moduleOwner && <div><span className="text-theme-muted">Module Owner:</span> {alarm.moduleOwner}</div>}
+          {alarm.piOwner && <div><span className="text-theme-muted">PI Owner:</span> {alarm.piOwner}</div>}
         </div>
       </div>
     </div>
@@ -149,7 +167,7 @@ function ActionPanel({
   alarm: Alarm;
   onAck: () => void;
   onSetLabel: (action: 'add' | 'remove', label: AlarmLabel) => void;
-  onSetRisk: (risk: HumanRisk) => void;
+  onSetRisk: (risk: RiskLevel) => void;
   canAck: boolean;
 }) {
   return (
@@ -197,14 +215,14 @@ function ActionPanel({
       </div>
 
       <div>
-        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted mb-2">Human Risk</h3>
+        <h3 className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted mb-2">Risk Level</h3>
         <div className="flex gap-1.5">
-          {ALL_HUMAN_RISKS.map((risk) => (
+          {ALL_RISK_LEVELS.map((risk) => (
             <button
               key={risk}
               onClick={() => onSetRisk(risk)}
               className={`inline-flex items-center px-2.5 py-1 rounded text-[10px] font-medium border transition-colors ${
-                alarm.humanRisk === risk
+                alarm.riskLevel === risk
                   ? RISK_COLOR[risk]
                   : 'bg-surface-overlay/40 text-theme-muted border-border-subtle/40 hover:text-theme-secondary'
               }`}
@@ -360,9 +378,9 @@ export function AlarmDetailPage() {
                   {alarm.status}
                 </span>
                 <span className="badge text-[10px]">{alarm.type}</span>
-                {alarm.humanRisk && (
-                  <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border ${RISK_COLOR[alarm.humanRisk]}`}>
-                    Risk: {RISK_LABELS[alarm.humanRisk]}
+                {alarm.riskLevel && (
+                  <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border ${RISK_COLOR[alarm.riskLevel]}`}>
+                    Risk: {RISK_LABELS[alarm.riskLevel]}
                   </span>
                 )}
               </div>
@@ -370,12 +388,12 @@ export function AlarmDetailPage() {
           </div>
 
           <div className="mt-4 flex flex-wrap gap-2">
-            <Chip icon={Package} label="product" value={alarm.product} />
+            <Chip icon={Package} label="product" value={alarm.productId} />
             <Chip icon={User} label="owner" value={alarm.owner} />
             <Chip icon={Building2} label="department" value={alarm.department} />
-            <Chip icon={Clock} label="fired" value={formatDateTime(alarm.time)} />
-            <Chip icon={Wrench} label="operation" value={alarm.operation} />
-            <Chip icon={Cpu} label="machine" value={`${alarm.machineId}${alarm.chamberId ? ` / ${alarm.chamberId}` : ''}`} />
+            <Chip icon={Clock} label="fired" value={formatDateTime(alarm.alarmTime)} />
+            {alarm.operName && <Chip icon={Wrench} label="operation" value={alarm.operName} />}
+            <Chip icon={Cpu} label="equipment" value={`${alarm.eqpId}${alarm.chamberId ? ` / ${alarm.chamberId}` : ''}`} />
           </div>
         </div>
 
