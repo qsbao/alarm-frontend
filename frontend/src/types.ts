@@ -7,16 +7,24 @@ export interface User {
 export type RiskLevel = 'P0' | 'P1' | 'P2' | 'P3';
 export type IssueStatus = 'Triage' | 'Investigating' | 'Resolved' | 'Closed' | 'Merged';
 export type AlarmType =
+  | 'spc_ooc'
   | 'TempSpike'
-  | 'PressureDrop'
-  | 'FlowAnomaly'
-  | 'ChamberLeak'
-  | 'VoltageSag'
-  | 'ParticleCount'
-  | 'VacuumFault'
-  | 'RFMismatch'
-  | 'GasFlowDeviation'
-  | 'EndpointDrift';
+  | 'ChamberLeak';
+
+export type ChartLevel = 'KIP' | 'ACP';
+
+export interface SpcOocDetails {
+  kind: 'spc_ooc';
+  chartName: string;
+  chartNo: string;
+  chartLevel: ChartLevel;
+  holdCode: string;
+  txDatetime: string; // ISO 8601
+  waferCount: number;
+  oocCount: number;
+}
+
+export type AlarmDetails = SpcOocDetails;
 
 export type AlarmStatus = 'Open' | 'Acked';
 export type HumanRisk = 'high' | 'middle' | 'low';
@@ -104,6 +112,7 @@ export interface Alarm {
   riskLevel?: RiskLevel;
   labels: AlarmLabel[];
   activity: AlarmActivityEntry[];
+  details?: AlarmDetails;
 }
 
 export type ActivityType =
@@ -176,16 +185,9 @@ export const ALL_ALARM_LABELS: AlarmLabel[] = [
 export const ALL_RISK_LEVELS: RiskLevel[] = ['P0', 'P1', 'P2', 'P3'];
 export const ALL_ISSUE_STATUSES: IssueStatus[] = ['Triage', 'Investigating', 'Resolved', 'Closed', 'Merged'];
 export const ALL_ALARM_TYPES: AlarmType[] = [
+  'spc_ooc',
   'TempSpike',
-  'PressureDrop',
-  'FlowAnomaly',
   'ChamberLeak',
-  'VoltageSag',
-  'ParticleCount',
-  'VacuumFault',
-  'RFMismatch',
-  'GasFlowDeviation',
-  'EndpointDrift',
 ];
 
 export type AlarmSortKey = 'alarmTime' | 'severity' | 'type' | 'department';

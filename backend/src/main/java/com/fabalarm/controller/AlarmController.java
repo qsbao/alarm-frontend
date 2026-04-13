@@ -24,6 +24,13 @@ public class AlarmController {
         this.alarmService = alarmService;
     }
 
+    @Operation(summary = "Create alarm", description = "Create a new alarm with optional type-specific details")
+    @PostMapping
+    public ResponseEntity<?> createAlarm(@RequestBody Alarm alarm) {
+        Alarm created = alarmService.create(alarm);
+        return ResponseEntity.ok(toDto(created));
+    }
+
     @Operation(summary = "List alarms", description = "Returns alarms within mandatory date range, with optional filters")
     @GetMapping
     public ResponseEntity<?> listAlarms(
@@ -190,6 +197,7 @@ public class AlarmController {
         dto.put("status", a.getStatus().name());
         if (a.getRiskLevel() != null) dto.put("riskLevel", a.getRiskLevel().name());
         dto.put("labels", a.getLabels().stream().map(AlarmLabel::name).sorted().collect(Collectors.toList()));
+        if (a.getDetails() != null) dto.put("details", a.getDetails());
         return dto;
     }
 

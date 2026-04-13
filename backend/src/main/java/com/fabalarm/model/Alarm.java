@@ -1,6 +1,8 @@
 package com.fabalarm.model;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.HashSet;
@@ -114,6 +116,10 @@ public class Alarm {
     @Enumerated(EnumType.STRING)
     private Set<AlarmLabel> labels = new HashSet<>();
 
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "TEXT")
+    private AlarmDetails details;
+
     public Alarm() {}
 
     public String getId() { return id; }
@@ -214,4 +220,7 @@ public class Alarm {
 
     public Set<AlarmLabel> getLabels() { return labels; }
     public void setLabels(Set<AlarmLabel> labels) { this.labels = labels; }
+
+    public AlarmDetails getDetails() { return details; }
+    public void setDetails(AlarmDetails details) { this.details = details; }
 }

@@ -29,6 +29,7 @@ import { useAlarm, useAlarmActions } from '../hooks/useAlarms';
 import { backend } from '../api/backendClient';
 import { LinkedIssueCard } from '../components/alarms/LinkedIssueCard';
 import { CreateIssueFromAlarmModal } from '../components/alarms/CreateIssueFromAlarmModal';
+import { AlarmDetailsPanel } from '../components/alarms/AlarmDetailsPanel';
 
 const SEVERITY_COLOR: Record<string, string> = {
   P0: 'bg-red-500/15 text-red-400 border-red-500/30',
@@ -401,6 +402,7 @@ export function AlarmDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           <div className="lg:col-span-2 flex flex-col gap-5">
             <FourWPanels alarm={alarm} now={now} />
+            <AlarmDetailsPanel alarm={alarm} />
           </div>
 
           <div className="flex flex-col gap-5">
