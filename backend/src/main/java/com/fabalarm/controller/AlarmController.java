@@ -2,6 +2,7 @@ package com.fabalarm.controller;
 
 import com.fabalarm.auth.CurrentUserHolder;
 import com.fabalarm.model.*;
+import com.fabalarm.service.AlarmAlreadyExistsException;
 import com.fabalarm.service.AlarmService;
 import com.fabalarm.service.PermissionDeniedException;
 import io.swagger.v3.oas.annotations.Operation;
@@ -24,11 +25,15 @@ public class AlarmController {
         this.alarmService = alarmService;
     }
 
-    @Operation(summary = "Create alarm", description = "Create a new alarm with optional type-specific details")
+    @Operation(summary = "Create alarm", description = "Create a new alarm with optional type-specific details. Returns 409 if alarm ID already exists.")
     @PostMapping
     public ResponseEntity<?> createAlarm(@RequestBody Alarm alarm) {
-        Alarm created = alarmService.create(alarm);
-        return ResponseEntity.ok(toDto(created));
+        try {
+            Alarm created = alarmService.create(alarm);
+            return ResponseEntity.status(201).body(toDto(created));
+        } catch (AlarmAlreadyExistsException e) {
+            return ResponseEntity.status(409).body(Map.of("error", e.getMessage()));
+        }
     }
 
     @Operation(summary = "List alarms", description = "Returns alarms within mandatory date range, with optional filters")

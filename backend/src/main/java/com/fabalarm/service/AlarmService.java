@@ -27,6 +27,9 @@ public class AlarmService {
 
     @Transactional
     public Alarm create(Alarm alarm) {
+        if (alarm.getId() != null && alarmRepository.findByIdWithLabels(alarm.getId()) != null) {
+            throw new AlarmAlreadyExistsException("Alarm already exists: " + alarm.getId());
+        }
         // Project value/unit from details - this overrides any caller-provided value/unit
         ingestProjector.projectValueAndUnit(alarm);
         return alarmRepository.save(alarm);

@@ -4,6 +4,7 @@ import com.fabalarm.auth.CurrentUserHolder;
 import com.fabalarm.model.*;
 import com.fabalarm.service.IssueAlarmService;
 import com.fabalarm.service.IssueService;
+import com.fabalarm.service.WorkflowEngine;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
@@ -21,10 +22,12 @@ public class IssueController {
 
     private final IssueService issueService;
     private final IssueAlarmService issueAlarmService;
+    private final WorkflowEngine workflowEngine;
 
-    public IssueController(IssueService issueService, IssueAlarmService issueAlarmService) {
+    public IssueController(IssueService issueService, IssueAlarmService issueAlarmService, WorkflowEngine workflowEngine) {
         this.issueService = issueService;
         this.issueAlarmService = issueAlarmService;
+        this.workflowEngine = workflowEngine;
     }
 
     @Operation(summary = "List issues", description = "Returns all issues with optional filtering")
@@ -83,13 +86,23 @@ public class IssueController {
         User user = CurrentUserHolder.get();
         Issue created = issueService.create(issue, user);
 
-        // If alarmId provided, link the alarm to the new issue in the same transaction
-        String alarmId = body.get("alarmId");
+        // If alarmId provided, link the alarm to the new issue
+        String alarmId = (String) body.get("alarmId");
         if (alarmId != null && !alarmId.isBlank()) {
             try {
                 issueAlarmService.link(created.getId(), alarmId, user);
             } catch (Exception e) {
                 // If linking fails, still return the created issue
+            }
+        }
+
+        // If workflowDefinitionId provided, attach workflow atomically
+        String workflowDefinitionId = (String) body.get("workflowDefinitionId");
+        if (workflowDefinitionId != null && !workflowDefinitionId.isBlank()) {
+            try {
+                workflowEngine.attachWorkflow(created.getId(), workflowDefinitionId, user);
+            } catch (Exception e) {
+                // If workflow attach fails, still return the created issue
             }
         }
 

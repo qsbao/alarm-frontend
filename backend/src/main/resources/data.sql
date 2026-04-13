@@ -9,7 +9,10 @@ INSERT INTO users (id, name, department) VALUES
   ('user-muller',  'K. Müller',  'Facilities'),
   ('user-smith',   'J. Smith',   'Facilities'),
   ('user-park',    'C. Park',    'Etch'),
-  ('user-hoffman', 'B. Hoffman', 'Facilities');
+  ('user-hoffman', 'B. Hoffman', 'Facilities'),
+  ('SPC_SYSTEM',   'SPC System',   'SYSTEM'),
+  ('MES_ALERTS',   'MES Alerts',   'SYSTEM'),
+  ('SENSOR_HUB',   'Sensor Hub',   'SYSTEM');
 
 -- Alarms (only those linked to issues, covering both types / all severities / both statuses)
 INSERT INTO alarm (id, type, severity, message, alarm_value, unit, alarm_time, recovery_time, eqp_id, chamber_id, product_id, oper_name, owner, department, chart_owner_id, status, risk_level) VALUES
