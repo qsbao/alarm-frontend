@@ -2,9 +2,7 @@ import { Search, X } from 'lucide-react';
 import { useIssueStore } from '../../stores/issueStore';
 import { ISSUE_BUILTIN_VIEWS } from '../../lib/issueSavedViews';
 import {
-  ALL_ALARM_TYPES,
   ALL_RISK_LEVELS,
-  type AlarmType,
   type IssueStatus,
   type RiskLevel,
 } from '../../types';
@@ -16,12 +14,10 @@ export function FilterBar() {
   const search = useIssueStore((s) => s.search);
   const riskFilter = useIssueStore((s) => s.riskFilter);
   const statusFilter = useIssueStore((s) => s.statusFilter);
-  const alarmTypeFilter = useIssueStore((s) => s.alarmTypeFilter);
   const activeViewName = useIssueStore((s) => s.activeViewName);
   const setSearch = useIssueStore((s) => s.setSearch);
   const setRiskFilter = useIssueStore((s) => s.setRiskFilter);
   const setStatusFilter = useIssueStore((s) => s.setStatusFilter);
-  const setAlarmTypeFilter = useIssueStore((s) => s.setAlarmTypeFilter);
   const setActiveViewName = useIssueStore((s) => s.setActiveViewName);
   const showMerged = useIssueStore((s) => s.showMerged);
   const setShowMerged = useIssueStore((s) => s.setShowMerged);
@@ -100,19 +96,6 @@ export function FilterBar() {
       >
         Merged
       </button>
-
-      <select
-        value={alarmTypeFilter}
-        onChange={(e) => setAlarmTypeFilter(e.target.value as AlarmType | 'all')}
-        className="input-base w-auto"
-      >
-        <option value="all">All alarm types</option>
-        {ALL_ALARM_TYPES.map((t) => (
-          <option key={t} value={t}>
-            {t}
-          </option>
-        ))}
-      </select>
 
       <button onClick={reset} className="btn-ghost">
         <X size={14} />

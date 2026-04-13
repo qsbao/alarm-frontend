@@ -65,18 +65,6 @@ class IssueEndpointTest {
     }
 
     @Test
-    void listIssuesFilterByAlarmType() {
-        ResponseEntity<List> response = restTemplate.exchange(
-                "/api/issues?alarmType=TempSpike", HttpMethod.GET, withAuth(), List.class);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        List<Map<String, Object>> issues = response.getBody();
-        assertTrue(issues.size() > 0);
-        for (Map<String, Object> issue : issues) {
-            assertEquals("TempSpike", issue.get("alarmType"));
-        }
-    }
-
-    @Test
     void listIssuesFilterBySearch() {
         ResponseEntity<List> response = restTemplate.exchange(
                 "/api/issues?search=temperature", HttpMethod.GET, withAuth(), List.class);
@@ -102,7 +90,6 @@ class IssueEndpointTest {
         assertEquals("iss-001", issue.get("id"));
         assertNotNull(issue.get("title"));
         assertNotNull(issue.get("date"));
-        assertNotNull(issue.get("alarmType"));
         assertNotNull(issue.get("riskLevel"));
         assertNotNull(issue.get("status"));
         assertNotNull(issue.get("ownerId"));
@@ -120,13 +107,13 @@ class IssueEndpointTest {
 
     @Test
     void createIssueReturns201() {
-        Map<String, String> body = Map.of(
+        Map<String, Object> body = Map.of(
                 "id", "iss-test-create",
                 "title", "Test issue creation",
-                "alarmType", "TempSpike",
                 "riskLevel", "High",
                 "issueTime", "2025-06-15T10:00:00Z",
-                "operation", "Exposure",
+                "operName", "Exposure",
+                "operNo", "OP-1010",
                 "product", "A7-Litho",
                 "ownerId", "user-tanaka",
                 "department", "Litho",
@@ -143,13 +130,12 @@ class IssueEndpointTest {
 
     @Test
     void createIssueLogsCreatedActivity() {
-        Map<String, String> body = Map.of(
+        Map<String, Object> body = Map.of(
                 "id", "iss-test-act",
                 "title", "Test activity logging",
-                "alarmType", "PressureDrop",
                 "riskLevel", "Medium",
                 "issueTime", "2025-06-15T11:00:00Z",
-                "operation", "Etch",
+                "operName", "Etch",
                 "product", "B3-Etch",
                 "ownerId", "user-chen",
                 "department", "Etch",

@@ -132,7 +132,7 @@ public class RelationService {
         List<String> route = PRODUCT_ROUTES.get(issue.getProduct());
         if (route == null) return List.of();
 
-        int parentIdx = route.indexOf(issue.getOperation());
+        int parentIdx = route.indexOf(issue.getOperName());
         if (parentIdx <= 0) return List.of();
 
         List<String> upstream = route.subList(0, parentIdx);
@@ -146,7 +146,7 @@ public class RelationService {
             List<Map<String, Object>> openIssues = allIssues.stream()
                     .filter(iss -> !iss.getId().equals(issueId)
                             && iss.getProduct().equals(issue.getProduct())
-                            && iss.getOperation().equals(opName)
+                            && iss.getOperName() != null && iss.getOperName().equals(opName)
                             && OPEN_STATUSES.contains(iss.getStatus()))
                     .map(iss -> {
                         Map<String, Object> dto = new LinkedHashMap<>();
@@ -198,11 +198,10 @@ public class RelationService {
         child.setId(childId);
         child.setTitle("Highlight: " + opName + " on " + productName);
         child.setDate(Instant.now());
-        child.setAlarmType(parent.getAlarmType());
         child.setRiskLevel(parent.getRiskLevel());
         child.setStatus(IssueStatus.Triage);
         child.setIssueTime(Instant.now());
-        child.setOperation(opName);
+        child.setOperName(opName);
         child.setProduct(productName);
         child.setOwnerId(user.getId());
         child.setDepartment(parent.getDepartment());

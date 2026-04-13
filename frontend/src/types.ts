@@ -174,12 +174,14 @@ export interface Issue {
   id: string; // "iss-001"
   title: string;
   date: string; // ISO 8601 — creation date (table column "date")
-  alarmType: AlarmType; // table column "alarm_type"
   riskLevel: RiskLevel;
   status: IssueStatus;
   // context columns
   issueTime: string; // when it physically happened
-  operation: string; // e.g. "Wafer transfer"
+  operName?: string; // e.g. "Wafer transfer"
+  operNo?: string; // e.g. "OP-1010"
+  module?: Module;
+  labels: AlarmLabel[];
   // dimension columns
   product: string; // e.g. "A7-Litho"
   ownerId: string; // UserId — e.g. "user-tanaka"

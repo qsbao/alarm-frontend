@@ -1,7 +1,7 @@
 import { X } from 'lucide-react';
 import { useState } from 'react';
-import type { Alarm, AlarmType, IssueDraft, RiskLevel, User } from '../../types';
-import { ALL_ALARM_TYPES, ALL_RISK_LEVELS } from '../../types';
+import type { Alarm, IssueDraft, RiskLevel, User } from '../../types';
+import { ALL_RISK_LEVELS } from '../../types';
 import { getDefaultWorkflowId } from '../../lib/workflows/workflowDefaults';
 import { getAllDefinitions } from '../../lib/workflows/definitions';
 
@@ -15,11 +15,11 @@ function buildIssueFromAlarm(alarm: Alarm, now: string): IssueDraft {
       `Equipment: ${alarm.eqpId}. Product: ${alarm.productId}. Operation: ${alarm.operName ?? 'N/A'}. ` +
       `Department: ${alarm.department}. Owner: ${alarm.owner}.`,
     date: now,
-    alarmType: alarm.type,
     riskLevel,
     status: 'Triage',
     issueTime: alarm.alarmTime,
-    operation: alarm.operName ?? '',
+    operName: alarm.operName ?? '',
+    labels: [],
     product: alarm.productId,
     ownerId: alarm.owner,
     department: alarm.department,
@@ -42,10 +42,9 @@ export function CreateIssueFromAlarmModal({
   const initial = buildIssueFromAlarm(alarm, new Date().toISOString());
   const [title, setTitle] = useState(initial.title);
   const [description, setDescription] = useState(initial.description);
-  const [alarmType, setAlarmType] = useState<AlarmType>(initial.alarmType);
   const [riskLevel, setRiskLevel] = useState<RiskLevel>(initial.riskLevel);
   const [product, setProduct] = useState(initial.product);
-  const [operation, setOperation] = useState(initial.operation);
+  const [operName, setOperName] = useState(initial.operName ?? '');
   const [ownerId, setOwnerId] = useState(initial.ownerId);
   const [department, setDepartment] = useState(initial.department);
   const [workflowId, setWorkflowId] = useState<string>(
@@ -61,11 +60,11 @@ export function CreateIssueFromAlarmModal({
         title,
         description,
         date: initial.date,
-        alarmType,
         riskLevel,
         status: 'Triage',
         issueTime: initial.issueTime,
-        operation,
+        operName,
+        labels: [],
         product,
         ownerId,
         department,
@@ -109,19 +108,6 @@ export function CreateIssueFromAlarmModal({
 
           <div className="grid grid-cols-2 gap-3">
             <label className="flex flex-col gap-1">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted">Alarm Type</span>
-              <select
-                value={alarmType}
-                onChange={(e) => setAlarmType(e.target.value as AlarmType)}
-                className="input-base text-xs"
-              >
-                {ALL_ALARM_TYPES.map((t) => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </select>
-            </label>
-
-            <label className="flex flex-col gap-1">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted">Risk Level</span>
               <select
                 value={riskLevel}
@@ -133,9 +119,7 @@ export function CreateIssueFromAlarmModal({
                 ))}
               </select>
             </label>
-          </div>
 
-          <div className="grid grid-cols-2 gap-3">
             <label className="flex flex-col gap-1">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted">Product</span>
               <input
@@ -145,17 +129,18 @@ export function CreateIssueFromAlarmModal({
                 className="input-base text-xs"
               />
             </label>
+          </div>
 
+          <div className="grid grid-cols-2 gap-3">
             <label className="flex flex-col gap-1">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted">Operation</span>
               <input
                 type="text"
-                value={operation}
-                onChange={(e) => setOperation(e.target.value)}
+                value={operName}
+                onChange={(e) => setOperName(e.target.value)}
                 className="input-base text-xs"
               />
             </label>
-          </div>
 
           <div className="grid grid-cols-2 gap-3">
             <label className="flex flex-col gap-1">

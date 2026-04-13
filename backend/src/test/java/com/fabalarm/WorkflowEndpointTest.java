@@ -36,10 +36,9 @@ class WorkflowEndpointTest {
         Map<String, String> body = Map.of(
                 "id", issueId,
                 "title", "Test workflow issue " + issueId,
-                "alarmType", "TempSpike",
                 "riskLevel", "High",
                 "issueTime", "2025-06-15T10:00:00Z",
-                "operation", "Endpoint detect",
+                "operName", "Endpoint detect",
                 "product", "A7-Litho",
                 "ownerId", ownerId,
                 "department", "Litho",
@@ -54,10 +53,9 @@ class WorkflowEndpointTest {
         Map<String, String> body = Map.of(
                 "id", issueId,
                 "title", "Test workflow issue " + issueId,
-                "alarmType", "TempSpike",
                 "riskLevel", riskLevel,
                 "issueTime", "2025-06-15T10:00:00Z",
-                "operation", "Endpoint detect",
+                "operName", "Endpoint detect",
                 "product", "A7-Litho",
                 "ownerId", ownerId,
                 "department", "Litho",

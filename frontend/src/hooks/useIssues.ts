@@ -6,7 +6,7 @@ import { useCurrentUserStore } from '../stores/currentUserStore';
 import { ISSUE_BUILTIN_VIEWS } from '../lib/issueSavedViews';
 import { getDefinition } from '../lib/workflows/definitions';
 import { matchesFilters } from './useFilteredIssues';
-import type { Issue, RiskLevel } from '../types';
+import type { Issue, RiskLevel, AlarmLabel, Module } from '../types';
 
 const RISK_RANK: Record<RiskLevel, number> = {
   P3: 0,
@@ -19,11 +19,13 @@ interface BackendIssue {
   id: string;
   title: string;
   date: string;
-  alarmType: string;
   riskLevel: string;
   status: string;
   issueTime: string;
-  operation: string;
+  operName?: string;
+  operNo?: string;
+  module?: string;
+  labels: string[];
   product: string;
   ownerId: string;
   department: string;
@@ -35,11 +37,13 @@ function toIssue(raw: BackendIssue): Issue {
     id: raw.id,
     title: raw.title,
     date: raw.date,
-    alarmType: raw.alarmType as Issue['alarmType'],
     riskLevel: raw.riskLevel as Issue['riskLevel'],
     status: raw.status as Issue['status'],
     issueTime: raw.issueTime,
-    operation: raw.operation,
+    operName: raw.operName,
+    operNo: raw.operNo,
+    module: raw.module as Module | undefined,
+    labels: (raw.labels ?? []) as AlarmLabel[],
     product: raw.product,
     ownerId: raw.ownerId,
     department: raw.department,
@@ -55,7 +59,6 @@ export function useIssues() {
   const search = useIssueStore((s) => s.search);
   const riskFilter = useIssueStore((s) => s.riskFilter);
   const statusFilter = useIssueStore((s) => s.statusFilter);
-  const alarmTypeFilter = useIssueStore((s) => s.alarmTypeFilter);
   const activeViewName = useIssueStore((s) => s.activeViewName);
   const sortKey = useIssueStore((s) => s.sortKey);
   const sortDir = useIssueStore((s) => s.sortDir);
@@ -89,7 +92,7 @@ export function useIssues() {
       ? ISSUE_BUILTIN_VIEWS.find((v) => v.name === activeViewName)
       : null;
 
-    const filterParams = { statusFilter, riskFilter, alarmTypeFilter, search, showMerged };
+    const filterParams = { statusFilter, riskFilter, search, showMerged };
 
     let list = allIssues.filter((i) => {
       if (activeView && !activeView.predicate(i, currentUser, getDefinition)) return false;
@@ -107,7 +110,7 @@ export function useIssues() {
     });
 
     return list;
-  }, [allIssues, search, riskFilter, statusFilter, alarmTypeFilter, showMerged, activeViewName, currentUser, sortKey, sortDir]);
+  }, [allIssues, search, riskFilter, statusFilter, showMerged, activeViewName, currentUser, sortKey, sortDir]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const safePage = Math.min(page, totalPages);

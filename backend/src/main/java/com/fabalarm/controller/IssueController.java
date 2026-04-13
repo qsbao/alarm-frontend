@@ -32,14 +32,12 @@ public class IssueController {
     public ResponseEntity<?> listIssues(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) List<String> status,
-            @RequestParam(required = false) List<String> riskLevel,
-            @RequestParam(required = false) List<String> alarmType) {
+            @RequestParam(required = false) List<String> riskLevel) {
 
         List<IssueStatus> statusFilter = parseEnums(status, IssueStatus.class);
         List<RiskLevel> riskFilter = parseEnums(riskLevel, RiskLevel.class);
-        List<AlarmType> typeFilter = parseEnums(alarmType, AlarmType.class);
 
-        List<Issue> issues = issueService.findAll(search, statusFilter, riskFilter, typeFilter);
+        List<Issue> issues = issueService.findAll(search, statusFilter, riskFilter);
 
         List<Map<String, Object>> result = issues.stream()
                 .map(this::toDto)
@@ -58,18 +56,29 @@ public class IssueController {
 
     @Operation(summary = "Create issue", description = "Creates a new issue")
     @PostMapping
-    public ResponseEntity<?> createIssue(@RequestBody Map<String, String> body) {
+    public ResponseEntity<?> createIssue(@RequestBody Map<String, Object> body) {
         Issue issue = new Issue();
-        issue.setId(body.get("id"));
-        issue.setTitle(body.get("title"));
-        issue.setAlarmType(AlarmType.valueOf(body.get("alarmType")));
-        issue.setRiskLevel(RiskLevel.valueOf(body.get("riskLevel")));
-        issue.setIssueTime(Instant.parse(body.get("issueTime")));
-        issue.setOperation(body.get("operation"));
-        issue.setProduct(body.get("product"));
-        issue.setOwnerId(body.get("ownerId"));
-        issue.setDepartment(body.get("department"));
-        issue.setDescription(body.getOrDefault("description", ""));
+        issue.setId((String) body.get("id"));
+        issue.setTitle((String) body.get("title"));
+        issue.setRiskLevel(RiskLevel.valueOf((String) body.get("riskLevel")));
+        issue.setIssueTime(Instant.parse((String) body.get("issueTime")));
+        issue.setOperName((String) body.get("operName"));
+        issue.setOperNo((String) body.get("operNo"));
+        String moduleStr = (String) body.get("module");
+        if (moduleStr != null && !moduleStr.isBlank()) {
+            issue.setModule(Module.valueOf(moduleStr));
+        }
+        @SuppressWarnings("unchecked")
+        List<String> labelStrs = (List<String>) body.get("labels");
+        if (labelStrs != null) {
+            for (String l : labelStrs) {
+                issue.getLabels().add(AlarmLabel.valueOf(l));
+            }
+        }
+        issue.setProduct((String) body.get("product"));
+        issue.setOwnerId((String) body.get("ownerId"));
+        issue.setDepartment((String) body.get("department"));
+        issue.setDescription(body.getOrDefault("description", "").toString());
 
         User user = CurrentUserHolder.get();
         Issue created = issueService.create(issue, user);
@@ -167,11 +176,13 @@ public class IssueController {
         dto.put("id", i.getId());
         dto.put("title", i.getTitle());
         dto.put("date", i.getDate().toString());
-        dto.put("alarmType", i.getAlarmType().name());
         dto.put("riskLevel", i.getRiskLevel().name());
         dto.put("status", i.getStatus().name());
         dto.put("issueTime", i.getIssueTime().toString());
-        dto.put("operation", i.getOperation());
+        dto.put("operName", i.getOperName());
+        dto.put("operNo", i.getOperNo());
+        dto.put("module", i.getModule() != null ? i.getModule().name() : null);
+        dto.put("labels", i.getLabels().stream().map(Enum::name).collect(Collectors.toList()));
         dto.put("product", i.getProduct());
         dto.put("ownerId", i.getOwnerId());
         dto.put("department", i.getDepartment());

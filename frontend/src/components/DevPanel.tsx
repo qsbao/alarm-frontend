@@ -18,11 +18,13 @@ interface BackendIssue {
   id: string;
   title: string;
   date: string;
-  alarmType: string;
   riskLevel: string;
   status: string;
   issueTime: string;
-  operation: string;
+  operName?: string;
+  operNo?: string;
+  module?: string;
+  labels: string[];
   product: string;
   ownerId: string;
   department: string;
@@ -46,11 +48,13 @@ function useCurrentIssue(issueId: string | undefined): Issue | undefined {
         id: raw.id,
         title: raw.title,
         date: raw.date,
-        alarmType: raw.alarmType as Issue['alarmType'],
         riskLevel: raw.riskLevel as Issue['riskLevel'],
         status: raw.status as Issue['status'],
         issueTime: raw.issueTime,
-        operation: raw.operation,
+        operName: raw.operName,
+        operNo: raw.operNo,
+        module: raw.module as Issue['module'],
+        labels: (raw.labels ?? []) as Issue['labels'],
         product: raw.product,
         ownerId: raw.ownerId,
         department: raw.department,

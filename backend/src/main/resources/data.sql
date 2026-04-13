@@ -239,32 +239,42 @@ INSERT INTO alarm_label (alarm_id, label) VALUES ('alm-150', 'LotImpacting');
 INSERT INTO alarm_label (alarm_id, label) VALUES ('alm-150', 'NeedsEngReview');
 
 -- Seed data: 25 issues across departments
-INSERT INTO issue (id, title, issue_date, alarm_type, risk_level, status, issue_time, operation, product, owner_id, department, description) VALUES
-('iss-001', 'Temperature excursion on LITHO-07', '2026-04-01T08:00:00Z', 'TempSpike', 'Critical', 'Investigating', '2026-04-01T07:45:00Z', 'Exposure', 'A7-Litho', 'user-tanaka', 'Litho', 'Repeated temp spikes during exposure step on LITHO-07. Wafer lot at risk.'),
-('iss-002', 'Pressure drop in ETCH-03 chamber B', '2026-04-01T09:30:00Z', TempSpike, 'High', 'Triage', '2026-04-01T09:15:00Z', 'Etch', 'B3-Etch', 'user-chen', 'Etch', 'Sudden pressure drop detected in chamber B during etch process.'),
-('iss-003', 'Flow anomaly on CVD-12', '2026-04-02T10:00:00Z', TempSpike, 'Medium', 'Closed', '2026-04-02T09:30:00Z', 'Deposition', 'C2-CVD', 'user-patel', 'Etch', 'Gas flow deviation detected during deposition. Resolved by recalibration.'),
-('iss-004', 'Chamber leak LITHO-02', '2026-04-02T14:00:00Z', 'ChamberLeak', 'Critical', 'Investigating', '2026-04-02T13:30:00Z', 'Exposure', 'A7-Litho', 'user-rossi', 'Litho', 'Helium leak test failed on LITHO-02 chamber. Production halted.'),
-('iss-005', 'Voltage sag on FACILITIES-PSU-01', '2026-04-03T06:00:00Z', TempSpike, 'High', 'Closed', '2026-04-03T05:45:00Z', 'Power Distribution', 'FAC-Power', 'user-muller', 'Facilities', 'Voltage sag event on main PSU feeding cleanroom zone 3.'),
-('iss-006', 'Particle count spike LITHO-07 post-maintenance', '2026-04-03T11:00:00Z', TempSpike, 'Medium', 'Triage', '2026-04-03T10:30:00Z', 'Exposure', 'A7-Litho', 'user-tanaka', 'Litho', 'Elevated particle counts after scheduled maintenance window.'),
-('iss-007', 'Vacuum fault ETCH-05', '2026-04-04T08:30:00Z', ChamberLeak, 'High', 'Investigating', '2026-04-04T08:00:00Z', 'Etch', 'B3-Etch', 'user-kim', 'Etch', 'Vacuum pump fault on ETCH-05 preventing chamber evacuation.'),
-('iss-008', 'RF mismatch ETCH-03', '2026-04-04T15:00:00Z', ChamberLeak, 'Medium', 'Resolved', '2026-04-04T14:30:00Z', 'Etch', 'B3-Etch', 'user-chen', 'Etch', 'RF impedance mismatch during plasma ignition. Matching network adjusted.'),
-('iss-009', 'Gas flow deviation CVD-12 line 2', '2026-04-05T07:00:00Z', TempSpike, 'Low', 'Closed', '2026-04-05T06:30:00Z', 'Deposition', 'C2-CVD', 'user-patel', 'Etch', 'Minor gas flow deviation on secondary line. Within spec after correction.'),
-('iss-010', 'Endpoint drift on ETCH-03', '2026-04-05T12:00:00Z', TempSpike, 'Medium', 'Triage', '2026-04-05T11:30:00Z', 'Etch', 'B3-Etch', 'user-kim', 'Etch', 'Gradual endpoint detection drift over last 50 wafers.'),
-('iss-011', 'Temperature excursion LITHO-02 during alignment', '2026-04-06T09:00:00Z', 'TempSpike', 'High', 'Investigating', '2026-04-06T08:30:00Z', 'Alignment', 'A7-Litho', 'user-garcia', 'Litho', 'Temperature spike during wafer alignment phase on LITHO-02.'),
-('iss-012', 'Pressure instability ETCH-05 chamber A', '2026-04-06T16:00:00Z', TempSpike, 'Medium', 'Triage', '2026-04-06T15:30:00Z', 'Etch', 'B3-Etch', 'user-patel', 'Etch', 'Intermittent pressure fluctuations in chamber A during processing.'),
-('iss-013', 'HVAC flow anomaly cleanroom zone 2', '2026-04-07T10:00:00Z', TempSpike, 'Low', 'Resolved', '2026-04-07T09:30:00Z', 'HVAC', 'FAC-HVAC', 'user-smith', 'Facilities', 'Airflow anomaly in cleanroom zone 2 HVAC system. Filter replaced.'),
-('iss-014', 'Chamber seal degradation LITHO-07', '2026-04-07T14:00:00Z', 'ChamberLeak', 'High', 'Investigating', '2026-04-07T13:30:00Z', 'Exposure', 'A7-Litho', 'user-rossi', 'Litho', 'Slow chamber leak detected via He leak test. O-ring replacement scheduled.'),
-('iss-015', 'UPS voltage event FAC-UPS-02', '2026-04-08T03:00:00Z', TempSpike, 'Critical', 'Closed', '2026-04-08T02:45:00Z', 'Power Distribution', 'FAC-Power', 'user-muller', 'Facilities', 'UPS switchover event caused brief voltage dip. Root cause: capacitor aging.'),
-('iss-016', 'Particle excursion ETCH-03 post-clean', '2026-04-08T11:00:00Z', TempSpike, 'Medium', 'Triage', '2026-04-08T10:30:00Z', 'Etch', 'B3-Etch', 'user-chen', 'Etch', 'Higher than expected particle counts after chamber wet clean.'),
-('iss-017', 'Vacuum leak LITHO-02 loadlock', '2026-04-09T08:00:00Z', ChamberLeak, 'High', 'Resolved', '2026-04-09T07:30:00Z', 'Wafer Transfer', 'A7-Litho', 'user-tanaka', 'Litho', 'Loadlock vacuum fault during wafer transfer. Bellows replaced.'),
-('iss-018', 'RF power oscillation ETCH-05', '2026-04-09T13:00:00Z', ChamberLeak, 'High', 'Investigating', '2026-04-09T12:30:00Z', 'Etch', 'B3-Etch', 'user-kim', 'Etch', 'RF forward power oscillating during steady-state etch. Generator inspection.'),
-('iss-019', 'MFC drift on CVD-12 precursor line', '2026-04-10T07:30:00Z', TempSpike, 'Medium', 'Triage', '2026-04-10T07:00:00Z', 'Deposition', 'C2-CVD', 'user-patel', 'Etch', 'MFC reading drifting on precursor delivery line. Calibration due.'),
-('iss-020', 'Endpoint detection failure ETCH-03 lot 7742', '2026-04-10T15:00:00Z', TempSpike, 'High', 'Investigating', '2026-04-10T14:30:00Z', 'Etch', 'B3-Etch', 'user-chen', 'Etch', 'Endpoint detection failed to trigger on lot 7742. Over-etch occurred.'),
-('iss-021', 'Temp spike during develop LITHO-07', '2026-04-11T09:00:00Z', 'TempSpike', 'Medium', 'Resolved', '2026-04-11T08:30:00Z', 'Develop', 'A7-Litho', 'user-garcia', 'Litho', 'Brief temp spike during photoresist develop. No wafer impact confirmed.'),
-('iss-022', 'DI water pressure drop FAC-DI-01', '2026-04-11T14:00:00Z', TempSpike, 'Low', 'Closed', '2026-04-11T13:30:00Z', 'DI Water', 'FAC-DI', 'user-smith', 'Facilities', 'DI water supply pressure drop. Pump seal replaced.'),
-('iss-023', 'Exhaust flow anomaly ETCH-05', '2026-04-12T08:00:00Z', TempSpike, 'Medium', 'Triage', '2026-04-12T07:30:00Z', 'Etch', 'B3-Etch', 'user-kim', 'Etch', 'Exhaust flow rate below setpoint during processing.'),
-('iss-024', 'Chamber leak test fail ETCH-03 post-PM', '2026-04-12T13:00:00Z', 'ChamberLeak', 'High', 'Triage', '2026-04-12T12:30:00Z', 'Etch', 'B3-Etch', 'user-chen', 'Etch', 'Chamber failed leak rate spec after preventive maintenance.'),
-('iss-025', 'Voltage transient FAC-XFMR-01', '2026-04-12T18:00:00Z', TempSpike, 'Medium', 'Triage', '2026-04-12T17:30:00Z', 'Power Distribution', 'FAC-Power', 'user-hoffman', 'Facilities', 'Transient voltage event on transformer FAC-XFMR-01 during load switching.');
+INSERT INTO issue (id, title, issue_date, risk_level, status, issue_time, oper_name, oper_no, module, product, owner_id, department, description) VALUES
+('iss-001', 'Temperature excursion on LITHO-07', '2026-04-01T08:00:00Z', 'Critical', 'Investigating', '2026-04-01T07:45:00Z', 'Exposure', 'OP-1010', 'LITHO', 'A7-Litho', 'user-tanaka', 'Litho', 'Repeated temp spikes during exposure step on LITHO-07. Wafer lot at risk.'),
+('iss-002', 'Pressure drop in ETCH-03 chamber B', '2026-04-01T09:30:00Z', 'High', 'Triage', '2026-04-01T09:15:00Z', 'Etch', 'OP-2020', 'ETCH', 'B3-Etch', 'user-chen', 'Etch', 'Sudden pressure drop detected in chamber B during etch process.'),
+('iss-003', 'Flow anomaly on CVD-12', '2026-04-02T10:00:00Z', 'Medium', 'Closed', '2026-04-02T09:30:00Z', 'Deposition', 'OP-3030', 'CVD', 'C2-CVD', 'user-patel', 'Etch', 'Gas flow deviation detected during deposition. Resolved by recalibration.'),
+('iss-004', 'Chamber leak LITHO-02', '2026-04-02T14:00:00Z', 'Critical', 'Investigating', '2026-04-02T13:30:00Z', 'Exposure', 'OP-1010', 'LITHO', 'A7-Litho', 'user-rossi', 'Litho', 'Helium leak test failed on LITHO-02 chamber. Production halted.'),
+('iss-005', 'Voltage sag on FACILITIES-PSU-01', '2026-04-03T06:00:00Z', 'High', 'Closed', '2026-04-03T05:45:00Z', 'Power Distribution', NULL, NULL, 'FAC-Power', 'user-muller', 'Facilities', 'Voltage sag event on main PSU feeding cleanroom zone 3.'),
+('iss-006', 'Particle count spike LITHO-07 post-maintenance', '2026-04-03T11:00:00Z', 'Medium', 'Triage', '2026-04-03T10:30:00Z', 'Exposure', 'OP-1010', 'LITHO', 'A7-Litho', 'user-tanaka', 'Litho', 'Elevated particle counts after scheduled maintenance window.'),
+('iss-007', 'Vacuum fault ETCH-05', '2026-04-04T08:30:00Z', 'High', 'Investigating', '2026-04-04T08:00:00Z', 'Etch', 'OP-2020', 'ETCH', 'B3-Etch', 'user-kim', 'Etch', 'Vacuum pump fault on ETCH-05 preventing chamber evacuation.'),
+('iss-008', 'RF mismatch ETCH-03', '2026-04-04T15:00:00Z', 'Medium', 'Resolved', '2026-04-04T14:30:00Z', 'Etch', 'OP-2020', 'ETCH', 'B3-Etch', 'user-chen', 'Etch', 'RF impedance mismatch during plasma ignition. Matching network adjusted.'),
+('iss-009', 'Gas flow deviation CVD-12 line 2', '2026-04-05T07:00:00Z', 'Low', 'Closed', '2026-04-05T06:30:00Z', 'Deposition', 'OP-3030', 'CVD', 'C2-CVD', 'user-patel', 'Etch', 'Minor gas flow deviation on secondary line. Within spec after correction.'),
+('iss-010', 'Endpoint drift on ETCH-03', '2026-04-05T12:00:00Z', 'Medium', 'Triage', '2026-04-05T11:30:00Z', 'Etch', 'OP-2020', 'ETCH', 'B3-Etch', 'user-kim', 'Etch', 'Gradual endpoint detection drift over last 50 wafers.'),
+('iss-011', 'Temperature excursion LITHO-02 during alignment', '2026-04-06T09:00:00Z', 'High', 'Investigating', '2026-04-06T08:30:00Z', 'Alignment', 'OP-1020', 'LITHO', 'A7-Litho', 'user-garcia', 'Litho', 'Temperature spike during wafer alignment phase on LITHO-02.'),
+('iss-012', 'Pressure instability ETCH-05 chamber A', '2026-04-06T16:00:00Z', 'Medium', 'Triage', '2026-04-06T15:30:00Z', 'Etch', 'OP-2020', 'ETCH', 'B3-Etch', 'user-patel', 'Etch', 'Intermittent pressure fluctuations in chamber A during processing.'),
+('iss-013', 'HVAC flow anomaly cleanroom zone 2', '2026-04-07T10:00:00Z', 'Low', 'Resolved', '2026-04-07T09:30:00Z', 'HVAC', NULL, NULL, 'FAC-HVAC', 'user-smith', 'Facilities', 'Airflow anomaly in cleanroom zone 2 HVAC system. Filter replaced.'),
+('iss-014', 'Chamber seal degradation LITHO-07', '2026-04-07T14:00:00Z', 'High', 'Investigating', '2026-04-07T13:30:00Z', 'Exposure', 'OP-1010', 'LITHO', 'A7-Litho', 'user-rossi', 'Litho', 'Slow chamber leak detected via He leak test. O-ring replacement scheduled.'),
+('iss-015', 'UPS voltage event FAC-UPS-02', '2026-04-08T03:00:00Z', 'Critical', 'Closed', '2026-04-08T02:45:00Z', 'Power Distribution', NULL, NULL, 'FAC-Power', 'user-muller', 'Facilities', 'UPS switchover event caused brief voltage dip. Root cause: capacitor aging.'),
+('iss-016', 'Particle excursion ETCH-03 post-clean', '2026-04-08T11:00:00Z', 'Medium', 'Triage', '2026-04-08T10:30:00Z', 'Etch', 'OP-2020', 'ETCH', 'B3-Etch', 'user-chen', 'Etch', 'Higher than expected particle counts after chamber wet clean.'),
+('iss-017', 'Vacuum leak LITHO-02 loadlock', '2026-04-09T08:00:00Z', 'High', 'Resolved', '2026-04-09T07:30:00Z', 'Wafer Transfer', 'OP-1030', 'LITHO', 'A7-Litho', 'user-tanaka', 'Litho', 'Loadlock vacuum fault during wafer transfer. Bellows replaced.'),
+('iss-018', 'RF power oscillation ETCH-05', '2026-04-09T13:00:00Z', 'High', 'Investigating', '2026-04-09T12:30:00Z', 'Etch', 'OP-2020', 'ETCH', 'B3-Etch', 'user-kim', 'Etch', 'RF forward power oscillating during steady-state etch. Generator inspection.'),
+('iss-019', 'MFC drift on CVD-12 precursor line', '2026-04-10T07:30:00Z', 'Medium', 'Triage', '2026-04-10T07:00:00Z', 'Deposition', 'OP-3030', 'CVD', 'C2-CVD', 'user-patel', 'Etch', 'MFC reading drifting on precursor delivery line. Calibration due.'),
+('iss-020', 'Endpoint detection failure ETCH-03 lot 7742', '2026-04-10T15:00:00Z', 'High', 'Investigating', '2026-04-10T14:30:00Z', 'Etch', 'OP-2020', 'ETCH', 'B3-Etch', 'user-chen', 'Etch', 'Endpoint detection failed to trigger on lot 7742. Over-etch occurred.'),
+('iss-021', 'Temp spike during develop LITHO-07', '2026-04-11T09:00:00Z', 'Medium', 'Resolved', '2026-04-11T08:30:00Z', 'Develop', 'OP-1040', 'LITHO', 'A7-Litho', 'user-garcia', 'Litho', 'Brief temp spike during photoresist develop. No wafer impact confirmed.'),
+('iss-022', 'DI water pressure drop FAC-DI-01', '2026-04-11T14:00:00Z', 'Low', 'Closed', '2026-04-11T13:30:00Z', 'DI Water', NULL, NULL, 'FAC-DI', 'user-smith', 'Facilities', 'DI water supply pressure drop. Pump seal replaced.'),
+('iss-023', 'Exhaust flow anomaly ETCH-05', '2026-04-12T08:00:00Z', 'Medium', 'Triage', '2026-04-12T07:30:00Z', 'Etch', 'OP-2020', 'ETCH', 'B3-Etch', 'user-kim', 'Etch', 'Exhaust flow rate below setpoint during processing.'),
+('iss-024', 'Chamber leak test fail ETCH-03 post-PM', '2026-04-12T13:00:00Z', 'High', 'Triage', '2026-04-12T12:30:00Z', 'Etch', 'OP-2020', 'ETCH', 'B3-Etch', 'user-chen', 'Etch', 'Chamber failed leak rate spec after preventive maintenance.'),
+('iss-025', 'Voltage transient FAC-XFMR-01', '2026-04-12T18:00:00Z', 'Medium', 'Triage', '2026-04-12T17:30:00Z', 'Power Distribution', NULL, NULL, 'FAC-Power', 'user-hoffman', 'Facilities', 'Transient voltage event on transformer FAC-XFMR-01 during load switching.');
+
+-- Issue labels (sample)
+INSERT INTO issue_label (issue_id, label) VALUES ('iss-001', 'LotImpacting');
+INSERT INTO issue_label (issue_id, label) VALUES ('iss-004', 'LotImpacting');
+INSERT INTO issue_label (issue_id, label) VALUES ('iss-004', 'NeedsEngReview');
+INSERT INTO issue_label (issue_id, label) VALUES ('iss-007', 'NeedsEngReview');
+INSERT INTO issue_label (issue_id, label) VALUES ('iss-011', 'Recurring');
+INSERT INTO issue_label (issue_id, label) VALUES ('iss-014', 'Recurring');
+INSERT INTO issue_label (issue_id, label) VALUES ('iss-020', 'LotImpacting');
+INSERT INTO issue_label (issue_id, label) VALUES ('iss-024', 'NeedsEngReview');
 
 -- Seed issue activity entries
 INSERT INTO issue_activity (issue_id, type, timestamp, author, text, assigned_to) VALUES

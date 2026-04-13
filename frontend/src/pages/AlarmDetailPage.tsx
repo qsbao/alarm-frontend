@@ -333,16 +333,18 @@ export function AlarmDetailPage() {
       });
       if (issueData) {
         const raw = issueData as unknown as {
-          id: string; title: string; date: string; alarmType: string;
+          id: string; title: string; date: string;
           riskLevel: string; status: string; issueTime: string;
-          operation: string; product: string; ownerId: string;
+          operName?: string; operNo?: string; module?: string;
+          labels: string[]; product: string; ownerId: string;
           department: string; description: string;
         };
         setLinkedIssue({
           ...raw,
-          alarmType: raw.alarmType as Issue['alarmType'],
           riskLevel: raw.riskLevel as Issue['riskLevel'],
           status: raw.status as Issue['status'],
+          module: raw.module as Issue['module'],
+          labels: (raw.labels ?? []) as Issue['labels'],
           activity: [],
         });
       } else {
@@ -373,10 +375,10 @@ export function AlarmDetailPage() {
         body: {
           id: issueId,
           title: draft.title,
-          alarmType: draft.alarmType,
           riskLevel: draft.riskLevel,
           issueTime: draft.issueTime,
-          operation: draft.operation,
+          operName: draft.operName,
+          operNo: draft.operNo,
           product: draft.product,
           ownerId: draft.ownerId,
           department: draft.department,

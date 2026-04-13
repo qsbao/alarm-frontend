@@ -87,7 +87,10 @@ export function IssueHeader({ issue, onAssign, onMerge, onPullAlarms, disabled }
           <div className="mt-2 flex items-center gap-2 flex-wrap">
             <RiskBadge level={issue.riskLevel} />
             <StatusBadge status={issue.status} />
-            <span className="badge">{issue.alarmType}</span>
+            {issue.module && <span className="badge">{issue.module}</span>}
+            {issue.labels.map((l) => (
+              <span key={l} className="badge">{l}</span>
+            ))}
           </div>
         </div>
 
@@ -156,7 +159,8 @@ export function IssueHeader({ issue, onAssign, onMerge, onPullAlarms, disabled }
         <Chip icon={User} label="owner" value={ownerName} />
         <Chip icon={Building2} label="department" value={issue.department} />
         <Chip icon={Clock} label="issue_time" value={formatDateTime(issue.issueTime)} />
-        <Chip icon={Wrench} label="operation" value={issue.operation} />
+        <Chip icon={Wrench} label="oper_name" value={issue.operName ?? '—'} />
+        {issue.operNo && <Chip icon={Wrench} label="oper_no" value={issue.operNo} />}
         <Chip icon={Calendar} label="created" value={formatDateTime(issue.date)} />
       </div>
     </div>

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { AlarmType, IssueStatus, RiskLevel } from '../types';
+import type { IssueStatus, RiskLevel } from '../types';
 
 export type SortKey = 'date' | 'risk_level';
 export type SortDir = 'asc' | 'desc';
@@ -8,7 +8,6 @@ interface IssueStore {
   search: string;
   riskFilter: RiskLevel | 'all';
   statusFilter: IssueStatus | 'all';
-  alarmTypeFilter: AlarmType | 'all';
   activeViewName: string | null;
   sortKey: SortKey;
   sortDir: SortDir;
@@ -20,7 +19,6 @@ interface IssueStore {
   setSearch: (s: string) => void;
   setRiskFilter: (r: RiskLevel | 'all') => void;
   setStatusFilter: (s: IssueStatus | 'all') => void;
-  setAlarmTypeFilter: (t: AlarmType | 'all') => void;
   setActiveViewName: (name: string | null) => void;
   setShowMerged: (v: boolean) => void;
   setSort: (key: SortKey) => void;
@@ -35,7 +33,6 @@ const INITIAL: Pick<
   | 'search'
   | 'riskFilter'
   | 'statusFilter'
-  | 'alarmTypeFilter'
   | 'activeViewName'
   | 'sortKey'
   | 'sortDir'
@@ -47,7 +44,6 @@ const INITIAL: Pick<
   search: '',
   riskFilter: 'all',
   statusFilter: 'all',
-  alarmTypeFilter: 'all',
   activeViewName: null,
   sortKey: 'date',
   sortDir: 'desc',
@@ -62,7 +58,6 @@ export const useIssueStore = create<IssueStore>((set) => ({
   setSearch: (s) => set({ search: s, page: 1, selectedIds: new Set() }),
   setRiskFilter: (r) => set({ riskFilter: r, page: 1, selectedIds: new Set() }),
   setStatusFilter: (s) => set({ statusFilter: s, page: 1, selectedIds: new Set() }),
-  setAlarmTypeFilter: (t) => set({ alarmTypeFilter: t, page: 1, selectedIds: new Set() }),
   setActiveViewName: (name) => set({ activeViewName: name, page: 1, selectedIds: new Set() }),
   setShowMerged: (v) => set({ showMerged: v, page: 1, selectedIds: new Set() }),
   setSort: (key) =>

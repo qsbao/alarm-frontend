@@ -39,11 +39,12 @@ export function PullMergeDialog({
             id: i.id as string,
             title: i.title as string,
             date: i.date as string,
-            alarmType: i.alarmType as Issue['alarmType'],
             riskLevel: i.riskLevel as Issue['riskLevel'],
             status: i.status as Issue['status'],
             issueTime: i.issueTime as string,
-            operation: i.operation as string,
+            operName: i.operName as string | undefined,
+            module: i.module as Issue['module'],
+            labels: (i.labels ?? []) as Issue['labels'],
             product: i.product as string,
             ownerId: i.ownerId as string,
             department: i.department as string,
@@ -135,7 +136,7 @@ export function PullMergeDialog({
               <StatusBadge status={target.status} />
             </div>
             <div className="mt-1 flex items-center gap-3 text-xs text-theme-muted">
-              <span>{target.product} / {target.operation}</span>
+              <span>{target.product} / {target.operName ?? '—'}</span>
               <span>Owner: {getUserById(target.ownerId)?.name ?? target.ownerId}</span>
             </div>
             <div className="mt-1 text-xs text-theme-secondary">
@@ -192,7 +193,7 @@ export function PullMergeDialog({
                         <span className="text-sm text-theme-primary font-medium truncate">{c.title}</span>
                       </div>
                       <div className="mt-0.5 flex items-center gap-3 text-xs text-theme-muted">
-                        <span>{c.product} / {c.operation}</span>
+                        <span>{c.product} / {c.operName ?? '—'}</span>
                         <span>{alarmCount} alarm{alarmCount !== 1 ? 's' : ''}</span>
                       </div>
                     </div>

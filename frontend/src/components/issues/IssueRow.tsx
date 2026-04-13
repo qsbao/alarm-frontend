@@ -51,7 +51,7 @@ export function IssueRow({ issue }: { issue: Issue }) {
         {formatDate(issue.date)}
       </td>
       <td className="px-3 py-2 text-sm text-theme-secondary whitespace-nowrap">
-        <span className="badge">{issue.alarmType}</span>
+        {issue.module ?? '—'}
       </td>
       <td className="px-3 py-2 text-sm whitespace-nowrap">
         <RiskBadge level={issue.riskLevel} />
@@ -77,7 +77,7 @@ export function IssueRow({ issue }: { issue: Issue }) {
         {formatDateTime(issue.issueTime)}
       </td>
       <td className="px-3 py-2 text-sm text-theme-secondary whitespace-nowrap">
-        {issue.operation}
+        {issue.operName}
       </td>
       <td className="px-3 py-2 text-sm text-theme-secondary whitespace-nowrap">
         {issue.product}

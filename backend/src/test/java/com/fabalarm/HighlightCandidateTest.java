@@ -38,11 +38,10 @@ class HighlightCandidateTest {
         issue.setId(id);
         issue.setTitle("Issue " + id);
         issue.setProduct(product);
-        issue.setOperation(operation);
+        issue.setOperName(operation);
         issue.setStatus(status);
         issue.setDate(Instant.now());
         issue.setIssueTime(Instant.now());
-        issue.setAlarmType(AlarmType.TempSpike);
         issue.setRiskLevel(RiskLevel.P2);
         issue.setOwnerId("user-test");
         issue.setDepartment("Litho");

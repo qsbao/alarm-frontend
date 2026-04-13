@@ -28,7 +28,7 @@ class IssueSeedDataTest {
         assertTrue(issue.isPresent());
         assertEquals("Temperature excursion on LITHO-07", issue.get().getTitle());
         assertEquals("Litho", issue.get().getDepartment());
-        assertEquals("TempSpike", issue.get().getAlarmType().name());
+        assertEquals("LITHO", issue.get().getModule().name());
         assertEquals("Critical", issue.get().getRiskLevel().name());
         assertEquals("Investigating", issue.get().getStatus().name());
     }

@@ -45,14 +45,13 @@ class IssueMergeEndpointTest {
     }
 
     // --- Helper: create a Triage issue for merge tests ---
-    private String createTriageIssue(String id, String department, String alarmType) {
+    private String createTriageIssue(String id, String department) {
         Map<String, String> body = new HashMap<>();
         body.put("id", id);
         body.put("title", "Merge test issue " + id);
-        body.put("alarmType", alarmType);
         body.put("riskLevel", "Medium");
         body.put("issueTime", "2025-06-15T10:00:00Z");
-        body.put("operation", "Etch");
+        body.put("operName", "Etch");
         body.put("product", "B3-Etch");
         body.put("ownerId", "user-tanaka");
         body.put("department", department);
@@ -77,7 +76,7 @@ class IssueMergeEndpointTest {
     @Test
     void mergeValidatesSameDepartment() {
         // Create source in Litho, target in Etch — should fail
-        createTriageIssue("iss-merge-dept-src", "Litho", "TempSpike");
+        createTriageIssue("iss-merge-dept-src", "Litho");
 
         Map<String, Object> body = Map.of("sourceIds", List.of("iss-merge-dept-src"));
         // iss-010 is Etch, Triage
@@ -98,8 +97,8 @@ class IssueMergeEndpointTest {
     @Test
     void mergeMovesAlarmsAndSetsStatusAndLogsActivity() {
         // Create two Triage sources in Etch with alarms, merge into iss-010 (Triage, Etch)
-        String src1 = createTriageIssue("iss-merge-s1", "Etch", "PressureDrop");
-        String src2 = createTriageIssue("iss-merge-s2", "Etch", "FlowAnomaly");
+        String src1 = createTriageIssue("iss-merge-s1", "Etch");
+        String src2 = createTriageIssue("iss-merge-s2", "Etch");
 
         // Link alarms to source issues
         restTemplate.exchange("/api/issues/" + src1 + "/alarms/alm-070", HttpMethod.POST, withAuth(), Map.class);
@@ -159,8 +158,8 @@ class IssueMergeEndpointTest {
 
     @Test
     void getMergedIntoReturnsTargetAfterMerge() {
-        String src = createTriageIssue("iss-merge-into-src", "Etch", "PressureDrop");
-        String target = createTriageIssue("iss-merge-into-tgt", "Etch", "PressureDrop");
+        String src = createTriageIssue("iss-merge-into-src", "Etch");
+        String target = createTriageIssue("iss-merge-into-tgt", "Etch");
 
         // Merge src into target
         Map<String, Object> mergeBody = Map.of("sourceIds", List.of(src));

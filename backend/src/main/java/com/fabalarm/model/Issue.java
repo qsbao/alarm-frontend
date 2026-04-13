@@ -2,6 +2,8 @@ package com.fabalarm.model;
 
 import jakarta.persistence.*;
 import java.time.Instant;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "issue")
@@ -18,10 +20,6 @@ public class Issue {
     private Instant date;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "alarm_type", nullable = false, length = 20)
-    private AlarmType alarmType;
-
-    @Enumerated(EnumType.STRING)
     @Column(name = "risk_level", nullable = false, length = 10)
     private RiskLevel riskLevel;
 
@@ -32,8 +30,21 @@ public class Issue {
     @Column(name = "issue_time", nullable = false)
     private Instant issueTime;
 
-    @Column(nullable = false, length = 40)
-    private String operation;
+    @Column(name = "oper_name", length = 40)
+    private String operName;
+
+    @Column(name = "oper_no", length = 20)
+    private String operNo;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private Module module;
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "issue_label", joinColumns = @JoinColumn(name = "issue_id"))
+    @Column(name = "label")
+    @Enumerated(EnumType.STRING)
+    private Set<AlarmLabel> labels = new HashSet<>();
 
     @Column(nullable = false, length = 20)
     private String product;
@@ -63,9 +74,6 @@ public class Issue {
     public Instant getDate() { return date; }
     public void setDate(Instant date) { this.date = date; }
 
-    public AlarmType getAlarmType() { return alarmType; }
-    public void setAlarmType(AlarmType alarmType) { this.alarmType = alarmType; }
-
     public RiskLevel getRiskLevel() { return riskLevel; }
     public void setRiskLevel(RiskLevel riskLevel) { this.riskLevel = riskLevel; }
 
@@ -75,8 +83,17 @@ public class Issue {
     public Instant getIssueTime() { return issueTime; }
     public void setIssueTime(Instant issueTime) { this.issueTime = issueTime; }
 
-    public String getOperation() { return operation; }
-    public void setOperation(String operation) { this.operation = operation; }
+    public String getOperName() { return operName; }
+    public void setOperName(String operName) { this.operName = operName; }
+
+    public String getOperNo() { return operNo; }
+    public void setOperNo(String operNo) { this.operNo = operNo; }
+
+    public Module getModule() { return module; }
+    public void setModule(Module module) { this.module = module; }
+
+    public Set<AlarmLabel> getLabels() { return labels; }
+    public void setLabels(Set<AlarmLabel> labels) { this.labels = labels; }
 
     public String getProduct() { return product; }
     public void setProduct(String product) { this.product = product; }

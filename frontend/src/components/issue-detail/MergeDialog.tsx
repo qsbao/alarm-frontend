@@ -43,11 +43,12 @@ export function MergeDialog({ sources, onConfirm, onCancel, currentUserDepartmen
             id: i.id as string,
             title: i.title as string,
             date: i.date as string,
-            alarmType: i.alarmType as Issue['alarmType'],
             riskLevel: i.riskLevel as Issue['riskLevel'],
             status: i.status as Issue['status'],
             issueTime: i.issueTime as string,
-            operation: i.operation as string,
+            operName: i.operName as string | undefined,
+            module: i.module as Issue['module'],
+            labels: (i.labels ?? []) as Issue['labels'],
             product: i.product as string,
             ownerId: i.ownerId as string,
             department: i.department as string,
@@ -120,7 +121,7 @@ export function MergeDialog({ sources, onConfirm, onCancel, currentUserDepartmen
                   <span className="text-sm text-theme-primary font-medium truncate">{s.issue.title}</span>
                 </div>
                 <div className="mt-1 flex items-center gap-3 text-xs text-theme-muted">
-                  <span>{s.issue.product} / {s.issue.operation}</span>
+                  <span>{s.issue.product} / {s.issue.operName ?? '—'}</span>
                   <span>{s.alarms.length} alarm{s.alarms.length !== 1 ? 's' : ''}</span>
                 </div>
               </div>
@@ -162,7 +163,7 @@ export function MergeDialog({ sources, onConfirm, onCancel, currentUserDepartmen
               <StatusBadge status={selectedTarget.status} />
             </div>
             <div className="mt-1 flex items-center gap-3 text-xs text-theme-muted">
-              <span>{selectedTarget.product} / {selectedTarget.operation}</span>
+              <span>{selectedTarget.product} / {selectedTarget.operName ?? '—'}</span>
               <span>Owner: {getUserById(selectedTarget.ownerId)?.name ?? selectedTarget.ownerId}</span>
             </div>
             <div className="mt-1 text-xs text-theme-secondary">

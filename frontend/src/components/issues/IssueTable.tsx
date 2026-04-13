@@ -89,14 +89,14 @@ export function IssueTable() {
             <tr>
               <SelectAllCheckbox pageItems={pageItems} />
               <SortableHeader label="date" columnKey="date" />
-              <PlainHeader label="alarm_type" />
+              <PlainHeader label="module" />
               <SortableHeader label="risk_level" columnKey="risk_level" />
               <PlainHeader label="issue_status" />
               <PlainHeader label="ongoing_steps" />
               <PlainHeader label="" />
               <PlainHeader label="title" />
               <PlainHeader label="issue_time" />
-              <PlainHeader label="operation" />
+              <PlainHeader label="oper_name" />
               <PlainHeader label="product" />
               <PlainHeader label="owner" />
               <PlainHeader label="department" />
