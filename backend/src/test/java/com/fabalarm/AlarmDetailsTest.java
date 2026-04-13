@@ -88,4 +88,48 @@ class AlarmDetailsTest {
         assertNull(alarm.getValue());
         assertNull(alarm.getUnit());
     }
+
+    @Test
+    void testTempSpikeDetailsJsonRoundTrip() throws Exception {
+        TempSpikeDetails original = new TempSpikeDetails(
+                125.5,
+                120.0,
+                "SENSOR-ETCH-01",
+                Instant.parse("2026-04-13T10:00:00Z"),
+                45
+        );
+
+        String json = objectMapper.writeValueAsString(original);
+        assertTrue(json.contains("\"kind\":\"TempSpike\""));
+
+        AlarmDetails deserialized = objectMapper.readValue(json, AlarmDetails.class);
+        assertInstanceOf(TempSpikeDetails.class, deserialized);
+        TempSpikeDetails tempSpike = (TempSpikeDetails) deserialized;
+        assertEquals(original.currentTemp(), tempSpike.currentTemp());
+        assertEquals(original.thresholdTemp(), tempSpike.thresholdTemp());
+        assertEquals(original.sensorId(), tempSpike.sensorId());
+        assertEquals(original.spikeStartTime(), tempSpike.spikeStartTime());
+        assertEquals(original.durationSeconds(), tempSpike.durationSeconds());
+    }
+
+    @Test
+    void testIngestProjectorTempSpike() {
+        Alarm alarm = new Alarm();
+        alarm.setDetails(new TempSpikeDetails(
+                125.5,
+                120.0,
+                "SENSOR-ETCH-01",
+                Instant.parse("2026-04-13T10:00:00Z"),
+                45
+        ));
+
+        // Try to set value/unit manually - projector should override
+        alarm.setValue(999.0);
+        alarm.setUnit("ppm");
+
+        ingestProjector.projectValueAndUnit(alarm);
+
+        assertEquals(5.5, alarm.getValue(), 0.001); // 125.5 - 120.0 = 5.5
+        assertEquals("°C", alarm.getUnit());
+    }
 }
