@@ -35,7 +35,7 @@ export function linkAlarmCandidates(
     // Exclude already linked to this issue
     if (linkedIds.has(alarm.id)) return false;
     // Machine scope: if we have linked alarms, restrict to same machine(s)
-    if (machineScope && !machineScope.has(alarm.machineId)) return false;
+    if (machineScope && !machineScope.has(alarm.eqpId)) return false;
     // Time window: +/-2h of issue creation
     const alarmMs = Date.parse(alarm.alarmTime);
     if (Math.abs(alarmMs - issueCreatedMs) > TWO_HOURS_MS) return false;

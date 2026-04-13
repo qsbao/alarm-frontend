@@ -16,7 +16,7 @@ export function filtersToParams(filters: AlarmFilters, sortKey?: AlarmSortKey): 
 
   for (const key of ARRAY_KEYS) {
     const val = filters[key as keyof AlarmFilters];
-    if (val && val.length > 0) {
+    if (Array.isArray(val) && val.length > 0) {
       params.set(key, val.join(','));
     }
   }

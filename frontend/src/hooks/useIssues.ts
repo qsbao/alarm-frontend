@@ -9,10 +9,10 @@ import { matchesFilters } from './useFilteredIssues';
 import type { Issue, RiskLevel } from '../types';
 
 const RISK_RANK: Record<RiskLevel, number> = {
-  Low: 0,
-  Medium: 1,
-  High: 2,
-  Critical: 3,
+  P3: 0,
+  P2: 1,
+  P1: 2,
+  P0: 3,
 };
 
 interface BackendIssue {

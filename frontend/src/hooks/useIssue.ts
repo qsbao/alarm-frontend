@@ -18,17 +18,17 @@ interface BackendAlarm {
   message: string;
   value?: number;
   unit?: string;
-  time: string;
+  alarmTime: string;
   recoveryTime?: string;
-  machineId: string;
+  eqpId: string;
   chamberId?: string;
-  product: string;
-  operation: string;
+  productId: string;
+  operName?: string;
   owner: string;
   department: string;
   chartOwnerId?: string;
   status: string;
-  humanRisk?: string;
+  riskLevel?: string;
   labels: string[];
 }
 
@@ -40,17 +40,17 @@ function toAlarm(raw: BackendAlarm): Alarm {
     message: raw.message,
     value: raw.value,
     unit: raw.unit,
-    time: raw.time,
+    alarmTime: raw.alarmTime,
     recoveryTime: raw.recoveryTime,
-    machineId: raw.machineId,
+    eqpId: raw.eqpId,
     chamberId: raw.chamberId,
-    product: raw.product,
-    operation: raw.operation,
+    productId: raw.productId,
+    operName: raw.operName,
     owner: raw.owner,
     department: raw.department,
     chartOwnerId: raw.chartOwnerId,
     status: raw.status as Alarm['status'],
-    humanRisk: raw.humanRisk as Alarm['humanRisk'],
+    riskLevel: raw.riskLevel as Alarm['riskLevel'],
     labels: (raw.labels ?? []) as Alarm['labels'],
     activity: [],
   };
