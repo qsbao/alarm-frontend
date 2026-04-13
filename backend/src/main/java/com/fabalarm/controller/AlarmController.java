@@ -198,6 +198,11 @@ public class AlarmController {
         if (a.getRiskLevel() != null) dto.put("riskLevel", a.getRiskLevel().name());
         dto.put("labels", a.getLabels().stream().map(AlarmLabel::name).sorted().collect(Collectors.toList()));
         if (a.getDetails() != null) dto.put("details", a.getDetails());
+        if (a.getSource() != null) dto.put("source", a.getSource().name());
+        if (a.getSourceAlarmId() != null) dto.put("sourceAlarmId", a.getSourceAlarmId());
+        if (a.getSourceAlarmBody() != null) dto.put("sourceAlarmBody", a.getSourceAlarmBody());
+        if (a.getExternalStatus() != null) dto.put("externalStatus", a.getExternalStatus());
+        if (a.getExternalStatusUpdatedAt() != null) dto.put("externalStatusUpdatedAt", a.getExternalStatusUpdatedAt().toString());
         return dto;
     }
 

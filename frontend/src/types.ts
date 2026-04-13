@@ -48,6 +48,11 @@ export type Module =
   | 'WET'
   | 'TEST';
 
+export type AlarmSource =
+  | 'SPC_SYSTEM'
+  | 'MES_ALERTS'
+  | 'SENSOR_HUB';
+
 export type AlarmActivityType =
   | 'created'
   | 'acked'
@@ -113,6 +118,12 @@ export interface Alarm {
   labels: AlarmLabel[];
   activity: AlarmActivityEntry[];
   details?: AlarmDetails;
+  // External system provenance
+  source?: AlarmSource;
+  sourceAlarmId?: string;
+  sourceAlarmBody?: string;
+  externalStatus?: string;
+  externalStatusUpdatedAt?: string;
 }
 
 export type ActivityType =

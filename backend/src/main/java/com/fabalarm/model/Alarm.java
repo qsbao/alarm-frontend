@@ -120,6 +120,22 @@ public class Alarm {
     @Column(columnDefinition = "TEXT")
     private AlarmDetails details;
 
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private AlarmSource source;
+
+    @Column(length = 100)
+    private String sourceAlarmId;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "TEXT")
+    private String sourceAlarmBody;
+
+    @Column(length = 50)
+    private String externalStatus;
+
+    private Instant externalStatusUpdatedAt;
+
     public Alarm() {}
 
     public String getId() { return id; }
@@ -223,4 +239,19 @@ public class Alarm {
 
     public AlarmDetails getDetails() { return details; }
     public void setDetails(AlarmDetails details) { this.details = details; }
+
+    public AlarmSource getSource() { return source; }
+    public void setSource(AlarmSource source) { this.source = source; }
+
+    public String getSourceAlarmId() { return sourceAlarmId; }
+    public void setSourceAlarmId(String sourceAlarmId) { this.sourceAlarmId = sourceAlarmId; }
+
+    public String getSourceAlarmBody() { return sourceAlarmBody; }
+    public void setSourceAlarmBody(String sourceAlarmBody) { this.sourceAlarmBody = sourceAlarmBody; }
+
+    public String getExternalStatus() { return externalStatus; }
+    public void setExternalStatus(String externalStatus) { this.externalStatus = externalStatus; }
+
+    public Instant getExternalStatusUpdatedAt() { return externalStatusUpdatedAt; }
+    public void setExternalStatusUpdatedAt(Instant externalStatusUpdatedAt) { this.externalStatusUpdatedAt = externalStatusUpdatedAt; }
 }
