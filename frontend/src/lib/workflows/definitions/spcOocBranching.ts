@@ -62,7 +62,7 @@ export const spcOocBranchingDefinition: WorkflowDefinition = {
       skippableIf: () => true,
       payloadSchema: {
         calibrationId: {
-          kind: 'calibration-reference',
+          kind: 'example-plugin:calibration-reference',
           label: 'Calibration ID',
           required: false,
         },

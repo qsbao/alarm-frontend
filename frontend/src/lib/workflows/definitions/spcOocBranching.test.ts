@@ -55,7 +55,7 @@ describe('spcOocBranchingDefinition', () => {
   it('verify_calibration has calibration-reference payload schema', () => {
     const step = spcOocBranchingDefinition.steps.find((s) => s.id === 'verify_calibration')!;
     expect(step.payloadSchema).toBeDefined();
-    expect(step.payloadSchema!['calibrationId'].kind).toBe('calibration-reference');
+    expect(step.payloadSchema!['calibrationId'].kind).toBe('example-plugin:calibration-reference');
   });
 
   it('attach_report has report-reference payload schema', () => {
