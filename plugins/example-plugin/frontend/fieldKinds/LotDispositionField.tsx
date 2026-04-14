@@ -6,17 +6,8 @@ import {
   getLotUrl,
   type Lot,
   type LotStatus,
-} from '../../lib/external-systems/lotDisposition';
-import type { StepStatus } from '../../lib/workflows/types';
-import type { Issue } from '../../types';
-
-interface LotDispositionFieldProps {
-  value: string;
-  onChange: (v: string) => void;
-  readOnly: boolean;
-  stepStatus: StepStatus;
-  issue: Issue;
-}
+} from '../externalSystems/lotDisposition';
+import type { FieldProps } from '../../../../frontend/src/lib/workflows/fieldKindRegistry';
 
 const STATUS_COLORS: Record<LotStatus, string> = {
   InProcess: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
@@ -25,7 +16,7 @@ const STATUS_COLORS: Record<LotStatus, string> = {
   Released: 'bg-green-500/10 text-green-600 dark:text-green-400',
 };
 
-export function LotDispositionField({ value, onChange, readOnly, stepStatus, issue }: LotDispositionFieldProps) {
+export function LotDispositionField({ value, onChange, readOnly, stepStatus, issue }: FieldProps) {
   const { lot, loading, error, refetch } = useLot(value);
   const [showPicker, setShowPicker] = useState(!value);
   const [query, setQuery] = useState('');
@@ -34,7 +25,6 @@ export function LotDispositionField({ value, onChange, readOnly, stepStatus, iss
   const [searchLoading, setSearchLoading] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
-  // Debounce search input at 300ms
   useEffect(() => {
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
@@ -43,7 +33,6 @@ export function LotDispositionField({ value, onChange, readOnly, stepStatus, iss
     return () => clearTimeout(debounceRef.current);
   }, [query]);
 
-  // Search lots when debounced query or picker visibility changes
   useEffect(() => {
     if (!showPicker) return;
     let cancelled = false;
@@ -63,7 +52,6 @@ export function LotDispositionField({ value, onChange, readOnly, stepStatus, iss
     setQuery('');
   }, [onChange]);
 
-  // Read-only card for completed/skipped steps
   if (readOnly) {
     return (
       <div className="flex flex-col gap-1.5">
@@ -112,7 +100,6 @@ export function LotDispositionField({ value, onChange, readOnly, stepStatus, iss
     );
   }
 
-  // Editable state — compact card when lot is selected
   if (value && !showPicker) {
     return (
       <div className="flex flex-col gap-1.5">
@@ -183,7 +170,6 @@ export function LotDispositionField({ value, onChange, readOnly, stepStatus, iss
     );
   }
 
-  // Picker mode
   return (
     <div className="flex flex-col gap-1.5">
       <span className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted">

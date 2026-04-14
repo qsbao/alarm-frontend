@@ -1,11 +1,11 @@
 import { Check, Circle, Clock, AlertCircle, SkipForward, Link2, Trash2, Plus, ChevronDown, ChevronUp } from 'lucide-react';
-import { useState } from 'react';
+import { useState, Component, type ErrorInfo, type ReactNode } from 'react';
 import type { Issue } from '../../types';
 import type { BlockerInfo } from '../../hooks/useIssue';
 import type { PayloadFieldSchema, Step, StepStatus } from '../../lib/workflows/types';
 import { ReportReferenceField } from './ReportReferenceField';
 import { CalibrationReferenceField } from './CalibrationReferenceField';
-import { LotDispositionField } from './LotDispositionField';
+import { getFieldKind } from '../../lib/workflows/fieldKindRegistry';
 import type { HighlightCandidate } from '../../lib/relations/highlightCandidates';
 import { getDefinition, getAllDefinitions } from '../../lib/workflows/definitions';
 import { getStepDisplayList, canUserActOnStep, canSkipStep, canReviveStep, canEditStep } from '../../lib/workflows/panelHelpers';
@@ -343,6 +343,12 @@ function InlineStepForm({
 
     for (const [fieldName, fieldSchema] of Object.entries(schema)) {
       const val = values[fieldName] ?? '';
+      if (fieldSchema.kind !== 'enum' && fieldSchema.kind !== 'text'
+        && fieldSchema.kind !== 'report-reference' && fieldSchema.kind !== 'calibration-reference'
+        && !getFieldKind(fieldSchema.kind)) {
+        setError(`Cannot submit: plugin not loaded for field kind "${fieldSchema.kind}"`);
+        return;
+      }
       if (fieldSchema.required && !val) {
         setError(`${fieldSchema.label} is required`);
         return;
@@ -394,6 +400,52 @@ function InlineStepForm({
   );
 }
 
+class SchemaFieldErrorBoundary extends Component<
+  { children: ReactNode; fieldName: string },
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error(`SchemaField error for "${this.props.fieldName}":`, error, info);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex flex-col gap-1 mb-2 last:mb-0">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted">
+            {this.props.fieldName}
+          </span>
+          <div className="rounded bg-red-500/10 border border-red-500/30 p-2 text-[11px] text-red-500 flex items-center gap-1.5">
+            <AlertCircle size={12} />
+            Field plugin error
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+function UnknownFieldKindPlaceholder({ kind, label }: { kind: string; label: string }) {
+  return (
+    <div className="flex flex-col gap-1 mb-2 last:mb-0" data-unknown-field-kind={kind}>
+      <span className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted">
+        {label}
+      </span>
+      <div className="rounded bg-amber-500/10 border border-amber-500/30 p-2 text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+        <AlertCircle size={12} />
+        Plugin not loaded for field kind "{kind}"
+      </div>
+    </div>
+  );
+}
+
 function SchemaField({
   fieldName,
   schema,
@@ -409,68 +461,82 @@ function SchemaField({
   issue: Issue;
   stepStatus: StepStatus;
 }) {
+  if (schema.kind === 'enum' || schema.kind === 'text') {
+    return (
+      <label className="flex flex-col gap-1 mb-2 last:mb-0">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted">
+          {schema.label}
+          {schema.required && <span className="text-red-400 ml-0.5">*</span>}
+        </span>
+        {schema.kind === 'enum' && schema.options ? (
+          <select
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            className="input-base text-xs"
+          >
+            <option value="">Select...</option>
+            {schema.options.map((opt) => (
+              <option key={opt} value={opt}>{opt}</option>
+            ))}
+          </select>
+        ) : (
+          <textarea
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            className="input-base text-xs resize-none"
+            rows={2}
+            placeholder={schema.minLength ? `Min ${schema.minLength} character(s)` : ''}
+          />
+        )}
+      </label>
+    );
+  }
+
+  // Legacy core field kinds (kept inline during migration of report-reference and calibration-reference)
   if (schema.kind === 'report-reference') {
     return (
-      <ReportReferenceField
-        value={value}
-        onChange={onChange}
-        readOnly={stepStatus === 'completed' || stepStatus === 'skipped'}
-        stepStatus={stepStatus}
-      />
+      <SchemaFieldErrorBoundary fieldName={fieldName}>
+        <ReportReferenceField
+          value={value}
+          onChange={onChange}
+          readOnly={stepStatus === 'completed' || stepStatus === 'skipped'}
+          stepStatus={stepStatus}
+        />
+      </SchemaFieldErrorBoundary>
     );
   }
 
   if (schema.kind === 'calibration-reference') {
     return (
-      <CalibrationReferenceField
-        value={value}
-        onChange={onChange}
-        readOnly={stepStatus === 'completed' || stepStatus === 'skipped'}
-        stepStatus={stepStatus}
-        issue={issue}
-      />
-    );
-  }
-
-  if (schema.kind === 'lot-disposition') {
-    return (
-      <LotDispositionField
-        value={value}
-        onChange={onChange}
-        readOnly={stepStatus === 'completed' || stepStatus === 'skipped'}
-        stepStatus={stepStatus}
-        issue={issue}
-      />
-    );
-  }
-
-  return (
-    <label className="flex flex-col gap-1 mb-2 last:mb-0">
-      <span className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted">
-        {schema.label}
-        {schema.required && <span className="text-red-400 ml-0.5">*</span>}
-      </span>
-      {schema.kind === 'enum' && schema.options ? (
-        <select
+      <SchemaFieldErrorBoundary fieldName={fieldName}>
+        <CalibrationReferenceField
           value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="input-base text-xs"
-        >
-          <option value="">Select...</option>
-          {schema.options.map((opt) => (
-            <option key={opt} value={opt}>{opt}</option>
-          ))}
-        </select>
-      ) : (
-        <textarea
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="input-base text-xs resize-none"
-          rows={2}
-          placeholder={schema.minLength ? `Min ${schema.minLength} character(s)` : ''}
+          onChange={onChange}
+          readOnly={stepStatus === 'completed' || stepStatus === 'skipped'}
+          stepStatus={stepStatus}
+          issue={issue}
         />
-      )}
-    </label>
+      </SchemaFieldErrorBoundary>
+    );
+  }
+
+  // Registry lookup for plugin-contributed field kinds
+  const spec = getFieldKind(schema.kind);
+  if (!spec) {
+    return <UnknownFieldKindPlaceholder kind={schema.kind} label={schema.label} />;
+  }
+
+  const PluginComponent = spec.component;
+  return (
+    <SchemaFieldErrorBoundary fieldName={fieldName}>
+      <PluginComponent
+        value={value}
+        onChange={onChange}
+        readOnly={stepStatus === 'completed' || stepStatus === 'skipped'}
+        stepStatus={stepStatus}
+        issue={issue}
+      />
+    </SchemaFieldErrorBoundary>
   );
 }
 

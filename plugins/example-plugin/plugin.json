@@ -13,5 +13,11 @@
       "frontendEntry": "./frontend/index.ts",
       "backendClass": "com.fabalarm.plugins.ExampleApprovalDefinition"
     }
+  ],
+  "fieldKinds": [
+    {
+      "id": "example-plugin:lot-disposition",
+      "frontendEntry": "./frontend/fieldKinds/lotDisposition.ts"
+    }
   ]
 }

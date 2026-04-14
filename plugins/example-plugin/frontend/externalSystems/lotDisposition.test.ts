@@ -6,7 +6,7 @@ import {
   type LotStatus,
 } from './lotDisposition';
 
-describe('lotDisposition mock module', () => {
+describe('lotDisposition mock module (plugin)', () => {
   it('returns lot data for a valid ID', async () => {
     const lot = await fetchLot('LOT-2024-0001');
     expect(lot).not.toBeNull();

@@ -29,14 +29,14 @@ public final class SpcOocBranchingDefinition {
                             .preSteps("chart_owner_comment")
                             .skippableIf(issue -> true)
                             .payloadSchema(Map.of(
-                                    "reportId", PayloadFieldSchema.reportReference("Report ID", false)
+                                    "reportId", PayloadFieldSchema.ofKind("report-reference", "Report ID", false)
                             ))
                             .build(),
                     StepDefinition.builder("verify_calibration", "Verify Equipment Calibration", 6)
                             .preSteps("chart_owner_comment")
                             .skippableIf(issue -> true)
                             .payloadSchema(Map.of(
-                                    "calibrationId", PayloadFieldSchema.calibrationReference("Calibration ID", false)
+                                    "calibrationId", PayloadFieldSchema.ofKind("calibration-reference", "Calibration ID", false)
                             ))
                             .build(),
                     StepDefinition.builder("meeting", "Meeting", 7)
@@ -48,7 +48,7 @@ public final class SpcOocBranchingDefinition {
                             .skippableIf(issue -> true)
                             .defaultSkipIf(issue -> issue.getRiskLevel() == HumanRiskLevel.LOW_RISK)
                             .payloadSchema(Map.of(
-                                    "lotId", PayloadFieldSchema.lotDisposition("Lot ID", false)
+                                    "lotId", PayloadFieldSchema.ofKind("example-plugin:lot-disposition", "Lot ID", false)
                             ))
                             .build(),
                     StepDefinition.builder("resolved", "Resolved", 9)
