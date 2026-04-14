@@ -644,8 +644,7 @@ export interface components {
     schemas: {
         Alarm: {
             id?: string;
-            /** @enum {string} */
-            type?: "spc_ooc" | "TempSpike" | "ChamberLeak";
+            type?: string;
             /** @enum {string} */
             severity?: "P0" | "P1" | "P2" | "P3";
             message?: string;
@@ -687,7 +686,7 @@ export interface components {
             /** @enum {string} */
             riskLevel?: "HIGH_RISK" | "MIDDLE_RISK" | "LOW_RISK";
             labels?: ("FalsePositive" | "Recurring" | "LotImpacting" | "NeedsEngReview" | "UnderObservation")[];
-            details?: components["schemas"]["SpcOocDetails"] | components["schemas"]["TempSpikeDetails"];
+            details?: components["schemas"]["AlarmDetails"];
             /** @enum {string} */
             source?: "SPC_SYSTEM" | "MES_ALERTS" | "SENSOR_HUB";
             sourceAlarmId?: string;
@@ -699,34 +698,6 @@ export interface components {
         AlarmDetails: {
             kind: string;
         };
-        SpcOocDetails: {
-            kind: "SpcOocDetails";
-        } & (Omit<components["schemas"]["AlarmDetails"], "kind"> & {
-            chartName?: string;
-            chartNo?: string;
-            /** @enum {string} */
-            chartLevel?: "KIP" | "ACP";
-            holdCode?: string;
-            /** Format: date-time */
-            txDatetime?: string;
-            /** Format: int32 */
-            waferCount?: number;
-            /** Format: int32 */
-            oocCount?: number;
-        });
-        TempSpikeDetails: {
-            kind: "TempSpikeDetails";
-        } & (Omit<components["schemas"]["AlarmDetails"], "kind"> & {
-            /** Format: double */
-            currentTemp?: number;
-            /** Format: double */
-            thresholdTemp?: number;
-            sensorId?: string;
-            /** Format: date-time */
-            spikeStartTime?: string;
-            /** Format: int32 */
-            durationSeconds?: number;
-        });
     };
     responses: never;
     parameters: never;

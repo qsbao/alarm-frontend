@@ -1,4 +1,4 @@
-import { ArrowRightLeft, Plus, X } from 'lucide-react';
+import { ArrowRightLeft, Building2, Clock, Cpu, Layers, Package, Plus, Timer, User, Wrench, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { backend } from '../../api/backendClient';
@@ -107,12 +107,21 @@ function toAlarm(raw: BackendAlarm): Alarm {
   };
 }
 
-function FieldRow({ label, value }: { label: string; value: React.ReactNode }) {
+function Chip({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: typeof User;
+  label: string;
+  value: React.ReactNode;
+}) {
   if (value == null || value === '') return null;
   return (
-    <div className="flex items-baseline gap-1.5">
-      <span className="text-[10px] text-theme-muted shrink-0">{label}</span>
-      <span className="text-xs text-theme-secondary">{value}</span>
+    <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-surface-overlay/40 border border-border-subtle/40">
+      <Icon size={11} className="text-theme-muted" />
+      <span className="text-[10px] text-theme-muted">{label}</span>
+      <span className="text-[11px] text-theme-primary font-medium">{value}</span>
     </div>
   );
 }
@@ -131,22 +140,18 @@ function AlarmCard({
   return (
     <Link
       to={`/alarms/${alarm.id}`}
-      className="block rounded-lg bg-surface-overlay/30 border border-border-subtle/40 p-4 cursor-pointer hover:bg-surface-overlay/50 transition-colors"
+      className="block rounded-lg bg-surface-overlay/30 border border-border-subtle/40 p-3 cursor-pointer hover:bg-surface-overlay/50 transition-colors"
     >
-      {/* Card Header */}
-      <div className="flex items-center gap-2">
-        <span className="text-[11px] text-theme-secondary font-mono shrink-0">
-          {alarm.id}
-        </span>
-        <span className="text-xs text-theme-primary truncate flex-1">
-          {alarm.message}
-        </span>
-        <span
-          className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border shrink-0 ${STATUS_PILL[alarm.status]}`}
-        >
-          {alarm.status}
-        </span>
-        {/* Action buttons */}
+      {/* Title row: id + message + actions */}
+      <div className="flex items-start gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-medium text-theme-primary truncate">
+              {alarm.message}
+            </span>
+            <span className="badge font-mono text-[10px]">{alarm.id}</span>
+          </div>
+        </div>
         <span className="flex items-center gap-1 shrink-0">
           {onMove && (
             <button
@@ -175,111 +180,84 @@ function AlarmCard({
         </span>
       </div>
 
-      {/* 4W Grid */}
-      <div className="grid grid-cols-4 gap-4 mt-2">
-        {/* What */}
-        <div>
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted mb-1">
-            What
-          </div>
-          <div className="flex flex-col gap-0.5">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="badge text-[10px]">{alarm.type}</span>
-              <span className="flex items-center gap-1">
-                <span className={`w-2 h-2 rounded-full ${SEVERITY_DOT[alarm.severity]}`} />
-                <span className="text-xs text-theme-secondary">{alarm.severity}</span>
-              </span>
-            </div>
-            {humanRiskLevel && RISK_LEVEL_BADGE[humanRiskLevel] && (
-              <span
-                className={`inline-flex items-center self-start px-1.5 py-0.5 rounded text-[10px] font-medium border ${RISK_LEVEL_BADGE[humanRiskLevel]}`}
-              >
-                {RISK_LEVEL_LABEL[humanRiskLevel]}
-              </span>
-            )}
-            {alarm.value != null && (
-              <FieldRow
-                label="Value"
-                value={`${alarm.value}${alarm.unit ? ` ${alarm.unit}` : ''}`}
-              />
-            )}
-            {alarm.labels.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-0.5">
-                {alarm.labels.map((lbl) => (
-                  <span
-                    key={lbl}
-                    className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium border ${LABEL_COLORS[lbl]}`}
-                  >
-                    {lbl}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+      {/* Tag row: severity, status, type, risk, labels */}
+      <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium border border-border-subtle/40">
+          <span className={`w-1.5 h-1.5 rounded-full ${SEVERITY_DOT[alarm.severity]}`} />
+          {alarm.severity}
+        </span>
+        <span
+          className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border ${STATUS_PILL[alarm.status]}`}
+        >
+          {alarm.status}
+        </span>
+        <span className="badge text-[10px]">{alarm.type}</span>
+        {humanRiskLevel && RISK_LEVEL_BADGE[humanRiskLevel] && (
+          <span
+            className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border ${RISK_LEVEL_BADGE[humanRiskLevel]}`}
+          >
+            {RISK_LEVEL_LABEL[humanRiskLevel]}
+          </span>
+        )}
+        {alarm.labels.map((lbl) => (
+          <span
+            key={lbl}
+            className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border ${LABEL_COLORS[lbl]}`}
+          >
+            {lbl}
+          </span>
+        ))}
+      </div>
 
-        {/* When */}
-        <div>
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted mb-1">
-            When
-          </div>
-          <div className="flex flex-col gap-0.5">
-            <FieldRow label="Fired" value={formatDateTime(alarm.alarmTime)} />
-            <FieldRow
-              label="Recovery"
-              value={
-                alarm.recoveryTime ? (
-                  formatDateTime(alarm.recoveryTime)
-                ) : (
-                  <span className="text-rose-400 text-xs">Active</span>
-                )
-              }
-            />
-          </div>
-        </div>
-
-        {/* Where */}
-        <div>
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted mb-1">
-            Where
-          </div>
-          <div className="flex flex-col gap-0.5">
-            <FieldRow
-              label="Eqp"
-              value={`${alarm.eqpId}${alarm.chamberId ? ` / ${alarm.chamberId}` : ''}`}
-            />
-            <FieldRow label="Product" value={alarm.productId} />
-            {(alarm.operName || alarm.operNo) && (
-              <FieldRow
-                label="Oper"
-                value={[alarm.operName, alarm.operNo].filter(Boolean).join(' / ')}
-              />
-            )}
-            {alarm.lotId && (
-              <FieldRow
-                label="Lot"
-                value={`${alarm.lotId}${alarm.waferId ? ` / ${alarm.waferId}` : ''}`}
-              />
-            )}
-            {alarm.recipeId && <FieldRow label="Recipe" value={alarm.recipeId} />}
-            {alarm.lotPriority != null && (
-              <FieldRow label="Priority" value={String(alarm.lotPriority)} />
-            )}
-          </div>
-        </div>
-
-        {/* Who */}
-        <div>
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted mb-1">
-            Who
-          </div>
-          <div className="flex flex-col gap-0.5">
-            <FieldRow label="Owner" value={alarm.owner} />
-            <FieldRow label="Dept" value={alarm.department} />
-            {alarm.module && <FieldRow label="Module" value={alarm.module} />}
-            {alarm.piOwner && <FieldRow label="PI" value={alarm.piOwner} />}
-          </div>
-        </div>
+      {/* Attribute chips */}
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        <Chip
+          icon={Cpu}
+          label="eqp"
+          value={`${alarm.eqpId}${alarm.chamberId ? ` / ${alarm.chamberId}` : ''}`}
+        />
+        <Chip icon={Package} label="product" value={alarm.productId} />
+        {(alarm.operName || alarm.operNo) && (
+          <Chip
+            icon={Wrench}
+            label="oper"
+            value={[alarm.operName, alarm.operNo].filter(Boolean).join(' / ')}
+          />
+        )}
+        {alarm.lotId && (
+          <Chip
+            icon={Layers}
+            label="lot"
+            value={`${alarm.lotId}${alarm.waferId ? ` / ${alarm.waferId}` : ''}`}
+          />
+        )}
+        {alarm.recipeId && <Chip icon={Layers} label="recipe" value={alarm.recipeId} />}
+        {alarm.lotPriority != null && (
+          <Chip icon={Layers} label="priority" value={String(alarm.lotPriority)} />
+        )}
+        {alarm.value != null && (
+          <Chip
+            icon={Layers}
+            label="value"
+            value={`${alarm.value}${alarm.unit ? ` ${alarm.unit}` : ''}`}
+          />
+        )}
+        <Chip icon={User} label="owner" value={alarm.owner} />
+        <Chip icon={Building2} label="dept" value={alarm.department} />
+        {alarm.module && <Chip icon={Layers} label="module" value={alarm.module} />}
+        {alarm.piOwner && <Chip icon={User} label="pi" value={alarm.piOwner} />}
+        <Chip icon={Clock} label="fired" value={formatDateTime(alarm.alarmTime)} />
+        <Chip
+          icon={Timer}
+          label="recovery"
+          value={
+            alarm.recoveryTime ? (
+              formatDateTime(alarm.recoveryTime)
+            ) : (
+              <span className="text-rose-400">Active</span>
+            )
+          }
+        />
       </div>
     </Link>
   );

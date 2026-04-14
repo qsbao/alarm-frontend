@@ -15,4 +15,4 @@
 
 ## Lesson learned
 - Reset the proxy env before gh command
-
+- The developer is not a frontend expert, when grilling him, ask more product-level questions instead of frontend-mechanical questions

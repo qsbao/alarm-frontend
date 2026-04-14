@@ -421,7 +421,7 @@ export function AlarmDetailPage() {
 
   return (
     <div className="h-full overflow-y-auto bg-surface-base">
-      <div className="max-w-6xl mx-auto p-6 flex flex-col gap-5">
+      <div className="max-w-[1600px] mx-auto p-6 flex flex-col gap-5">
         {/* Header */}
         <div className="card p-5">
           <Link

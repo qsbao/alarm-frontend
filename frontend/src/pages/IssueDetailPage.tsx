@@ -140,7 +140,7 @@ export function IssueDetailPage() {
 
   return (
     <div className="h-full overflow-y-auto bg-surface-base">
-      <div className="max-w-6xl mx-auto p-6 flex flex-col gap-5">
+      <div className="max-w-[1600px] mx-auto p-6 flex flex-col gap-5">
         {/* Merged-source banner */}
         {isMerged && (
           <Link
@@ -166,27 +166,29 @@ export function IssueDetailPage() {
           disabled={isMerged}
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          <div className="lg:col-span-2 flex flex-col gap-5">
+        <div className="flex flex-col gap-5 lg:grid lg:grid-cols-5">
+          <div className="contents lg:flex lg:flex-col lg:gap-5 lg:col-span-3">
             {/* Hide workflow panel entirely on merged source pages */}
             {!isMerged && (
-              <WorkflowPanel
-                issue={issue}
-                blockers={blockers}
-                onAttachWorkflow={attachWorkflow}
-                onCompleteStep={completeWorkflowStep}
-                onSkipStep={skipWorkflowStep}
-                onReviveStep={reviveWorkflowStep}
-                onEditStep={editWorkflowStep}
-                onAddBlocker={addBlocker}
-                onRemoveBlocker={removeBlocker}
-                onFetchHighlightCandidates={fetchHighlightCandidates}
-                onCreateHighlightedIssue={createHighlightedIssue}
-                onLinkExistingIssueAsHighlight={linkExistingIssueAsHighlight}
-              />
+              <div className="order-1 lg:order-none">
+                <WorkflowPanel
+                  issue={issue}
+                  blockers={blockers}
+                  onAttachWorkflow={attachWorkflow}
+                  onCompleteStep={completeWorkflowStep}
+                  onSkipStep={skipWorkflowStep}
+                  onReviveStep={reviveWorkflowStep}
+                  onEditStep={editWorkflowStep}
+                  onAddBlocker={addBlocker}
+                  onRemoveBlocker={removeBlocker}
+                  onFetchHighlightCandidates={fetchHighlightCandidates}
+                  onCreateHighlightedIssue={createHighlightedIssue}
+                  onLinkExistingIssueAsHighlight={linkExistingIssueAsHighlight}
+                />
+              </div>
             )}
 
-            <div className="card p-5">
+            <div className="card p-5 order-3 lg:order-none">
               <h2 className="text-xs font-semibold uppercase tracking-wide text-theme-muted mb-3">
                 Description
               </h2>
@@ -196,17 +198,25 @@ export function IssueDetailPage() {
             </div>
 
             {/* Comment box hidden on merged pages */}
-            {!isMerged && <CommentBox onPost={addComment} />}
+            {!isMerged && (
+              <div className="order-4 lg:order-none">
+                <CommentBox onPost={addComment} />
+              </div>
+            )}
           </div>
 
-          <div className="flex flex-col gap-5">
+          <div className="contents lg:flex lg:flex-col lg:gap-5 lg:col-span-2">
             {/* Show active alarms (read-only when merged) or historical alarms */}
-            {isMerged ? (
-              <HistoricalAlarmList rows={historicalAlarms} />
-            ) : (
-              <AlarmList alarms={alarms} issue={issue} onLink={linkAlarm} onUnlink={unlinkAlarm} onMove={moveAlarm} />
-            )}
-            <ActivityTimeline activity={issue.activity} />
+            <div className="order-2 lg:order-none">
+              {isMerged ? (
+                <HistoricalAlarmList rows={historicalAlarms} />
+              ) : (
+                <AlarmList alarms={alarms} issue={issue} onLink={linkAlarm} onUnlink={unlinkAlarm} onMove={moveAlarm} />
+              )}
+            </div>
+            <div className="order-5 lg:order-none">
+              <ActivityTimeline activity={issue.activity} />
+            </div>
           </div>
         </div>
       </div>
