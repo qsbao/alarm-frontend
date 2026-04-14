@@ -21,7 +21,7 @@ plugins/my-custom-workflow/
     └── src/...       # Java sources, compiled to JAR
 ```
 
-See `plugins/example-workflow/` for a complete working example.
+See `plugins/example-plugin/` for a complete working example.
 
 **Frontend plugin loading**: The frontend uses `import.meta.glob` to automatically discover and load all plugins at build time.
 
