@@ -8,7 +8,7 @@ definitions.set(genericLinearDefinition.id, genericLinearDefinition);
 definitions.set(spcOocBranchingDefinition.id, spcOocBranchingDefinition);
 
 // Dynamically import plugin definitions at build time
-const pluginModules = import.meta.glob('../../../../plugins/*/frontend/index.ts', { eager: true });
+const pluginModules = import.meta.glob('../../../../../plugins/*/frontend/index.ts', { eager: true });
 
 // Register all plugin definitions
 for (const module of Object.values(pluginModules)) {

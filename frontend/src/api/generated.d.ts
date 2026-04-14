@@ -250,6 +250,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/alarms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List alarms
+         * @description Returns alarms within mandatory date range, with optional filters
+         */
+        get: operations["listAlarms"];
+        put?: never;
+        /**
+         * Create alarm
+         * @description Create a new alarm with optional type-specific details. Returns 409 if alarm ID already exists.
+         */
+        post: operations["createAlarm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/alarms/{id}/risk": {
         parameters: {
             query?: never;
@@ -260,8 +284,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Set human risk on alarm
-         * @description Set human risk assessment on an alarm
+         * Set risk level on alarm
+         * @description Set risk level assessment on an alarm
          */
         post: operations["setRisk"];
         delete?: never;
@@ -537,26 +561,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/alarms": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List alarms
-         * @description Returns alarms within mandatory date range, with optional filters
-         */
-        get: operations["listAlarms"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/alarms/{id}": {
         parameters: {
             query?: never;
@@ -637,7 +641,93 @@ export interface paths {
 }
 export type webhooks = Record<string, never>;
 export interface components {
-    schemas: never;
+    schemas: {
+        Alarm: {
+            id?: string;
+            /** @enum {string} */
+            type?: "spc_ooc" | "TempSpike" | "ChamberLeak";
+            /** @enum {string} */
+            severity?: "P0" | "P1" | "P2" | "P3";
+            message?: string;
+            /** Format: double */
+            value?: number;
+            unit?: string;
+            /** Format: date-time */
+            alarmTime?: string;
+            /** Format: date-time */
+            eventTime?: string;
+            /** Format: date */
+            alarmDate?: string;
+            /** Format: date-time */
+            recoveryTime?: string;
+            eqpId?: string;
+            chamberId?: string;
+            productId?: string;
+            operName?: string;
+            operNo?: string;
+            technologyId?: string;
+            productGroupId?: string;
+            processOperName?: string;
+            processOperNo?: string;
+            lotId?: string;
+            /** Format: int32 */
+            lotPriority?: number;
+            waferId?: string;
+            recipeId?: string;
+            routeId?: string;
+            /** @enum {string} */
+            module?: "LITHO" | "ETCH" | "CVD" | "PVD" | "DIFFUSION" | "IMPLANT" | "CMP" | "METROLOGY" | "CLEAN" | "WET" | "TEST";
+            moduleOwner?: string;
+            piOwner?: string;
+            owner?: string;
+            department?: string;
+            chartOwnerId?: string;
+            /** @enum {string} */
+            status?: "Open" | "Acked";
+            /** @enum {string} */
+            riskLevel?: "HIGH_RISK" | "MIDDLE_RISK" | "LOW_RISK";
+            labels?: ("FalsePositive" | "Recurring" | "LotImpacting" | "NeedsEngReview" | "UnderObservation")[];
+            details?: components["schemas"]["SpcOocDetails"] | components["schemas"]["TempSpikeDetails"];
+            /** @enum {string} */
+            source?: "SPC_SYSTEM" | "MES_ALERTS" | "SENSOR_HUB";
+            sourceAlarmId?: string;
+            sourceAlarmBody?: string;
+            externalStatus?: string;
+            /** Format: date-time */
+            externalStatusUpdatedAt?: string;
+        };
+        AlarmDetails: {
+            kind: string;
+        };
+        SpcOocDetails: {
+            kind: "SpcOocDetails";
+        } & (Omit<components["schemas"]["AlarmDetails"], "kind"> & {
+            chartName?: string;
+            chartNo?: string;
+            /** @enum {string} */
+            chartLevel?: "KIP" | "ACP";
+            holdCode?: string;
+            /** Format: date-time */
+            txDatetime?: string;
+            /** Format: int32 */
+            waferCount?: number;
+            /** Format: int32 */
+            oocCount?: number;
+        });
+        TempSpikeDetails: {
+            kind: "TempSpikeDetails";
+        } & (Omit<components["schemas"]["AlarmDetails"], "kind"> & {
+            /** Format: double */
+            currentTemp?: number;
+            /** Format: double */
+            thresholdTemp?: number;
+            sensorId?: string;
+            /** Format: date-time */
+            spikeStartTime?: string;
+            /** Format: int32 */
+            durationSeconds?: number;
+        });
+    };
     responses: never;
     parameters: never;
     requestBodies: never;
@@ -680,7 +770,6 @@ export interface operations {
                 search?: string;
                 status?: string[];
                 riskLevel?: string[];
-                alarmType?: string[];
             };
             header?: never;
             path?: never;
@@ -709,7 +798,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    [key: string]: string;
+                    [key: string]: Record<string, never>;
                 };
             };
         };
@@ -1075,6 +1164,66 @@ export interface operations {
             };
         };
     };
+    listAlarms: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+                search?: string;
+                status?: string[];
+                department?: string[];
+                severity?: string[];
+                riskLevel?: string[];
+                alarmType?: string[];
+                owner?: string[];
+                eqpId?: string[];
+                chamberId?: string[];
+                productId?: string[];
+                operName?: string[];
+                labels?: string[];
+                active?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": Record<string, never>;
+                };
+            };
+        };
+    };
+    createAlarm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Alarm"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": Record<string, never>;
+                };
+            };
+        };
+    };
     setRisk: {
         parameters: {
             query?: never;
@@ -1419,42 +1568,6 @@ export interface operations {
                     "*/*": {
                         [key: string]: string;
                     };
-                };
-            };
-        };
-    };
-    listAlarms: {
-        parameters: {
-            query?: {
-                from?: string;
-                to?: string;
-                search?: string;
-                status?: string[];
-                department?: string[];
-                severity?: string[];
-                humanRisk?: string[];
-                alarmType?: string[];
-                owner?: string[];
-                machineId?: string[];
-                chamberId?: string[];
-                product?: string[];
-                operation?: string[];
-                labels?: string[];
-                active?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": Record<string, never>;
                 };
             };
         };
