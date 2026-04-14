@@ -70,7 +70,7 @@
                         </goals>
                         <configuration>
                             <sources>
-                                <source>../plugins/example-workflow/backend/src</source>
+                                <source>../plugins/example-plugin/backend/src</source>
                             </sources>
                         </configuration>
                     </execution>
