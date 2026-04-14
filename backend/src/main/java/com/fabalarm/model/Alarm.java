@@ -16,9 +16,8 @@ public class Alarm {
     @Column(length = 20)
     private String id;
 
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private AlarmType type;
+    private String type;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10)
@@ -141,8 +140,8 @@ public class Alarm {
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 
-    public AlarmType getType() { return type; }
-    public void setType(AlarmType type) { this.type = type; }
+    public String getType() { return type; }
+    public void setType(String type) { this.type = type; }
 
     public RiskLevel getSeverity() { return severity; }
     public void setSeverity(RiskLevel severity) { this.severity = severity; }

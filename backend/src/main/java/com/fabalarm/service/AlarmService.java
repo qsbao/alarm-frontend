@@ -141,7 +141,7 @@ public class AlarmService {
                                         List<String> department,
                                         List<RiskLevel> severity,
                                         List<HumanRiskLevel> riskLevel,
-                                        List<AlarmType> alarmType,
+                                        List<String> alarmType,
                                         List<String> owner,
                                         List<String> eqpId,
                                         List<String> chamberId,
@@ -156,7 +156,7 @@ public class AlarmService {
                 .filter(a -> matchStringList(a.getDepartment(), department))
                 .filter(a -> matchList(a.getSeverity(), severity))
                 .filter(a -> matchNullableList(a.getRiskLevel(), riskLevel))
-                .filter(a -> matchList(a.getType(), alarmType))
+                .filter(a -> matchStringList(a.getType(), alarmType))
                 .filter(a -> matchStringList(a.getOwner(), owner))
                 .filter(a -> matchStringList(a.getEqpId(), eqpId))
                 .filter(a -> matchNullableStringList(a.getChamberId(), chamberId))

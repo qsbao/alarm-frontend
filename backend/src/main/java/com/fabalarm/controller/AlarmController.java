@@ -71,13 +71,12 @@ public class AlarmController {
         List<AlarmStatus> statusFilter = parseEnums(status, AlarmStatus.class);
         List<RiskLevel> severityFilter = parseEnums(severity, RiskLevel.class);
         List<HumanRiskLevel> riskLevelFilter = parseEnums(riskLevel, HumanRiskLevel.class);
-        List<AlarmType> alarmTypeFilter = parseEnums(alarmType, AlarmType.class);
         List<AlarmLabel> labelsFilter = parseEnums(labels, AlarmLabel.class);
 
         List<Alarm> alarms = alarmService.findByDateRange(
                 fromInstant, toInstant, search,
                 statusFilter, department, severityFilter,
-                riskLevelFilter, alarmTypeFilter,
+                riskLevelFilter, alarmType,
                 owner, eqpId, chamberId, productId, operName,
                 labelsFilter, active);
 
@@ -170,7 +169,7 @@ public class AlarmController {
     private Map<String, Object> toDto(Alarm a) {
         Map<String, Object> dto = new LinkedHashMap<>();
         dto.put("id", a.getId());
-        dto.put("type", a.getType().name());
+        dto.put("type", a.getType());
         dto.put("severity", a.getSeverity().name());
         dto.put("message", a.getMessage());
         if (a.getValue() != null) dto.put("value", a.getValue());
