@@ -5,7 +5,7 @@ export type UserId = string;
 export type StepStatus = 'pending' | 'ongoing' | 'completed' | 'skipped';
 
 export interface PayloadFieldSchema {
-  kind: 'enum' | 'text' | 'report-reference' | 'calibration-reference' | 'lot-disposition';
+  kind: string;
   label: string;
   required: boolean;
   options?: string[]; // for enum kind
