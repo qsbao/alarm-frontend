@@ -7,7 +7,7 @@ import { ReportReferenceField } from './ReportReferenceField';
 import { CalibrationReferenceField } from './CalibrationReferenceField';
 import { LotDispositionField } from './LotDispositionField';
 import type { HighlightCandidate } from '../../lib/relations/highlightCandidates';
-import { getDefinition } from '../../lib/workflows/definitions';
+import { getDefinition, getAllDefinitions } from '../../lib/workflows/definitions';
 import { getStepDisplayList, canUserActOnStep, canSkipStep, canReviveStep, canEditStep } from '../../lib/workflows/panelHelpers';
 import { useCurrentUserStore } from '../../stores/currentUserStore';
 
@@ -44,23 +44,21 @@ export function WorkflowPanel({
 
   if (!workflow) {
     if (!onAttachWorkflow) return null;
+    const allDefinitions = getAllDefinitions();
     return (
       <div id="workflow-panel" className="card p-5">
         <h3 className="text-lg font-semibold mb-3">Workflow</h3>
         <p className="text-sm text-muted-foreground mb-3">No workflow attached to this issue.</p>
-        <div className="flex gap-2">
-          <button
-            className="btn btn-sm btn-primary"
-            onClick={() => onAttachWorkflow('generic_linear_v1')}
-          >
-            Attach Generic Linear
-          </button>
-          <button
-            className="btn btn-sm btn-outline"
-            onClick={() => onAttachWorkflow('spc_ooc_branching_v1')}
-          >
-            Attach SPC OOC Branching
-          </button>
+        <div className="flex flex-wrap gap-2">
+          {allDefinitions.map((def, index) => (
+            <button
+              key={def.id}
+              className={`btn btn-sm ${index === 0 ? 'btn-primary' : 'btn-outline'}`}
+              onClick={() => onAttachWorkflow(def.id)}
+            >
+              Attach {def.name}
+            </button>
+          ))}
         </div>
       </div>
     );

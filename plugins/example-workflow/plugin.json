@@ -1,0 +1,12 @@
+{
+  "id": "example-workflow",
+  "name": "Example Plugin Workflow",
+  "version": "1.0.0",
+  "workflows": [
+    {
+      "id": "example_linear_v1",
+      "frontendEntry": "./frontend/index.ts",
+      "backendClass": "com.fabalarm.plugins.ExampleLinearDefinition"
+    }
+  ]
+}

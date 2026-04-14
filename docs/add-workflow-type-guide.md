@@ -1,6 +1,37 @@
 # Add New Workflow Type Guide
 
-How to add a new workflow type end-to-end. There are exactly 6 files to create or edit.
+How to add a new workflow type end-to-end. There are two approaches:
+
+1. **Core workflow** — modify core files (6 files, as described below)
+2. **Plugin workflow** — create a self-contained plugin in the `plugins/` directory (recommended for external teams)
+
+---
+
+## Plugin Approach (Recommended for External Teams)
+
+Create a plugin directory in `plugins/`:
+
+```
+plugins/my-custom-workflow/
+├── plugin.json       # Plugin manifest
+├── frontend/         # Frontend code
+│   ├── definition.ts # Workflow definition (TypeScript)
+│   └── index.ts      # Entry point (exports definitions array)
+└── backend/          # Backend code (optional)
+    └── src/...       # Java sources, compiled to JAR
+```
+
+See `plugins/example-workflow/` for a complete working example.
+
+**Frontend plugin loading**: The frontend uses `import.meta.glob` to automatically discover and load all plugins at build time.
+
+**Backend plugin loading**: The backend scans the plugins directory for JAR files and loads any class with a `public static final WorkflowDefinition INSTANCE` field.
+
+---
+
+## Core Approach
+
+How to add a new workflow type end-to-end to the core system. There are exactly 6 files to create or edit.
 
 ---
 
