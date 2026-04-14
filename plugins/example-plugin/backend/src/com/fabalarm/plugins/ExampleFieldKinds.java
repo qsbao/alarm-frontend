@@ -9,7 +9,7 @@ public final class ExampleFieldKinds {
     }
 
     public static PayloadFieldSchema calibrationReference(String label, boolean required) {
-        return PayloadFieldSchema.ofKind("calibration-reference", label, required);
+        return PayloadFieldSchema.ofKind("example-plugin:calibration-reference", label, required);
     }
 
     public static PayloadFieldSchema lotDisposition(String label, boolean required) {

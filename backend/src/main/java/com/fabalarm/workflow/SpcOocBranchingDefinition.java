@@ -37,7 +37,7 @@ public final class SpcOocBranchingDefinition {
                             .preSteps("chart_owner_comment")
                             .skippableIf(issue -> true)
                             .payloadSchema(Map.of(
-                                    "calibrationId", PayloadFieldSchema.ofKind("calibration-reference", "Calibration ID", false)
+                                    "calibrationId", ExampleFieldKinds.calibrationReference("Calibration ID", false)
                             ))
                             .build(),
                     StepDefinition.builder("meeting", "Meeting", 7)
