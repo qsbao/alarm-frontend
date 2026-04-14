@@ -4,15 +4,14 @@ import type {
   AlarmFilters,
   AlarmLabel,
   AlarmStatus,
-  AlarmType,
 } from '../../types';
 import {
   ALL_ALARM_LABELS,
   ALL_ALARM_STATUSES,
-  ALL_ALARM_TYPES,
   ALL_HUMAN_RISK_LEVELS,
   ALL_RISK_LEVELS,
 } from '../../types';
+import { getAllAlarmTypes } from '../../lib/alarms/alarmTypeRegistry';
 
 interface FilterGroup {
   heading: string;
@@ -80,7 +79,7 @@ export function AddFilterPopover({
     {
       heading: 'Tags',
       items: [
-        { key: 'alarmType', label: 'Alarm Type', options: ALL_ALARM_TYPES as unknown as string[] },
+        { key: 'alarmType', label: 'Alarm Type', options: getAllAlarmTypes().map((s) => s.kind) },
         { key: 'labels', label: 'Label', options: ALL_ALARM_LABELS as unknown as string[] },
       ],
     },
