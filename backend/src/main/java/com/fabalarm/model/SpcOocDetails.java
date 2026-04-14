@@ -12,3 +12,4 @@ public record SpcOocDetails(
     int oocCount
 ) implements AlarmDetails {
 }
+

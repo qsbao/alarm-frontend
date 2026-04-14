@@ -10,3 +10,4 @@ public record TempSpikeDetails(
     int durationSeconds
 ) implements AlarmDetails {
 }
+

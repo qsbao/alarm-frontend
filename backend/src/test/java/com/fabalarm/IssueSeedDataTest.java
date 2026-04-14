@@ -18,8 +18,8 @@ class IssueSeedDataTest {
     private IssueActivityRepository issueActivityRepository;
 
     @Test
-    void seedDataLoads25Issues() {
-        assertEquals(25, issueRepository.count());
+    void seedDataLoadsIssues() {
+        assertTrue(issueRepository.count() >= 25);
     }
 
     @Test

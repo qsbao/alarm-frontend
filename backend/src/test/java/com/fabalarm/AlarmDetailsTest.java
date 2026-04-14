@@ -50,6 +50,7 @@ class AlarmDetailsTest {
     @Test
     void testIngestProjectorSpcOoc() {
         Alarm alarm = new Alarm();
+        alarm.setType(AlarmTypes.SPC_OOC);
         alarm.setDetails(new SpcOocDetails(
                 "Etch Rate",
                 "CH-001",
@@ -60,19 +61,19 @@ class AlarmDetailsTest {
                 3
         ));
 
-        // Try to set value/unit manually - projector should override
         alarm.setValue(999.0);
         alarm.setUnit("ppm");
 
         ingestProjector.projectValueAndUnit(alarm);
 
-        assertEquals(12.0, alarm.getValue(), 0.001); // 3/25 * 100 = 12.0
+        assertEquals(12.0, alarm.getValue(), 0.001);
         assertEquals("%", alarm.getUnit());
     }
 
     @Test
     void testIngestProjectorSpcOocZeroWaferCount() {
         Alarm alarm = new Alarm();
+        alarm.setType(AlarmTypes.SPC_OOC);
         alarm.setDetails(new SpcOocDetails(
                 "Etch Rate",
                 "CH-001",
@@ -115,6 +116,7 @@ class AlarmDetailsTest {
     @Test
     void testIngestProjectorTempSpike() {
         Alarm alarm = new Alarm();
+        alarm.setType("TempSpike");
         alarm.setDetails(new TempSpikeDetails(
                 125.5,
                 120.0,
@@ -123,13 +125,12 @@ class AlarmDetailsTest {
                 45
         ));
 
-        // Try to set value/unit manually - projector should override
         alarm.setValue(999.0);
         alarm.setUnit("ppm");
 
         ingestProjector.projectValueAndUnit(alarm);
 
-        assertEquals(5.5, alarm.getValue(), 0.001); // 125.5 - 120.0 = 5.5
+        assertEquals(5.5, alarm.getValue(), 0.001);
         assertEquals("°C", alarm.getUnit());
     }
 }
