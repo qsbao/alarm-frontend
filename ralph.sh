@@ -38,24 +38,30 @@ SLEEP_BETWEEN_NO_WORK="${SLEEP_BETWEEN_NO_WORK:-300}"
 PER_ISSUE_TIMEOUT="${PER_ISSUE_TIMEOUT:-3600}"
 MODEL="${MODEL:-}"
 
-# Issue dependency graph from PRD #94. Keep in sync with the PRD if it changes.
+# Issue dependency graph from PRD #104. Keep in sync with the PRD if it changes.
 # (Function-based instead of `declare -A` so it works on macOS bash 3.2.)
 #
-#   #95 Slice 1: Common alarm schema overhaul                    (no blockers)
-#   #96 Slice 2: Polymorphic details + SpcOocDetails + POST      (needs 95)
-#   #97 Slice 3: External-system surface                         (needs 95, 96)
-#   #98 Slice 4: Mock/seed rebuild + onboarding guide            (needs 96)
+#   #105 Slice 1: Rename example-workflow -> example-plugin + 2nd workflow  (no blockers)
+#   #106 Slice 2: Alarm-type backend (open AlarmDetails + registry)         (no blockers)
+#   #107 Slice 3: Field-kind registry + migrate lot-disposition             (needs 105)
+#   #108 Slice 4: Migrate report-reference                                  (needs 107)
+#   #109 Slice 5: Migrate calibration-reference                             (needs 107)
+#   #110 Slice 6: Alarm-type frontend (registry + dynamic filters)          (needs 106)
+#   #111 Slice 7: Migrate TempSpike + ChamberLeak + doc rewrite             (needs 106, 110)
 #
 blockers_for() {
   case "$1" in
-    95) echo "" ;;
-    96) echo "95" ;;
-    97) echo "95 96" ;;
-    98) echo "96" ;;
-    *)  echo "" ;;
+    105) echo "" ;;
+    106) echo "" ;;
+    107) echo "105" ;;
+    108) echo "107" ;;
+    109) echo "107" ;;
+    110) echo "106" ;;
+    111) echo "106 110" ;;
+    *)   echo "" ;;
   esac
 }
-ALL_ISSUES="95 96 97 98"
+ALL_ISSUES="105 106 107 108 109 110 111"
 
 # -------------------------------------------------------------------- helpers
 
@@ -120,8 +126,8 @@ You are working autonomously on GitHub issue #$n in the repository $REPO.
 Step 1. Read the issue:
   gh issue view $n --repo $REPO
 
-Step 2. Read the parent PRD (issue #94) for full architectural context:
-  gh issue view 94 --repo $REPO
+Step 2. Read the parent PRD (issue #104) for full architectural context:
+  gh issue view 104 --repo $REPO
 
 Step 3. Use the tdd skill (red-green-refactor). For each acceptance criterion:
 write a failing test first, watch it fail, write the minimum code to make it

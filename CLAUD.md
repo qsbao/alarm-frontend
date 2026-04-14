@@ -12,3 +12,7 @@
 - Do not `cd` into subdirectories for git or pnpm commands; use `--dir` or `--filter` flags from the root
 - Prefer relative paths in CLI commands where possible
 - OpenAPI types auto-generated: run `pnpm generate-api` from root (requires backend running on :8080)
+
+## Lesson learned
+- Reset the proxy env before gh command
+
