@@ -22,6 +22,10 @@
     {
       "id": "example-plugin:report-reference",
       "frontendEntry": "./frontend/fieldKinds/reportReference.ts"
+    },
+    {
+      "id": "example-plugin:calibration-reference",
+      "frontendEntry": "./frontend/fieldKinds/calibrationReference.ts"
     }
   ]
 }
