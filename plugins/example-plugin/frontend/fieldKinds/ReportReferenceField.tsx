@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ExternalLink, RefreshCw, AlertCircle } from 'lucide-react';
-import { useReport, getReportUrl } from '../../lib/external-systems/reports';
-import type { StepStatus } from '../../lib/workflows/types';
+import { useReport, getReportUrl } from '../externalSystems/reports';
+import type { StepStatus } from '../../../../frontend/src/lib/workflows/types';
 
 interface ReportReferenceFieldProps {
   value: string;

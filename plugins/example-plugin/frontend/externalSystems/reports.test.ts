@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { fetchReport, getReportUrl, type Report } from './reports';
 
-describe('reports mock module', () => {
+describe('reports mock module (plugin)', () => {
   it('returns report data for a valid ID', async () => {
     const report = await fetchReport('RPT-1001');
     expect(report).not.toBeNull();

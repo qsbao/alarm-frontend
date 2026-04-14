@@ -2,6 +2,7 @@ package com.fabalarm.workflow;
 
 import com.fabalarm.model.HumanRiskLevel;
 import com.fabalarm.model.IssueStatus;
+import com.fabalarm.plugins.ExampleFieldKinds;
 
 import java.util.List;
 import java.util.Map;
@@ -29,7 +30,7 @@ public final class SpcOocBranchingDefinition {
                             .preSteps("chart_owner_comment")
                             .skippableIf(issue -> true)
                             .payloadSchema(Map.of(
-                                    "reportId", PayloadFieldSchema.ofKind("report-reference", "Report ID", false)
+                                    "reportId", ExampleFieldKinds.reportReference("Report ID", false)
                             ))
                             .build(),
                     StepDefinition.builder("verify_calibration", "Verify Equipment Calibration", 6)

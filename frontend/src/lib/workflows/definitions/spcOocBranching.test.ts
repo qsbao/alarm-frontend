@@ -61,7 +61,7 @@ describe('spcOocBranchingDefinition', () => {
   it('attach_report has report-reference payload schema', () => {
     const step = spcOocBranchingDefinition.steps.find((s) => s.id === 'attach_report')!;
     expect(step.payloadSchema).toBeDefined();
-    expect(step.payloadSchema!['reportId'].kind).toBe('report-reference');
+    expect(step.payloadSchema!['reportId'].kind).toBe('example-plugin:report-reference');
   });
 
   it('lot_disposition is skippable', () => {

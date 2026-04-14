@@ -18,6 +18,10 @@
     {
       "id": "example-plugin:lot-disposition",
       "frontendEntry": "./frontend/fieldKinds/lotDisposition.ts"
+    },
+    {
+      "id": "example-plugin:report-reference",
+      "frontendEntry": "./frontend/fieldKinds/reportReference.ts"
     }
   ]
 }
