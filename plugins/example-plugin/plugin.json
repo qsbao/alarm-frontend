@@ -28,5 +28,16 @@
       "frontendEntry": "./frontend/fieldKinds/calibrationReference.ts"
     }
   ],
-  "alarmTypes": []
+  "alarmTypes": [
+    {
+      "kind": "example-plugin:TempSpike",
+      "frontendEntry": "./frontend/alarmTypes/tempSpike.tsx",
+      "backendClass": "com.fabalarm.plugins.TempSpikeAlarmType"
+    },
+    {
+      "kind": "example-plugin:ChamberLeak",
+      "frontendEntry": "./frontend/alarmTypes/chamberLeak.tsx",
+      "backendClass": "com.fabalarm.plugins.ChamberLeakAlarmType"
+    }
+  ]
 }

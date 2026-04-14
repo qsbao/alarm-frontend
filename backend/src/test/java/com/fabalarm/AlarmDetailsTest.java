@@ -2,6 +2,8 @@ package com.fabalarm;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fabalarm.model.*;
+import com.fabalarm.plugins.ChamberLeakDetails;
+import com.fabalarm.plugins.TempSpikeDetails;
 import com.fabalarm.service.IngestProjector;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -101,7 +103,7 @@ class AlarmDetailsTest {
         );
 
         String json = objectMapper.writeValueAsString(original);
-        assertTrue(json.contains("\"kind\":\"TempSpike\""));
+        assertTrue(json.contains("\"kind\":\"example-plugin:TempSpike\""));
 
         AlarmDetails deserialized = objectMapper.readValue(json, AlarmDetails.class);
         assertInstanceOf(TempSpikeDetails.class, deserialized);
@@ -116,7 +118,7 @@ class AlarmDetailsTest {
     @Test
     void testIngestProjectorTempSpike() {
         Alarm alarm = new Alarm();
-        alarm.setType("TempSpike");
+        alarm.setType("example-plugin:TempSpike");
         alarm.setDetails(new TempSpikeDetails(
                 125.5,
                 120.0,
@@ -132,5 +134,43 @@ class AlarmDetailsTest {
 
         assertEquals(5.5, alarm.getValue(), 0.001);
         assertEquals("°C", alarm.getUnit());
+    }
+
+    @Test
+    void testChamberLeakDetailsJsonRoundTrip() throws Exception {
+        ChamberLeakDetails original = new ChamberLeakDetails(
+                0.33,
+                0.1,
+                "CVD-04-A",
+                "helium"
+        );
+
+        String json = objectMapper.writeValueAsString(original);
+        assertTrue(json.contains("\"kind\":\"example-plugin:ChamberLeak\""));
+
+        AlarmDetails deserialized = objectMapper.readValue(json, AlarmDetails.class);
+        assertInstanceOf(ChamberLeakDetails.class, deserialized);
+        ChamberLeakDetails chamberLeak = (ChamberLeakDetails) deserialized;
+        assertEquals(original.leakRate(), chamberLeak.leakRate());
+        assertEquals(original.threshold(), chamberLeak.threshold());
+        assertEquals(original.chamberId(), chamberLeak.chamberId());
+        assertEquals(original.testMethod(), chamberLeak.testMethod());
+    }
+
+    @Test
+    void testIngestProjectorChamberLeak() {
+        Alarm alarm = new Alarm();
+        alarm.setType("example-plugin:ChamberLeak");
+        alarm.setDetails(new ChamberLeakDetails(
+                0.33,
+                0.1,
+                "CVD-04-A",
+                "helium"
+        ));
+
+        ingestProjector.projectValueAndUnit(alarm);
+
+        assertEquals(0.33, alarm.getValue(), 0.001);
+        assertEquals("sccm", alarm.getUnit());
     }
 }

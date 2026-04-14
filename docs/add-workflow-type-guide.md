@@ -226,7 +226,7 @@ The "no workflow attached" panel has hardcoded buttons. Add one for the new type
 If the new workflow should be the default for certain alarm types, edit `frontend/src/lib/workflows/workflowDefaults.ts`:
 
 ```typescript
-const MY_ALARM_TYPES: AlarmType[] = ['TempSpike', 'ChamberLeak'];
+const MY_ALARM_TYPES: AlarmType[] = ['example-plugin:TempSpike', 'example-plugin:ChamberLeak'];
 
 export function getDefaultWorkflowId(alarmType: AlarmType | undefined): string | undefined {
   if (!alarmType) return undefined;

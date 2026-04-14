@@ -55,7 +55,7 @@ describe('filtersToParams', () => {
       department: ['Etch'],
       severity: ['P1'],
       riskLevel: ['HIGH_RISK'],
-      alarmType: ['TempSpike'],
+      alarmType: ['example-plugin:TempSpike'],
       owner: ['M. Chen'],
       eqpId: ['ETCH-03'],
       productId: ['B2-Etch'],
@@ -69,7 +69,7 @@ describe('filtersToParams', () => {
     expect(params.get('department')).toBe('Etch');
     expect(params.get('severity')).toBe('P1');
     expect(params.get('riskLevel')).toBe('HIGH_RISK');
-    expect(params.get('alarmType')).toBe('TempSpike');
+    expect(params.get('alarmType')).toBe('example-plugin:TempSpike');
     expect(params.get('owner')).toBe('M. Chen');
     expect(params.get('eqpId')).toBe('ETCH-03');
     expect(params.get('productId')).toBe('B2-Etch');
@@ -145,7 +145,7 @@ describe('round-trip serialization', () => {
       status: ['Open'],
       department: ['Litho', 'Etch'],
       severity: ['P1', 'P0'],
-      alarmType: ['TempSpike'],
+      alarmType: ['example-plugin:TempSpike'],
       labels: ['Recurring'],
       active: 'active',
     };

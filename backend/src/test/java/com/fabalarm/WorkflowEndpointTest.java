@@ -75,7 +75,7 @@ class WorkflowEndpointTest {
                 withAuth("user-tanaka"), List.class);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         List<Map<String, Object>> defs = response.getBody();
-        assertEquals(2, defs.size());
+        assertTrue(defs.size() >= 2, "Should have at least the two built-in definitions");
         assertEquals("generic_linear_v1", defs.get(0).get("id"));
         assertEquals("Generic Linear", defs.get(0).get("name"));
         assertEquals("spc_ooc_branching_v1", defs.get(1).get("id"));

@@ -74,7 +74,7 @@ curl -X POST http://localhost:8080/api/alarms \
 
 **Optional fields:** `chamberId`, `operName`, `operNo`, `value`, `unit`, `eventTime`, `recoveryTime`, `riskLevel`, `source`, `sourceAlarmId`, `sourceAlarmBody`, `details`, `module`, `moduleOwner`, `piOwner`, `chartOwnerId`, `technologyId`, `productGroupId`, `processOperName`, `processOperNo`, `lotId`, `lotPriority`, `waferId`, `recipeId`, `routeId`
 
-**Alarm types:** `spc_ooc`, `TempSpike`, `ChamberLeak`
+**Alarm types:** `spc_ooc` (built-in), `example-plugin:TempSpike`, `example-plugin:ChamberLeak` (plugin-contributed)
 
 **Severity levels:** `P0`, `P1`, `P2`, `P3`
 

@@ -5,7 +5,7 @@ import { isActive, isMissed, filterAlarms, sortAlarms } from './alarmFiltering';
 function makeAlarm(overrides: Partial<Alarm> = {}): Alarm {
   return {
     id: 'alm-001',
-    type: 'TempSpike',
+    type: 'example-plugin:TempSpike',
     severity: 'P1',
     message: 'test',
     alarmTime: '2026-01-15T10:00:00Z',
@@ -73,9 +73,9 @@ describe('filterAlarms', () => {
   const now = new Date('2026-01-15T12:00:00Z').getTime();
 
   const alarms: Alarm[] = [
-    makeAlarm({ id: 'alm-001', status: 'Open', department: 'Litho', severity: 'P1', type: 'TempSpike', owner: 'H. Tanaka', eqpId: 'LITHO-07', productId: 'A7-Litho', labels: ['Recurring'] }),
-    makeAlarm({ id: 'alm-002', status: 'Acked', department: 'Etch', severity: 'P3', type: 'ChamberLeak', owner: 'M. Chen', eqpId: 'ETCH-03', productId: 'B2-Etch', recoveryTime: '2026-01-15T11:00:00Z', labels: [] }),
-    makeAlarm({ id: 'alm-003', status: 'Open', department: 'Litho', severity: 'P0', type: 'ChamberLeak', owner: 'L. Rossi', eqpId: 'LITHO-02', productId: 'A7-Litho', recoveryTime: '2026-01-15T11:30:00Z', riskLevel: 'HIGH_RISK', labels: ['LotImpacting'] }),
+    makeAlarm({ id: 'alm-001', status: 'Open', department: 'Litho', severity: 'P1', type: 'example-plugin:TempSpike', owner: 'H. Tanaka', eqpId: 'LITHO-07', productId: 'A7-Litho', labels: ['Recurring'] }),
+    makeAlarm({ id: 'alm-002', status: 'Acked', department: 'Etch', severity: 'P3', type: 'example-plugin:ChamberLeak', owner: 'M. Chen', eqpId: 'ETCH-03', productId: 'B2-Etch', recoveryTime: '2026-01-15T11:00:00Z', labels: [] }),
+    makeAlarm({ id: 'alm-003', status: 'Open', department: 'Litho', severity: 'P0', type: 'example-plugin:ChamberLeak', owner: 'L. Rossi', eqpId: 'LITHO-02', productId: 'A7-Litho', recoveryTime: '2026-01-15T11:30:00Z', riskLevel: 'HIGH_RISK', labels: ['LotImpacting'] }),
     makeAlarm({ id: 'alm-004', status: 'Acked', department: 'Facilities', severity: 'P2', type: 'spc_ooc', owner: 'K. Müller', eqpId: 'FAC-01', productId: 'C1-Fac', labels: [] }),
   ];
 
@@ -160,8 +160,8 @@ describe('filterAlarms', () => {
 
 describe('sortAlarms', () => {
   const alarms: Alarm[] = [
-    makeAlarm({ id: 'alm-001', alarmTime: '2026-01-15T10:00:00Z', severity: 'P1', type: 'TempSpike', department: 'Litho' }),
-    makeAlarm({ id: 'alm-002', alarmTime: '2026-01-15T08:00:00Z', severity: 'P0', type: 'ChamberLeak', department: 'Etch' }),
+    makeAlarm({ id: 'alm-001', alarmTime: '2026-01-15T10:00:00Z', severity: 'P1', type: 'example-plugin:TempSpike', department: 'Litho' }),
+    makeAlarm({ id: 'alm-002', alarmTime: '2026-01-15T08:00:00Z', severity: 'P0', type: 'example-plugin:ChamberLeak', department: 'Etch' }),
     makeAlarm({ id: 'alm-003', alarmTime: '2026-01-15T12:00:00Z', severity: 'P3', type: 'spc_ooc', department: 'Facilities' }),
   ];
 
@@ -177,7 +177,7 @@ describe('sortAlarms', () => {
 
   it('sorts by type alphabetically', () => {
     const result = sortAlarms(alarms, 'type');
-    expect(result.map((a) => a.id)).toEqual(['alm-002', 'alm-003', 'alm-001']);
+    expect(result.map((a) => a.id)).toEqual(['alm-002', 'alm-001', 'alm-003']);
   });
 
   it('sorts by department alphabetically', () => {
