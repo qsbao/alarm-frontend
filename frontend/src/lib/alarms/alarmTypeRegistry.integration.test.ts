@@ -24,16 +24,16 @@ describe('alarmTypeRegistry integration', () => {
       icon: () => null,
     };
     const specB: AlarmTypeSpec = {
-      kind: 'TempSpike',
+      kind: 'example-plugin:TempSpike',
       panel: () => null,
       label: 'Temp Spike',
       icon: () => null,
     };
     registerAlarmType('spc_ooc', specA);
-    registerAlarmType('TempSpike', specB);
+    registerAlarmType('example-plugin:TempSpike', specB);
 
     const all = getAllAlarmTypes();
-    expect(all.map((s) => s.kind)).toEqual(['spc_ooc', 'TempSpike']);
+    expect(all.map((s) => s.kind)).toEqual(['spc_ooc', 'example-plugin:TempSpike']);
     expect(all.map((s) => s.label)).toEqual(['SPC OOC', 'Temp Spike']);
   });
 });

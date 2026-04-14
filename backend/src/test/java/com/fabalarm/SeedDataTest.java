@@ -38,7 +38,7 @@ class SeedDataTest {
     void seedDataContainsExpectedAlarm() {
         var alarm = alarmRepository.findByIdWithLabels("alm-001");
         assertNotNull(alarm);
-        assertEquals("TempSpike", alarm.getType());
+        assertEquals("example-plugin:TempSpike", alarm.getType());
         assertEquals("Litho", alarm.getDepartment());
     }
 

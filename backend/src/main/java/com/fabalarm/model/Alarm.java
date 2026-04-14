@@ -16,7 +16,7 @@ public class Alarm {
     @Column(length = 20)
     private String id;
 
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, length = 50)
     private String type;
 
     @Enumerated(EnumType.STRING)

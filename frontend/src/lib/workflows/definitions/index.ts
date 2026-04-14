@@ -48,7 +48,7 @@ interface PluginManifest {
 }
 
 // Dynamically import plugin alarm-type specs at build time
-const alarmTypeModules = import.meta.glob('../../../../../plugins/*/frontend/alarmTypes/*.ts', { eager: true });
+const alarmTypeModules = import.meta.glob('../../../../../plugins/*/frontend/alarmTypes/*.{ts,tsx}', { eager: true });
 
 // Register core built-in alarm types
 registerAlarmType(spcOocAlarmType.kind, spcOocAlarmType);

@@ -21,15 +21,6 @@ export interface SpcOocDetails {
   oocCount: number;
 }
 
-export interface TempSpikeDetails {
-  kind: 'TempSpike';
-  currentTemp: number;
-  thresholdTemp: number;
-  sensorId: string;
-  spikeStartTime: string; // ISO 8601
-  durationSeconds: number;
-}
-
 export type AlarmDetails = { kind: string; [key: string]: unknown };
 
 export type AlarmStatus = 'Open' | 'Acked';

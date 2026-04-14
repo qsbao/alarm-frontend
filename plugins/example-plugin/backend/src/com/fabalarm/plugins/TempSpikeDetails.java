@@ -1,4 +1,6 @@
-package com.fabalarm.model;
+package com.fabalarm.plugins;
+
+import com.fabalarm.model.AlarmDetails;
 
 import java.time.Instant;
 
@@ -10,4 +12,3 @@ public record TempSpikeDetails(
     int durationSeconds
 ) implements AlarmDetails {
 }
-

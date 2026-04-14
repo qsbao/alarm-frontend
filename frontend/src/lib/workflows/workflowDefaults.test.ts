@@ -4,10 +4,10 @@ import type { AlarmType } from '../../types';
 
 describe('getDefaultWorkflowId', () => {
   const ALL_ALARM_TYPES: AlarmType[] = [
-    'TempSpike',
+    'example-plugin:TempSpike',
     'PressureDrop',
     'FlowAnomaly',
-    'ChamberLeak',
+    'example-plugin:ChamberLeak',
     'VoltageSag',
     'ParticleCount',
     'VacuumFault',

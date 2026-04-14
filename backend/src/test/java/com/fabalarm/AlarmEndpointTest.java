@@ -103,13 +103,13 @@ class AlarmEndpointTest {
     @Test
     void listAlarmsFilterByAlarmType() {
         ResponseEntity<List> response = restTemplate.exchange(
-                "/api/alarms?from=2025-01-01T00:00:00Z&to=2026-12-31T23:59:59Z&alarmType=TempSpike",
+                "/api/alarms?from=2025-01-01T00:00:00Z&to=2026-12-31T23:59:59Z&alarmType=example-plugin:TempSpike",
                 HttpMethod.GET, withAuth(), List.class);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         List<Map<String, Object>> alarms = response.getBody();
         assertTrue(alarms.size() > 0);
         for (Map<String, Object> alarm : alarms) {
-            assertEquals("TempSpike", alarm.get("type"));
+            assertEquals("example-plugin:TempSpike", alarm.get("type"));
         }
     }
 

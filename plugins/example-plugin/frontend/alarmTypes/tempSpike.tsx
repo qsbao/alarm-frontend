@@ -1,12 +1,21 @@
 import { Thermometer, Clock, Activity, Calendar } from 'lucide-react';
-import type { TempSpikeDetails } from '../../types';
+import type { AlarmTypeSpec } from '../../../../frontend/src/lib/alarms/alarmTypeRegistry';
+
+export interface TempSpikeDetails {
+  kind: 'example-plugin:TempSpike';
+  currentTemp: number;
+  thresholdTemp: number;
+  sensorId: string;
+  spikeStartTime: string;
+  durationSeconds: number;
+}
 
 function formatDateTime(iso: string): string {
   const d = new Date(iso);
   return `${d.toISOString().slice(0, 10)} ${d.toISOString().slice(11, 16)}`;
 }
 
-export function TempSpikePanel({ details }: { details: TempSpikeDetails }) {
+function TempSpikePanel({ details }: { details: TempSpikeDetails }) {
   return (
     <div className="card p-4">
       <h3 className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted mb-3 flex items-center gap-1">
@@ -50,3 +59,12 @@ export function TempSpikePanel({ details }: { details: TempSpikeDetails }) {
     </div>
   );
 }
+
+const spec: AlarmTypeSpec = {
+  kind: 'example-plugin:TempSpike',
+  panel: TempSpikePanel,
+  label: 'Temp Spike',
+  icon: Thermometer,
+};
+
+export default spec;

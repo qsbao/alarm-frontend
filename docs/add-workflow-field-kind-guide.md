@@ -1,50 +1,128 @@
-# Add New Workflow Field Kind Guide
+# Adding Field Kinds to Your Plugin
 
-> The canonical guide lives at `frontend/src/lib/external-systems/INTEGRATION_GUIDE.md`.
-> Read that file — it is the authoritative, fully detailed reference.
+> The canonical external-system integration guide lives at `frontend/src/lib/external-systems/INTEGRATION_GUIDE.md`.
+> Read that file for the fully detailed reference on mock modules and hook patterns.
 
-This document is a quick orientation and cross-reference.
+This document covers how to add a custom field kind to a plugin.
 
 ---
 
-## What is a "field kind"?
+## What is a field kind?
 
 A field kind is the `kind` discriminator on `PayloadFieldSchema` (defined in `frontend/src/lib/workflows/types.ts`). It controls how a workflow step's payload field is rendered and validated.
 
-Existing kinds:
+### Built-in kinds (in core)
 
-| kind | Input pattern | Component | External system |
+| Kind | Input pattern | Component |
+|---|---|---|
+| `text` | textarea | inline in `WorkflowPanel` |
+| `enum` | select dropdown | inline in `WorkflowPanel` |
+
+### Plugin-contributed kinds (in `example-plugin`)
+
+| Kind | Input pattern | Component | External system |
 |---|---|---|---|
-| `text` | textarea | inline in WorkflowPanel | none |
-| `enum` | select dropdown | inline in WorkflowPanel | none |
 | `example-plugin:calibration-reference` | auto-resolved from linked alarm | `CalibrationReferenceField` | calibration.fab.internal |
 | `example-plugin:lot-disposition` | search/picker | `LotDispositionField` | lot system |
 | `example-plugin:report-reference` | manual ID input | `ReportReferenceField` | reports.fab.internal |
 
-`text` and `enum` are built into `WorkflowPanel.tsx` directly. Plugin-contributed kinds (`example-plugin:lot-disposition`, `example-plugin:report-reference`, `example-plugin:calibration-reference`) live under `plugins/example-plugin/frontend/fieldKinds/` with their external-system modules alongside in `externalSystems/`.
+---
+
+## Plugin file layout
+
+```
+plugins/your-plugin/
+├── plugin.json
+├── backend/src/com/your/plugin/
+│   └── YourFieldKinds.java          # factory methods for PayloadFieldSchema
+└── frontend/
+    ├── fieldKinds/
+    │   └── yourFieldKind.ts          # FieldKindSpec default export
+    └── externalSystems/
+        └── yourSystem.ts             # mock external-system module
+```
 
 ---
 
-## Files to touch (summary)
+## Step 1: Create the external-system module (if needed)
 
-1. `frontend/src/lib/external-systems/yourSystem.ts` — mock module (types, data, API functions, URL builder, hook)
-2. `frontend/src/lib/external-systems/yourSystem.test.ts` — tests for API functions
-3. `backend/.../workflow/PayloadFieldSchema.java` — add static factory method
-4. `frontend/src/lib/workflows/types.ts` — add kind to union type
-5. `frontend/src/components/issue-detail/WorkflowPanel.tsx` — add branch in `SchemaField`
-6. `frontend/src/components/issue-detail/YourReferenceField.tsx` — new component
-7. Backend workflow definition — add step with `payloadSchema` using new factory
-8. Frontend workflow definition — mirror the step
-9. `backend/src/main/resources/data.sql` — seed completed step rows
-10. Definition test file — update expected step count
+**File**: `plugins/your-plugin/frontend/externalSystems/yourSystem.ts`
 
-See `frontend/src/lib/external-systems/INTEGRATION_GUIDE.md` for the full walkthrough with code templates for each file.
+If your field kind resolves data from an external system, create a mock module with types, data, API functions, and a URL builder. Follow the pattern in `plugins/example-plugin/frontend/externalSystems/`.
+
+---
+
+## Step 2: Create the field kind component
+
+**File**: `plugins/your-plugin/frontend/fieldKinds/yourFieldKind.ts`
+
+Export a default `FieldKindSpec` object. The component receives `FieldProps` with `field`, `value`, `onChange`, and `alarm`.
+
+```tsx
+import type { FieldKindSpec } from '../../../../frontend/src/lib/workflows/fieldKindRegistry';
+
+function YourField({ field, value, onChange }: FieldProps) {
+  return <input value={value ?? ''} onChange={(e) => onChange(e.target.value)} />;
+}
+
+const spec: FieldKindSpec = {
+  component: YourField,
+};
+
+export default spec;
+```
+
+---
+
+## Step 3: Register in `plugin.json`
+
+Add an entry to the `fieldKinds[]` array:
+
+```json
+{
+  "fieldKinds": [
+    {
+      "id": "your-plugin:your-field-kind",
+      "frontendEntry": "./frontend/fieldKinds/yourFieldKind.ts"
+    }
+  ]
+}
+```
+
+The `id` must be prefixed with your plugin id. No `backendClass` is needed — the backend does not dispatch on field kind.
+
+---
+
+## Step 4: Add backend factory method (optional)
+
+**File**: `plugins/your-plugin/backend/src/com/your/plugin/YourFieldKinds.java`
+
+If your plugin's workflow definitions reference this field kind, add a factory method:
+
+```java
+public final class YourFieldKinds {
+    public static PayloadFieldSchema yourFieldKind(String label) {
+        return new PayloadFieldSchema("your-plugin:your-field-kind", label, null, null, null);
+    }
+}
+```
 
 ---
 
 ## Key invariants
 
-- The `kind` string in `types.ts`, the `SchemaField` branch in `WorkflowPanel.tsx`, and the backend factory method name must all agree.
-- External system failures must be **inline and non-blocking** — never prevent step completion.
-- Hooks must implement focus-refetch via `visibilitychange` and expose `refetch` for the manual refresh button.
+- The `id` in `plugin.json` must match the kind string used in `PayloadFieldSchema` and in the frontend registry.
+- Field kind ids from plugins must be namespaced with the plugin id (e.g., `example-plugin:lot-disposition`).
+- External-system failures must be **inline and non-blocking** — never prevent step completion.
+- Hooks should implement focus-refetch via `visibilitychange` and expose `refetch` for the manual refresh button.
 - The `value` stored in the workflow payload is always a plain string (the foreign key / ID). The component resolves it to a rich object for display only.
+- Unknown field kinds at render time show a "Plugin not loaded" placeholder, preventing silent data loss.
+
+---
+
+## Reference
+
+- Plugin example: `plugins/example-plugin/`
+- Field kind registry: `frontend/src/lib/workflows/fieldKindRegistry.ts`
+- Plugin loading: `frontend/src/lib/workflows/definitions/index.ts`
+- External system guide: `frontend/src/lib/external-systems/INTEGRATION_GUIDE.md`
