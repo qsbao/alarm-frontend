@@ -6,10 +6,7 @@ export interface User {
 
 export type RiskLevel = 'P0' | 'P1' | 'P2' | 'P3';
 export type IssueStatus = 'Triage' | 'Investigating' | 'Resolved' | 'Closed' | 'Merged';
-export type AlarmType =
-  | 'spc_ooc'
-  | 'TempSpike'
-  | 'ChamberLeak';
+export type AlarmType = 'spc_ooc' | (string & {});
 
 export type ChartLevel = 'KIP' | 'ACP';
 
@@ -33,7 +30,7 @@ export interface TempSpikeDetails {
   durationSeconds: number;
 }
 
-export type AlarmDetails = SpcOocDetails | TempSpikeDetails;
+export type AlarmDetails = { kind: string; [key: string]: unknown };
 
 export type AlarmStatus = 'Open' | 'Acked';
 export type HumanRiskLevel = 'HIGH_RISK' | 'MIDDLE_RISK' | 'LOW_RISK';
@@ -206,11 +203,9 @@ export const ALL_ALARM_LABELS: AlarmLabel[] = [
 
 export const ALL_RISK_LEVELS: RiskLevel[] = ['P0', 'P1', 'P2', 'P3'];
 export const ALL_ISSUE_STATUSES: IssueStatus[] = ['Triage', 'Investigating', 'Resolved', 'Closed', 'Merged'];
-export const ALL_ALARM_TYPES: AlarmType[] = [
-  'spc_ooc',
-  'TempSpike',
-  'ChamberLeak',
-];
+export const AlarmTypes = {
+  SPC_OOC: 'spc_ooc' as const,
+};
 
 export type AlarmSortKey = 'alarmTime' | 'severity' | 'type' | 'department';
 
@@ -220,7 +215,7 @@ export interface AlarmFilters {
   department?: string[];
   severity?: RiskLevel[];
   riskLevel?: HumanRiskLevel[];
-  alarmType?: AlarmType[];
+  alarmType?: string[];
   owner?: string[];
   eqpId?: string[];
   chamberId?: string[];

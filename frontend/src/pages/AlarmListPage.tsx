@@ -10,6 +10,7 @@ import { AlarmFilterBar } from '../components/alarms/AlarmFilterBar';
 import { QuickAckDrawer } from '../components/QuickAckDrawer';
 import { useAlarms } from '../hooks/useAlarms';
 import type { Alarm, AlarmFilters, AlarmSortKey, RiskLevel } from '../types';
+import { getAlarmType } from '../lib/alarms/alarmTypeRegistry';
 
 const SEVERITY_COLOR: Record<RiskLevel, string> = {
   P0: 'bg-red-500/15 text-red-400 border-red-500/30',
@@ -55,7 +56,7 @@ function AlarmRow({
     >
       <td className="px-3 py-2.5 text-xs font-mono text-theme-secondary">{alarm.id}</td>
       <td className="px-3 py-2.5">
-        <span className="badge text-[10px]">{alarm.type}</span>
+        <span className="badge text-[10px]">{getAlarmType(alarm.type)?.label ?? alarm.type}</span>
       </td>
       <td className="px-3 py-2.5">
         <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border ${SEVERITY_COLOR[alarm.severity]}`}>
