@@ -84,7 +84,7 @@ export const spcOocBranchingDefinition: WorkflowDefinition = {
       defaultSkipIf: (issue) => issue.riskLevel === 'LOW_RISK',
       payloadSchema: {
         lotId: {
-          kind: 'lot-disposition',
+          kind: 'example-plugin:lot-disposition',
           label: 'Lot ID',
           required: false,
         },

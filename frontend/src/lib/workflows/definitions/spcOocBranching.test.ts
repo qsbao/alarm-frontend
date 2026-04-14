@@ -80,7 +80,7 @@ describe('spcOocBranchingDefinition', () => {
   it('lot_disposition has lot-disposition payload schema', () => {
     const step = spcOocBranchingDefinition.steps.find((s) => s.id === 'lot_disposition')!;
     expect(step.payloadSchema).toBeDefined();
-    expect(step.payloadSchema!['lotId'].kind).toBe('lot-disposition');
+    expect(step.payloadSchema!['lotId'].kind).toBe('example-plugin:lot-disposition');
   });
 
   it('resolved and closed have owner-only gates', () => {
