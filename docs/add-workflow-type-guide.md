@@ -100,9 +100,9 @@ export const myWorkflowDefinition: WorkflowDefinition = {
 |---|---|---|
 | `text` | textarea | `PayloadFieldSchema.text(label, required, minLength)` |
 | `enum` | select | `PayloadFieldSchema.enumField(label, required, List.of(...))` |
-| `report-reference` | ReportReferenceField | `PayloadFieldSchema.reportReference(label, required)` |
-| `calibration-reference` | CalibrationReferenceField | `PayloadFieldSchema.calibrationReference(label, required)` |
-| `lot-disposition` | LotDispositionField | `PayloadFieldSchema.lotDisposition(label, required)` |
+| `calibration-reference` | CalibrationReferenceField | `PayloadFieldSchema.ofKind("calibration-reference", label, required)` |
+| `example-plugin:lot-disposition` | LotDispositionField | `ExampleFieldKinds.lotDisposition(label, required)` |
+| `example-plugin:report-reference` | ReportReferenceField | `ExampleFieldKinds.reportReference(label, required)` |
 
 ---
 

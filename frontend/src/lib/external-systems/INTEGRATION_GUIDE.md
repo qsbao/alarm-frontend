@@ -10,9 +10,9 @@ Each external system gets its own `kind` value. The architecture is intentionall
 
 | Kind | Input Pattern | Component | Example |
 |------|--------------|-----------|---------|
-| `report-reference` | **Manual ID input** — user types a report ID | `ReportReferenceField` | User pastes `RPT-1001` |
+| `example-plugin:report-reference` | **Manual ID input** — user types a report ID | `ReportReferenceField` | User pastes `RPT-1001` |
 | `calibration-reference` | **Pre-populated** — auto-resolved from issue's linked alarm | `CalibrationReferenceField` | Resolved from `machineId`/`chamberId` |
-| `lot-disposition` | **Search/picker** — user searches lots, selects from dropdown | `LotDispositionField` | User searches by product, picks `LOT-2024-0001` |
+| `example-plugin:lot-disposition` | **Search/picker** — user searches lots, selects from dropdown | `LotDispositionField` | User searches by product, picks `LOT-2024-0001` |
 
 ## Step 1: Create the mock module
 
@@ -249,8 +249,7 @@ In `frontend/src/lib/workflows/types.ts`, add your kind to the `PayloadFieldSche
 
 ```ts
 export interface PayloadFieldSchema {
-  kind: 'enum' | 'text' | 'report-reference' | 'calibration-reference'
-      | 'lot-disposition' | 'your-reference';  // <-- add here
+  kind: string;  // open — plugin-contributed kinds are namespaced (e.g. 'example-plugin:report-reference')
   label: string;
   required: boolean;
   options?: string[];

@@ -17,11 +17,11 @@ Existing kinds:
 |---|---|---|---|
 | `text` | textarea | inline in WorkflowPanel | none |
 | `enum` | select dropdown | inline in WorkflowPanel | none |
-| `report-reference` | manual ID input | `ReportReferenceField` | reports.fab.internal |
 | `calibration-reference` | auto-resolved from linked alarm | `CalibrationReferenceField` | calibration.fab.internal |
-| `lot-disposition` | search/picker | `LotDispositionField` | lot system |
+| `example-plugin:lot-disposition` | search/picker | `LotDispositionField` | lot system |
+| `example-plugin:report-reference` | manual ID input | `ReportReferenceField` | reports.fab.internal |
 
-`text` and `enum` are built into `WorkflowPanel.tsx` directly. The three reference kinds each have a dedicated component and a mock module under `frontend/src/lib/external-systems/`.
+`text` and `enum` are built into `WorkflowPanel.tsx` directly. `calibration-reference` is still inline in core. Plugin-contributed kinds (`example-plugin:lot-disposition`, `example-plugin:report-reference`) live under `plugins/example-plugin/frontend/fieldKinds/` with their external-system modules alongside in `externalSystems/`.
 
 ---
 

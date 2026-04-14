@@ -48,7 +48,7 @@ export const spcOocBranchingDefinition: WorkflowDefinition = {
       skippableIf: () => true,
       payloadSchema: {
         reportId: {
-          kind: 'report-reference',
+          kind: 'example-plugin:report-reference',
           label: 'Report ID',
           required: false,
         },
