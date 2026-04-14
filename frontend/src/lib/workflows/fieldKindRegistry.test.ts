@@ -2,6 +2,7 @@ import { describe, expect, it, beforeEach } from 'vitest';
 import {
   registerFieldKind,
   getFieldKind,
+  getAllFieldKindIds,
   resetFieldKindRegistry,
   type FieldKindSpec,
 } from './fieldKindRegistry';
@@ -26,5 +27,11 @@ describe('fieldKindRegistry', () => {
     registerFieldKind('example-plugin:lot-disposition', spec);
     expect(() => registerFieldKind('example-plugin:lot-disposition', spec))
       .toThrowError('Duplicate field kind id: example-plugin:lot-disposition');
+  });
+
+  it('getAllFieldKindIds returns all registered ids', () => {
+    registerFieldKind('a:one', { component: () => null });
+    registerFieldKind('b:two', { component: () => null });
+    expect(getAllFieldKindIds()).toEqual(['a:one', 'b:two']);
   });
 });

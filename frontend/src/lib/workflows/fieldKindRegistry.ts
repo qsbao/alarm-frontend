@@ -27,6 +27,10 @@ export function getFieldKind(id: string): FieldKindSpec | undefined {
   return registry.get(id);
 }
 
+export function getAllFieldKindIds(): string[] {
+  return Array.from(registry.keys());
+}
+
 export function resetFieldKindRegistry(): void {
   registry.clear();
 }
