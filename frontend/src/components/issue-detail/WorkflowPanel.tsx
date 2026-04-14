@@ -3,7 +3,6 @@ import { useState, Component, type ErrorInfo, type ReactNode } from 'react';
 import type { Issue } from '../../types';
 import type { BlockerInfo } from '../../hooks/useIssue';
 import type { PayloadFieldSchema, Step, StepStatus } from '../../lib/workflows/types';
-import { CalibrationReferenceField } from './CalibrationReferenceField';
 import { getFieldKind } from '../../lib/workflows/fieldKindRegistry';
 import type { HighlightCandidate } from '../../lib/relations/highlightCandidates';
 import { getDefinition, getAllDefinitions } from '../../lib/workflows/definitions';
@@ -343,7 +342,6 @@ function InlineStepForm({
     for (const [fieldName, fieldSchema] of Object.entries(schema)) {
       const val = values[fieldName] ?? '';
       if (fieldSchema.kind !== 'enum' && fieldSchema.kind !== 'text'
-        && fieldSchema.kind !== 'calibration-reference'
         && !getFieldKind(fieldSchema.kind)) {
         setError(`Cannot submit: plugin not loaded for field kind "${fieldSchema.kind}"`);
         return;
@@ -488,21 +486,6 @@ function SchemaField({
           />
         )}
       </label>
-    );
-  }
-
-  // Legacy core field kinds (kept inline during migration of calibration-reference)
-  if (schema.kind === 'calibration-reference') {
-    return (
-      <SchemaFieldErrorBoundary fieldName={fieldName}>
-        <CalibrationReferenceField
-          value={value}
-          onChange={onChange}
-          readOnly={stepStatus === 'completed' || stepStatus === 'skipped'}
-          stepStatus={stepStatus}
-          issue={issue}
-        />
-      </SchemaFieldErrorBoundary>
     );
   }
 

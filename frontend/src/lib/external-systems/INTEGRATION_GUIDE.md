@@ -11,7 +11,7 @@ Each external system gets its own `kind` value. The architecture is intentionall
 | Kind | Input Pattern | Component | Example |
 |------|--------------|-----------|---------|
 | `example-plugin:report-reference` | **Manual ID input** — user types a report ID | `ReportReferenceField` | User pastes `RPT-1001` |
-| `calibration-reference` | **Pre-populated** — auto-resolved from issue's linked alarm | `CalibrationReferenceField` | Resolved from `machineId`/`chamberId` |
+| `example-plugin:calibration-reference` | **Pre-populated** — auto-resolved from issue's linked alarm | `CalibrationReferenceField` | Resolved from `machineId`/`chamberId` |
 | `example-plugin:lot-disposition` | **Search/picker** — user searches lots, selects from dropdown | `LotDispositionField` | User searches by product, picks `LOT-2024-0001` |
 
 ## Step 1: Create the mock module

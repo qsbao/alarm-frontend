@@ -5,10 +5,10 @@ import {
   useCalibrationByEquipment,
   getCalibrationUrl,
   type CalibrationStatus,
-} from '../../lib/external-systems/calibration';
-import type { StepStatus } from '../../lib/workflows/types';
-import type { Issue } from '../../types';
-import { backend } from '../../api/backendClient';
+} from '../externalSystems/calibration';
+import type { StepStatus } from '../../../../frontend/src/lib/workflows/types';
+import type { Issue } from '../../../../frontend/src/types';
+import { backend } from '../../../../frontend/src/api/backendClient';
 
 interface CalibrationReferenceFieldProps {
   value: string;
