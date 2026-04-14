@@ -1,6 +1,8 @@
 import type { WorkflowDefinition } from '../types';
 import type { FieldKindSpec } from '../fieldKindRegistry';
 import { registerFieldKind } from '../fieldKindRegistry';
+import { registerAlarmType, type AlarmTypeSpec } from '../../alarms/alarmTypeRegistry';
+import { spcOocAlarmType } from '../../alarms/spcOocAlarmType';
 import { genericLinearDefinition } from './genericLinear';
 import { spcOocBranchingDefinition } from './spcOocBranching';
 
@@ -28,26 +30,50 @@ const fieldKindModules = import.meta.glob('../../../../../plugins/*/frontend/fie
 // Load plugin manifests to map file paths to field-kind ids
 const pluginManifests = import.meta.glob('../../../../../plugins/*/plugin.json', { eager: true });
 
-interface FieldKindManifestEntry {
+interface ManifestEntry {
   id: string;
   frontendEntry: string;
 }
 
+interface AlarmTypeManifestEntry {
+  kind: string;
+  frontendEntry: string;
+  backendClass?: string;
+}
+
 interface PluginManifest {
   id: string;
-  fieldKinds?: FieldKindManifestEntry[];
+  fieldKinds?: ManifestEntry[];
+  alarmTypes?: AlarmTypeManifestEntry[];
 }
+
+// Dynamically import plugin alarm-type specs at build time
+const alarmTypeModules = import.meta.glob('../../../../../plugins/*/frontend/alarmTypes/*.ts', { eager: true });
+
+// Register core built-in alarm types
+registerAlarmType(spcOocAlarmType.kind, spcOocAlarmType);
 
 for (const [manifestPath, manifestModule] of Object.entries(pluginManifests)) {
   const manifest = manifestModule as PluginManifest;
-  if (!manifest.fieldKinds) continue;
-
   const pluginDir = manifestPath.replace(/\/plugin\.json$/, '');
-  for (const entry of manifest.fieldKinds) {
-    const resolvedPath = `${pluginDir}/${entry.frontendEntry.replace(/^\.\//, '')}`;
-    const mod = fieldKindModules[resolvedPath] as { default: FieldKindSpec } | undefined;
-    if (mod?.default) {
-      registerFieldKind(entry.id, mod.default);
+
+  if (manifest.fieldKinds) {
+    for (const entry of manifest.fieldKinds) {
+      const resolvedPath = `${pluginDir}/${entry.frontendEntry.replace(/^\.\//, '')}`;
+      const mod = fieldKindModules[resolvedPath] as { default: FieldKindSpec } | undefined;
+      if (mod?.default) {
+        registerFieldKind(entry.id, mod.default);
+      }
+    }
+  }
+
+  if (manifest.alarmTypes) {
+    for (const entry of manifest.alarmTypes) {
+      const resolvedPath = `${pluginDir}/${entry.frontendEntry.replace(/^\.\//, '')}`;
+      const mod = alarmTypeModules[resolvedPath] as { default: AlarmTypeSpec } | undefined;
+      if (mod?.default) {
+        registerAlarmType(entry.kind, mod.default);
+      }
     }
   }
 }

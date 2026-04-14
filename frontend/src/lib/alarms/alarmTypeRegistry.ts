@@ -2,7 +2,8 @@ import type { ComponentType } from 'react';
 
 export interface AlarmTypeSpec {
   kind: string;
-  panel: ComponentType<{ details: Record<string, unknown> }>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  panel: ComponentType<{ details: any }>;
   label: string;
   icon: ComponentType<{ size?: number; className?: string }>;
 }

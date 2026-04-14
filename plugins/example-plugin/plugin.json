@@ -27,5 +27,6 @@
       "id": "example-plugin:calibration-reference",
       "frontendEntry": "./frontend/fieldKinds/calibrationReference.ts"
     }
-  ]
+  ],
+  "alarmTypes": []
 }
