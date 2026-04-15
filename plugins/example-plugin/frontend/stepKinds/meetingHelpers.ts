@@ -1,3 +1,4 @@
+import type { StepStatus } from '../../../../frontend/src/lib/workflows/types';
 import type { MeetingEntries, FailedEntry } from './meetingReducer';
 
 export interface LatestFailureContext {
@@ -40,6 +41,19 @@ export function getLatestFailedIndex(entries: MeetingEntries): number {
     if (entries[i].kind === 'failed') return i;
   }
   return -1;
+}
+
+export type MeetingViewKind = 'empty' | 'ongoing' | 'completed';
+
+export function getMeetingViewKind(status: StepStatus, entries: MeetingEntries): MeetingViewKind {
+  const tail = entries.length > 0 ? entries[entries.length - 1] : undefined;
+  if (status === 'completed' && tail?.kind === 'passed') return 'completed';
+  if (status === 'ongoing' && tail?.kind === 'scheduled') return 'ongoing';
+  return 'empty';
+}
+
+export function shouldShowSkipLink(canSkip: boolean, entries: MeetingEntries): boolean {
+  return canSkip && entries.length === 0;
 }
 
 export function getTimelineRows(entries: MeetingEntries): TimelineRow[] {
