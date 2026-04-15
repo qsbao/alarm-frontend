@@ -73,6 +73,7 @@ export const spcOocBranchingDefinition: WorkflowDefinition = {
       label: 'Meeting',
       order: 7,
       preSteps: ['l4_review', 'pi_comment', 'attach_report', 'verify_calibration'],
+      stepKind: 'meeting:outcome',
       skippableIf: (issue) => issue.riskLevel === 'LOW_RISK',
     },
     {
