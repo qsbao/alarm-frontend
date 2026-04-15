@@ -17,7 +17,7 @@
   "stepKinds": [
     {
       "id": "meeting:outcome",
-      "frontendEntry": "./frontend/stepKinds/meetingOutcome.ts"
+      "frontendEntry": "./frontend/stepKinds/meetingOutcomeSpec.ts"
     }
   ],
   "fieldKinds": [

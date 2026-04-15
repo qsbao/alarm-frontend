@@ -65,7 +65,15 @@ export interface EditFailedAction {
   recordedAt: string;
 }
 
-export type MeetingAction = ScheduleAction | PassAction | RescheduleAction | EditScheduledAction | EditFailedAction;
+export interface EditPassedAction {
+  type: 'edit-passed';
+  actualHeldTime: string;
+  conclusion: string;
+  recordedBy: string;
+  recordedAt: string;
+}
+
+export type MeetingAction = ScheduleAction | PassAction | RescheduleAction | EditScheduledAction | EditFailedAction | EditPassedAction;
 
 const MIN_CONCLUSION_LENGTH = 10;
 
@@ -190,6 +198,22 @@ export function meetingReducer(entries: MeetingEntries, action: MeetingAction): 
         ...copy[action.entryIndex] as FailedEntry,
         actualHeldTime: action.actualHeldTime,
         failReason: action.failReason,
+      };
+      return copy;
+    }
+    case 'edit-passed': {
+      const passedIdx = findLastIndex(entries, 'passed');
+      if (passedIdx === -1) {
+        throw new Error('Cannot edit passed: no passed entry found');
+      }
+      if (action.conclusion.length < MIN_CONCLUSION_LENGTH) {
+        throw new Error(`Conclusion must be at least ${MIN_CONCLUSION_LENGTH} characters`);
+      }
+      const copy = [...entries];
+      copy[passedIdx] = {
+        ...copy[passedIdx] as PassedEntry,
+        actualHeldTime: action.actualHeldTime,
+        conclusion: action.conclusion,
       };
       return copy;
     }

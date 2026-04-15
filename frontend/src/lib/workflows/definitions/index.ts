@@ -32,7 +32,7 @@ for (const module of Object.values(pluginModules)) {
 
 // Dynamically import plugin field-kind and step-kind specs at build time
 const fieldKindModules = import.meta.glob('../../../../../plugins/*/frontend/fieldKinds/*.ts', { eager: true });
-const stepKindModules = import.meta.glob('../../../../../plugins/*/frontend/stepKinds/*.{ts,tsx}', { eager: true });
+const stepKindModules = import.meta.glob(['../../../../../plugins/*/frontend/stepKinds/*.{ts,tsx}', '!**/*.test.{ts,tsx}'], { eager: true });
 
 // Load plugin manifests to map file paths to field-kind ids
 const pluginManifests = import.meta.glob('../../../../../plugins/*/plugin.json', { eager: true });

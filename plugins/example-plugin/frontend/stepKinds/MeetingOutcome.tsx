@@ -17,6 +17,13 @@ function formatDateTime(iso: string): string {
   }
 }
 
+/** Convert ISO string to datetime-local input value (YYYY-MM-DDThh:mm) in local timezone */
+function toDatetimeLocal(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 function getLastScheduledTime(entries: MeetingEntries): string | undefined {
   for (let i = entries.length - 1; i >= 0; i--) {
     if (entries[i].kind === 'scheduled') return (entries[i] as ScheduledEntry).scheduledTime;
@@ -29,7 +36,7 @@ export function MeetingOutcome({ step, state, issue, actions, canSkip }: StepKin
   const viewKind = getMeetingViewKind(state.status, entries);
 
   if (viewKind === 'completed') {
-    return <CompletedCard entries={entries} />;
+    return <CompletedCard entries={entries} onEdit={actions.edit} />;
   }
 
   if (viewKind === 'ongoing') {
@@ -541,13 +548,13 @@ function OngoingCard({
       ) : (
         <div className="flex gap-2">
           <button
-            onClick={() => { setShowRescheduleForm(true); setError(null); }}
+            onClick={() => { setShowRescheduleForm(true); setRescheduleHeldTime(priorScheduledTime ? toDatetimeLocal(priorScheduledTime) : ''); setError(null); }}
             className="btn-secondary btn-sm text-[11px]"
           >
             Reschedule
           </button>
           <button
-            onClick={() => { setShowPassForm(true); setError(null); }}
+            onClick={() => { setShowPassForm(true); setHeldTime(priorScheduledTime ? toDatetimeLocal(priorScheduledTime) : ''); setError(null); }}
             className="btn-primary btn-sm text-[11px]"
           >
             Mark as passed
@@ -562,22 +569,118 @@ function OngoingCard({
   );
 }
 
-function CompletedCard({ entries }: { entries: MeetingEntries }) {
+function CompletedCard({ entries, onEdit }: { entries: MeetingEntries; onEdit: (payload: Record<string, unknown>) => Promise<void> }) {
   const [showHistory, setShowHistory] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editHeldTime, setEditHeldTime] = useState('');
+  const [editConclusion, setEditConclusion] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   const passedEntry = entries.find((e): e is MeetingEntry & { kind: 'passed' } => e.kind === 'passed');
   if (!passedEntry) return null;
 
   const summary = getMeetingSummary(entries);
+
+  const handleOpenEdit = () => {
+    setEditHeldTime(toDatetimeLocal(passedEntry.actualHeldTime));
+    setEditConclusion(passedEntry.conclusion);
+    setShowEditForm(true);
+    setError(null);
+  };
+
+  const handleEditPassed = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editHeldTime) {
+      setError('Actual meeting time is required');
+      return;
+    }
+    if (editConclusion.length < 10) {
+      setError('Conclusion must be at least 10 characters');
+      return;
+    }
+    setError(null);
+    setSubmitting(true);
+    try {
+      const newEntries = meetingReducer(entries, {
+        type: 'edit-passed',
+        actualHeldTime: new Date(editHeldTime).toISOString(),
+        conclusion: editConclusion,
+        recordedBy: 'current-user',
+        recordedAt: new Date().toISOString(),
+      });
+      await onEdit({ entries: newEntries });
+      setShowEditForm(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to edit');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <div className="p-3 rounded bg-green-500/5 border border-green-500/20">
       <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400 mb-2">
         <CheckCircle size={14} />
         <span>Passed {formatDateTime(passedEntry.actualHeldTime)}</span>
+        {!showEditForm && (
+          <button
+            onClick={handleOpenEdit}
+            className="text-theme-muted hover:text-theme-primary transition-colors"
+            data-testid="edit-passed-pencil"
+            aria-label="Edit passed details"
+          >
+            <Pencil size={12} />
+          </button>
+        )}
       </div>
-      <p className="text-xs text-theme-primary" data-testid="meeting-conclusion">
-        {passedEntry.conclusion}
-      </p>
+      {showEditForm ? (
+        <form onSubmit={handleEditPassed} className="mt-1">
+          <label className="flex flex-col gap-1 mb-2">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted">
+              Actual meeting time <span className="text-red-400">*</span>
+            </span>
+            <input
+              type="datetime-local"
+              value={editHeldTime}
+              onChange={(e) => setEditHeldTime(e.target.value)}
+              className="input-base text-xs"
+              data-testid="edit-passed-held-time"
+            />
+          </label>
+          <label className="flex flex-col gap-1 mb-2">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted">
+              Conclusion <span className="text-red-400">*</span>
+            </span>
+            <textarea
+              value={editConclusion}
+              onChange={(e) => setEditConclusion(e.target.value)}
+              className="input-base text-xs resize-none"
+              rows={3}
+              placeholder="Min 10 characters"
+              data-testid="edit-passed-conclusion"
+            />
+          </label>
+          {error && (
+            <div className="flex items-center gap-1.5 mb-2 text-[11px] text-red-500">
+              <AlertCircle size={12} />
+              {error}
+            </div>
+          )}
+          <div className="flex gap-2">
+            <button type="submit" disabled={submitting} className="btn-primary btn-sm text-[11px]">
+              {submitting ? 'Saving...' : 'Save'}
+            </button>
+            <button type="button" onClick={() => { setShowEditForm(false); setError(null); }} className="btn-secondary btn-sm text-[11px]">
+              Cancel
+            </button>
+          </div>
+        </form>
+      ) : (
+        <p className="text-xs text-theme-primary" data-testid="meeting-conclusion">
+          {passedEntry.conclusion}
+        </p>
+      )}
       {summary.totalMeetings > 0 && (
         <p className="text-[11px] text-theme-muted mt-1" data-testid="meeting-summary">
           {summary.totalMeetings} meeting{summary.totalMeetings > 1 ? 's' : ''} held{summary.rescheduled > 0 && ` (${summary.rescheduled} rescheduled)`}

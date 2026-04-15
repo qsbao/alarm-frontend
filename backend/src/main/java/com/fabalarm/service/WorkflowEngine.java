@@ -297,9 +297,9 @@ public class WorkflowEngine {
         WorkflowStep step = stepRepository.findByInstanceIdAndStepId(instance.getId(), stepId)
                 .orElseThrow(() -> new IllegalArgumentException("Step not found: " + stepId));
 
-        if (step.getStatus() != StepStatus.completed) {
+        if (step.getStatus() != StepStatus.completed && step.getStatus() != StepStatus.ongoing) {
             throw new IllegalStateException(
-                    "Step " + stepId + " is not completed (current status: " + step.getStatus() + ")");
+                    "Step " + stepId + " is not ongoing or completed (current status: " + step.getStatus() + ")");
         }
 
         // Gate check against current actor
