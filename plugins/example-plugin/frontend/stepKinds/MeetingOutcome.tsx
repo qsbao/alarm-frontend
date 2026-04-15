@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Calendar, CheckCircle, AlertCircle, ChevronDown, ChevronRight, RefreshCw } from 'lucide-react';
+import { Calendar, CheckCircle, AlertCircle, ChevronDown, ChevronRight, RefreshCw, Pencil } from 'lucide-react';
 import type { StepKindProps } from '../../../../frontend/src/lib/workflows/stepKindRegistry';
 import { meetingReducer, isValidRescheduleTime, getMeetingSummary, type MeetingEntries, type MeetingEntry, type ScheduledEntry } from './meetingReducer';
-import { getLatestFailureContext, getTimelineRows, type TimelineRow } from './meetingHelpers';
+import { getLatestFailureContext, getTimelineRows, canEditTailScheduled, canEditLatestFailed, getLatestFailedIndex, type TimelineRow } from './meetingHelpers';
 
 function getEntries(payload?: Record<string, unknown>): MeetingEntries {
   if (!payload?.entries || !Array.isArray(payload.entries)) return [];
@@ -152,13 +152,25 @@ function EmptyCard({
   );
 }
 
-function FailureBlockquote({ entries }: { entries: MeetingEntries }) {
+function FailureBlockquote({ entries, onEditClick }: { entries: MeetingEntries; onEditClick?: () => void }) {
   const ctx = getLatestFailureContext(entries);
   if (!ctx) return null;
 
   return (
     <blockquote className="border-l-2 border-amber-500/50 pl-3 my-2 text-[11px] text-theme-muted" data-testid="failure-blockquote">
-      <div>Held {formatDateTime(ctx.latestFailure.actualHeldTime)}</div>
+      <div className="flex items-center gap-1.5">
+        <span>Held {formatDateTime(ctx.latestFailure.actualHeldTime)}</span>
+        {onEditClick && (
+          <button
+            onClick={onEditClick}
+            className="text-theme-muted hover:text-theme-primary transition-colors"
+            data-testid="edit-failed-pencil"
+            aria-label="Edit failure details"
+          >
+            <Pencil size={10} />
+          </button>
+        )}
+      </div>
       <div className="text-theme-primary">{ctx.latestFailure.failReason}</div>
       <div className="italic">— {ctx.latestFailure.recordedBy}</div>
       {ctx.earlierFailureCount > 0 && (
@@ -184,6 +196,11 @@ function OngoingCard({
   const [showPassForm, setShowPassForm] = useState(false);
   const [showRescheduleForm, setShowRescheduleForm] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showEditScheduled, setShowEditScheduled] = useState(false);
+  const [editScheduledTime, setEditScheduledTime] = useState('');
+  const [showEditFailed, setShowEditFailed] = useState(false);
+  const [editFailedHeldTime, setEditFailedHeldTime] = useState('');
+  const [editFailedReason, setEditFailedReason] = useState('');
   const [heldTime, setHeldTime] = useState('');
   const [conclusion, setConclusion] = useState('');
   const [rescheduleHeldTime, setRescheduleHeldTime] = useState('');
@@ -193,6 +210,67 @@ function OngoingCard({
   const [error, setError] = useState<string | null>(null);
 
   const priorScheduledTime = getLastScheduledTime(entries);
+  const showScheduledPencil = canEditTailScheduled(entries);
+  const showFailedPencil = canEditLatestFailed(entries);
+
+  const handleEditScheduled = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editScheduledTime) {
+      setError('Meeting time is required');
+      return;
+    }
+    setError(null);
+    setSubmitting(true);
+    try {
+      const newEntries = meetingReducer(entries, {
+        type: 'edit-scheduled',
+        entryIndex: entries.length - 1,
+        scheduledTime: new Date(editScheduledTime).toISOString(),
+        recordedBy: 'current-user',
+        recordedAt: new Date().toISOString(),
+      });
+      await onEdit({ entries: newEntries });
+      setShowEditScheduled(false);
+      setEditScheduledTime('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to edit');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleEditFailed = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editFailedHeldTime) {
+      setError('Actual meeting time is required');
+      return;
+    }
+    if (!editFailedReason.trim()) {
+      setError('Reason is required');
+      return;
+    }
+    setError(null);
+    setSubmitting(true);
+    try {
+      const failedIdx = getLatestFailedIndex(entries);
+      const newEntries = meetingReducer(entries, {
+        type: 'edit-failed',
+        entryIndex: failedIdx,
+        actualHeldTime: new Date(editFailedHeldTime).toISOString(),
+        failReason: editFailedReason.trim(),
+        recordedBy: 'current-user',
+        recordedAt: new Date().toISOString(),
+      });
+      await onEdit({ entries: newEntries });
+      setShowEditFailed(false);
+      setEditFailedHeldTime('');
+      setEditFailedReason('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to edit');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const handlePass = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -272,9 +350,101 @@ function OngoingCard({
       <div className="flex items-center gap-2 text-xs text-theme-primary mb-2">
         <Calendar size={14} className="text-amber-500" />
         <span>Scheduled for {formatDateTime(tail.scheduledTime)}</span>
+        {showScheduledPencil && !showEditScheduled && (
+          <button
+            onClick={() => { setShowEditScheduled(true); setError(null); }}
+            className="text-theme-muted hover:text-theme-primary transition-colors"
+            data-testid="edit-scheduled-pencil"
+            aria-label="Edit scheduled time"
+          >
+            <Pencil size={12} />
+          </button>
+        )}
       </div>
 
-      <FailureBlockquote entries={entries} />
+      {showEditScheduled && (
+        <form onSubmit={handleEditScheduled} className="mb-2">
+          <label className="flex flex-col gap-1 mb-2">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted">
+              New meeting time <span className="text-red-400">*</span>
+            </span>
+            <input
+              type="datetime-local"
+              value={editScheduledTime}
+              onChange={(e) => setEditScheduledTime(e.target.value)}
+              className="input-base text-xs"
+              data-testid="edit-scheduled-input"
+            />
+          </label>
+          {error && (
+            <div className="flex items-center gap-1.5 mb-2 text-[11px] text-red-500">
+              <AlertCircle size={12} />
+              {error}
+            </div>
+          )}
+          <div className="flex gap-2">
+            <button type="submit" disabled={submitting} className="btn-primary btn-sm text-[11px]">
+              {submitting ? 'Saving...' : 'Save'}
+            </button>
+            <button type="button" onClick={() => { setShowEditScheduled(false); setError(null); }} className="btn-secondary btn-sm text-[11px]">
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
+
+      <FailureBlockquote entries={entries} onEditClick={showFailedPencil && !showEditFailed ? () => {
+        const ctx = getLatestFailureContext(entries);
+        if (ctx) {
+          setEditFailedHeldTime('');
+          setEditFailedReason(ctx.latestFailure.failReason);
+          setShowEditFailed(true);
+          setError(null);
+        }
+      } : undefined} />
+
+      {showEditFailed && (
+        <form onSubmit={handleEditFailed} className="mb-2">
+          <label className="flex flex-col gap-1 mb-2">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted">
+              Actual meeting time <span className="text-red-400">*</span>
+            </span>
+            <input
+              type="datetime-local"
+              value={editFailedHeldTime}
+              onChange={(e) => setEditFailedHeldTime(e.target.value)}
+              className="input-base text-xs"
+              data-testid="edit-failed-held-time"
+            />
+          </label>
+          <label className="flex flex-col gap-1 mb-2">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-theme-muted">
+              Reason <span className="text-red-400">*</span>
+            </span>
+            <textarea
+              value={editFailedReason}
+              onChange={(e) => setEditFailedReason(e.target.value)}
+              className="input-base text-xs resize-none"
+              rows={2}
+              data-testid="edit-failed-reason"
+            />
+          </label>
+          {error && (
+            <div className="flex items-center gap-1.5 mb-2 text-[11px] text-red-500">
+              <AlertCircle size={12} />
+              {error}
+            </div>
+          )}
+          <div className="flex gap-2">
+            <button type="submit" disabled={submitting} className="btn-primary btn-sm text-[11px]">
+              {submitting ? 'Saving...' : 'Save'}
+            </button>
+            <button type="button" onClick={() => { setShowEditFailed(false); setError(null); }} className="btn-secondary btn-sm text-[11px]">
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
 
       {showPassForm ? (
         <form onSubmit={handlePass} className="mt-2">
