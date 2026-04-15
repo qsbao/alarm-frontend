@@ -5,6 +5,14 @@ export interface ScheduledEntry {
   recordedAt: string;
 }
 
+export interface FailedEntry {
+  kind: 'failed';
+  actualHeldTime: string;
+  failReason: string;
+  recordedBy: string;
+  recordedAt: string;
+}
+
 export interface PassedEntry {
   kind: 'passed';
   actualHeldTime: string;
@@ -13,7 +21,7 @@ export interface PassedEntry {
   recordedAt: string;
 }
 
-export type MeetingEntry = ScheduledEntry | PassedEntry;
+export type MeetingEntry = ScheduledEntry | FailedEntry | PassedEntry;
 export type MeetingEntries = MeetingEntry[];
 
 export interface ScheduleAction {
@@ -31,9 +39,29 @@ export interface PassAction {
   recordedAt: string;
 }
 
-export type MeetingAction = ScheduleAction | PassAction;
+export interface RescheduleAction {
+  type: 'reschedule';
+  actualHeldTime: string;
+  failReason: string;
+  newScheduledTime: string;
+  recordedBy: string;
+  recordedAt: string;
+}
+
+export type MeetingAction = ScheduleAction | PassAction | RescheduleAction;
 
 const MIN_CONCLUSION_LENGTH = 10;
+
+export function isValidRescheduleTime(newTime: string, priorScheduledTime: string): boolean {
+  return new Date(newTime).getTime() > new Date(priorScheduledTime).getTime();
+}
+
+function getLastScheduledTime(entries: MeetingEntries): string | undefined {
+  for (let i = entries.length - 1; i >= 0; i--) {
+    if (entries[i].kind === 'scheduled') return (entries[i] as ScheduledEntry).scheduledTime;
+  }
+  return undefined;
+}
 
 export function meetingReducer(entries: MeetingEntries, action: MeetingAction): MeetingEntries {
   switch (action.type) {
@@ -61,6 +89,31 @@ export function meetingReducer(entries: MeetingEntries, action: MeetingAction): 
           kind: 'passed',
           actualHeldTime: action.actualHeldTime,
           conclusion: action.conclusion,
+          recordedBy: action.recordedBy,
+          recordedAt: action.recordedAt,
+        },
+      ];
+    }
+    case 'reschedule': {
+      if (entries.length === 0) {
+        throw new Error('Cannot reschedule with no prior entries');
+      }
+      const priorTime = getLastScheduledTime(entries);
+      if (!priorTime || !isValidRescheduleTime(action.newScheduledTime, priorTime)) {
+        throw new Error('New meeting time must be strictly after the prior scheduled time');
+      }
+      return [
+        ...entries,
+        {
+          kind: 'failed',
+          actualHeldTime: action.actualHeldTime,
+          failReason: action.failReason,
+          recordedBy: action.recordedBy,
+          recordedAt: action.recordedAt,
+        },
+        {
+          kind: 'scheduled',
+          scheduledTime: action.newScheduledTime,
           recordedBy: action.recordedBy,
           recordedAt: action.recordedAt,
         },
