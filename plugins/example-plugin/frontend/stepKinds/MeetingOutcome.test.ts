@@ -4,6 +4,8 @@ import {
   getTimelineRows,
   canEditTailScheduled,
   canEditLatestFailed,
+  shouldShowSkipLink,
+  getMeetingViewKind,
   type TimelineRow,
 } from './meetingHelpers';
 import type { MeetingEntries } from './meetingReducer';
@@ -195,5 +197,70 @@ describe('canEditLatestFailed', () => {
       { kind: 'scheduled', scheduledTime: '2026-04-30T14:00:00Z', recordedBy: ACTOR, recordedAt: NOW },
     ];
     expect(canEditLatestFailed(entries)).toBe(true);
+  });
+});
+
+describe('shouldShowSkipLink — skip-visibility rule matrix', () => {
+  const scheduled: MeetingEntries = [
+    { kind: 'scheduled', scheduledTime: '2026-04-20T14:00:00Z', recordedBy: ACTOR, recordedAt: NOW },
+  ];
+
+  it('shows skip link when canSkip=true and entries is empty', () => {
+    expect(shouldShowSkipLink(true, [])).toBe(true);
+  });
+
+  it('hides skip link when canSkip=false and entries is empty', () => {
+    expect(shouldShowSkipLink(false, [])).toBe(false);
+  });
+
+  it('hides skip link when canSkip=true and entries is non-empty', () => {
+    expect(shouldShowSkipLink(true, scheduled)).toBe(false);
+  });
+
+  it('hides skip link when canSkip=false and entries is non-empty', () => {
+    expect(shouldShowSkipLink(false, scheduled)).toBe(false);
+  });
+});
+
+describe('getMeetingViewKind — view routing', () => {
+  it('returns "empty" for ongoing step with no entries', () => {
+    expect(getMeetingViewKind('ongoing', [])).toBe('empty');
+  });
+
+  it('returns "ongoing" for ongoing step with a scheduled tail', () => {
+    const entries: MeetingEntries = [
+      { kind: 'scheduled', scheduledTime: '2026-04-20T14:00:00Z', recordedBy: ACTOR, recordedAt: NOW },
+    ];
+    expect(getMeetingViewKind('ongoing', entries)).toBe('ongoing');
+  });
+
+  it('returns "completed" for completed step with a passed tail', () => {
+    const entries: MeetingEntries = [
+      { kind: 'scheduled', scheduledTime: '2026-04-20T14:00:00Z', recordedBy: ACTOR, recordedAt: NOW },
+      { kind: 'passed', actualHeldTime: '2026-04-20T14:30:00Z', conclusion: 'All resolved successfully.', recordedBy: ACTOR, recordedAt: NOW },
+    ];
+    expect(getMeetingViewKind('completed', entries)).toBe('completed');
+  });
+
+  it('returns "empty" for pending step with no entries', () => {
+    expect(getMeetingViewKind('pending', [])).toBe('empty');
+  });
+});
+
+describe('revive → empty-state transition', () => {
+  it('after revive a skipped meeting step renders as empty-state (ongoing + no entries)', () => {
+    const postReviveStatus = 'ongoing' as const;
+    const postReviveEntries: MeetingEntries = [];
+
+    const viewKind = getMeetingViewKind(postReviveStatus, postReviveEntries);
+    expect(viewKind).toBe('empty');
+
+    expect(shouldShowSkipLink(true, postReviveEntries)).toBe(true);
+  });
+
+  it('revived step with canSkip=false shows empty-state without skip link', () => {
+    const viewKind = getMeetingViewKind('ongoing', []);
+    expect(viewKind).toBe('empty');
+    expect(shouldShowSkipLink(false, [])).toBe(false);
   });
 });

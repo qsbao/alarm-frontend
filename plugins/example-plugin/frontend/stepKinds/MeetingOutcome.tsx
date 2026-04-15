@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Calendar, CheckCircle, AlertCircle, ChevronDown, ChevronRight, RefreshCw, Pencil } from 'lucide-react';
 import type { StepKindProps } from '../../../../frontend/src/lib/workflows/stepKindRegistry';
 import { meetingReducer, isValidRescheduleTime, getMeetingSummary, type MeetingEntries, type MeetingEntry, type ScheduledEntry } from './meetingReducer';
-import { getLatestFailureContext, getTimelineRows, canEditTailScheduled, canEditLatestFailed, getLatestFailedIndex, type TimelineRow } from './meetingHelpers';
+import { getLatestFailureContext, getTimelineRows, canEditTailScheduled, canEditLatestFailed, getLatestFailedIndex, shouldShowSkipLink, getMeetingViewKind, type TimelineRow } from './meetingHelpers';
 
 function getEntries(payload?: Record<string, unknown>): MeetingEntries {
   if (!payload?.entries || !Array.isArray(payload.entries)) return [];
@@ -26,13 +26,14 @@ function getLastScheduledTime(entries: MeetingEntries): string | undefined {
 
 export function MeetingOutcome({ step, state, issue, actions, canSkip }: StepKindProps) {
   const entries = getEntries(state.payload);
-  const tail = entries.length > 0 ? entries[entries.length - 1] : undefined;
+  const viewKind = getMeetingViewKind(state.status, entries);
 
-  if (state.status === 'completed' && tail?.kind === 'passed') {
+  if (viewKind === 'completed') {
     return <CompletedCard entries={entries} />;
   }
 
-  if (state.status === 'ongoing' && tail?.kind === 'scheduled') {
+  if (viewKind === 'ongoing') {
+    const tail = entries[entries.length - 1] as MeetingEntry & { kind: 'scheduled' };
     return (
       <OngoingCard
         entries={entries}
@@ -139,7 +140,7 @@ function EmptyCard({
         >
           Schedule meeting
         </button>
-        {canSkip && entries.length === 0 && (
+        {shouldShowSkipLink(canSkip, entries) && (
           <button
             onClick={onSkip}
             className="text-[10px] text-theme-muted hover:text-theme-primary transition-colors"
