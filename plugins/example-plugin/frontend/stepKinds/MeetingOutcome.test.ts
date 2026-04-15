@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   getLatestFailureContext,
   getTimelineRows,
+  canEditTailScheduled,
+  canEditLatestFailed,
   type TimelineRow,
 } from './meetingHelpers';
 import type { MeetingEntries } from './meetingReducer';
@@ -120,5 +122,78 @@ describe('getTimelineRows', () => {
     expect(rows[0].type).toBe('passed');
     expect(rows[1].type).toBe('rescheduled');
     expect(rows[2].type).toBe('scheduled');
+  });
+});
+
+describe('canEditTailScheduled', () => {
+  it('returns true when the last entry is scheduled', () => {
+    const entries: MeetingEntries = [
+      { kind: 'scheduled', scheduledTime: '2026-04-20T14:00:00Z', recordedBy: ACTOR, recordedAt: NOW },
+    ];
+    expect(canEditTailScheduled(entries)).toBe(true);
+  });
+
+  it('returns true when last entry is scheduled after a reschedule', () => {
+    const entries: MeetingEntries = [
+      { kind: 'scheduled', scheduledTime: '2026-04-20T14:00:00Z', recordedBy: ACTOR, recordedAt: NOW },
+      { kind: 'failed', actualHeldTime: '2026-04-20T14:30:00Z', failReason: 'Reason', recordedBy: ACTOR, recordedAt: NOW },
+      { kind: 'scheduled', scheduledTime: '2026-04-25T14:00:00Z', recordedBy: ACTOR, recordedAt: NOW },
+    ];
+    expect(canEditTailScheduled(entries)).toBe(true);
+  });
+
+  it('returns false when last entry is passed', () => {
+    const entries: MeetingEntries = [
+      { kind: 'scheduled', scheduledTime: '2026-04-20T14:00:00Z', recordedBy: ACTOR, recordedAt: NOW },
+      { kind: 'passed', actualHeldTime: '2026-04-20T14:30:00Z', conclusion: 'All resolved.', recordedBy: ACTOR, recordedAt: NOW },
+    ];
+    expect(canEditTailScheduled(entries)).toBe(false);
+  });
+
+  it('returns false for empty entries', () => {
+    expect(canEditTailScheduled([])).toBe(false);
+  });
+});
+
+describe('canEditLatestFailed', () => {
+  it('returns true when latest failed is immediately before the tail scheduled', () => {
+    const entries: MeetingEntries = [
+      { kind: 'scheduled', scheduledTime: '2026-04-20T14:00:00Z', recordedBy: ACTOR, recordedAt: NOW },
+      { kind: 'failed', actualHeldTime: '2026-04-20T14:30:00Z', failReason: 'Reason 1', recordedBy: ACTOR, recordedAt: NOW },
+      { kind: 'scheduled', scheduledTime: '2026-04-25T14:00:00Z', recordedBy: ACTOR, recordedAt: NOW },
+    ];
+    expect(canEditLatestFailed(entries)).toBe(true);
+  });
+
+  it('returns false when there are no failures', () => {
+    const entries: MeetingEntries = [
+      { kind: 'scheduled', scheduledTime: '2026-04-20T14:00:00Z', recordedBy: ACTOR, recordedAt: NOW },
+    ];
+    expect(canEditLatestFailed(entries)).toBe(false);
+  });
+
+  it('returns false when the last entry is passed (not scheduled)', () => {
+    const entries: MeetingEntries = [
+      { kind: 'scheduled', scheduledTime: '2026-04-20T14:00:00Z', recordedBy: ACTOR, recordedAt: NOW },
+      { kind: 'failed', actualHeldTime: '2026-04-20T14:30:00Z', failReason: 'Reason', recordedBy: ACTOR, recordedAt: NOW },
+      { kind: 'scheduled', scheduledTime: '2026-04-25T14:00:00Z', recordedBy: ACTOR, recordedAt: NOW },
+      { kind: 'passed', actualHeldTime: '2026-04-25T14:30:00Z', conclusion: 'All resolved.', recordedBy: ACTOR, recordedAt: NOW },
+    ];
+    expect(canEditLatestFailed(entries)).toBe(false);
+  });
+
+  it('returns false for empty entries', () => {
+    expect(canEditLatestFailed([])).toBe(false);
+  });
+
+  it('returns true with multiple failures when latest is immediately before tail', () => {
+    const entries: MeetingEntries = [
+      { kind: 'scheduled', scheduledTime: '2026-04-20T14:00:00Z', recordedBy: ACTOR, recordedAt: NOW },
+      { kind: 'failed', actualHeldTime: '2026-04-20T14:30:00Z', failReason: 'Reason 1', recordedBy: ACTOR, recordedAt: NOW },
+      { kind: 'scheduled', scheduledTime: '2026-04-25T14:00:00Z', recordedBy: ACTOR, recordedAt: NOW },
+      { kind: 'failed', actualHeldTime: '2026-04-25T14:30:00Z', failReason: 'Reason 2', recordedBy: ACTOR, recordedAt: NOW },
+      { kind: 'scheduled', scheduledTime: '2026-04-30T14:00:00Z', recordedBy: ACTOR, recordedAt: NOW },
+    ];
+    expect(canEditLatestFailed(entries)).toBe(true);
   });
 });

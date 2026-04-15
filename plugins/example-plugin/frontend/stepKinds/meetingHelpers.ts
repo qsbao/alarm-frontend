@@ -22,6 +22,26 @@ export type TimelineRow =
   | { type: 'rescheduled'; actualHeldTime: string; failReason: string; newScheduledTime: string; recordedBy: string; recordedAt: string }
   | { type: 'passed'; actualHeldTime: string; conclusion: string; recordedBy: string; recordedAt: string };
 
+export function canEditTailScheduled(entries: MeetingEntries): boolean {
+  if (entries.length === 0) return false;
+  return entries[entries.length - 1].kind === 'scheduled';
+}
+
+export function canEditLatestFailed(entries: MeetingEntries): boolean {
+  if (entries.length < 2) return false;
+  const tail = entries[entries.length - 1];
+  if (tail.kind !== 'scheduled') return false;
+  const beforeTail = entries[entries.length - 2];
+  return beforeTail.kind === 'failed';
+}
+
+export function getLatestFailedIndex(entries: MeetingEntries): number {
+  for (let i = entries.length - 1; i >= 0; i--) {
+    if (entries[i].kind === 'failed') return i;
+  }
+  return -1;
+}
+
 export function getTimelineRows(entries: MeetingEntries): TimelineRow[] {
   const rows: TimelineRow[] = [];
   let i = 0;
