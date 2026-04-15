@@ -14,6 +14,12 @@
       "backendClass": "com.fabalarm.plugins.ExampleApprovalDefinition"
     }
   ],
+  "stepKinds": [
+    {
+      "id": "meeting:outcome",
+      "frontendEntry": "./frontend/stepKinds/meetingOutcome.ts"
+    }
+  ],
   "fieldKinds": [
     {
       "id": "example-plugin:lot-disposition",
