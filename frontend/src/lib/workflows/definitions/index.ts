@@ -1,6 +1,9 @@
 import type { WorkflowDefinition } from '../types';
 import type { FieldKindSpec } from '../fieldKindRegistry';
 import { registerFieldKind } from '../fieldKindRegistry';
+import type { StepKindSpec } from '../stepKindRegistry';
+import { registerStepKind } from '../stepKindRegistry';
+import { validateDefinition } from '../validateDefinition';
 import { registerAlarmType, type AlarmTypeSpec } from '../../alarms/alarmTypeRegistry';
 import { spcOocAlarmType } from '../../alarms/spcOocAlarmType';
 import { genericLinearDefinition } from './genericLinear';
@@ -8,7 +11,9 @@ import { spcOocBranchingDefinition } from './spcOocBranching';
 
 // Built-in definitions
 const definitions = new Map<string, WorkflowDefinition>();
+validateDefinition(genericLinearDefinition);
 definitions.set(genericLinearDefinition.id, genericLinearDefinition);
+validateDefinition(spcOocBranchingDefinition);
 definitions.set(spcOocBranchingDefinition.id, spcOocBranchingDefinition);
 
 // Dynamically import plugin definitions at build time
@@ -19,13 +24,15 @@ for (const module of Object.values(pluginModules)) {
   const { definitions: pluginDefinitions } = module as { definitions: WorkflowDefinition[] };
   if (Array.isArray(pluginDefinitions)) {
     for (const def of pluginDefinitions) {
+      validateDefinition(def);
       definitions.set(def.id, def);
     }
   }
 }
 
-// Dynamically import plugin field-kind specs at build time
+// Dynamically import plugin field-kind and step-kind specs at build time
 const fieldKindModules = import.meta.glob('../../../../../plugins/*/frontend/fieldKinds/*.ts', { eager: true });
+const stepKindModules = import.meta.glob('../../../../../plugins/*/frontend/stepKinds/*.{ts,tsx}', { eager: true });
 
 // Load plugin manifests to map file paths to field-kind ids
 const pluginManifests = import.meta.glob('../../../../../plugins/*/plugin.json', { eager: true });
@@ -44,6 +51,7 @@ interface AlarmTypeManifestEntry {
 interface PluginManifest {
   id: string;
   fieldKinds?: ManifestEntry[];
+  stepKinds?: ManifestEntry[];
   alarmTypes?: AlarmTypeManifestEntry[];
 }
 
@@ -63,6 +71,16 @@ for (const [manifestPath, manifestModule] of Object.entries(pluginManifests)) {
       const mod = fieldKindModules[resolvedPath] as { default: FieldKindSpec } | undefined;
       if (mod?.default) {
         registerFieldKind(entry.id, mod.default);
+      }
+    }
+  }
+
+  if (manifest.stepKinds) {
+    for (const entry of manifest.stepKinds) {
+      const resolvedPath = `${pluginDir}/${entry.frontendEntry.replace(/^\.\//, '')}`;
+      const mod = stepKindModules[resolvedPath] as { default: StepKindSpec } | undefined;
+      if (mod?.default) {
+        registerStepKind(entry.id, mod.default);
       }
     }
   }
