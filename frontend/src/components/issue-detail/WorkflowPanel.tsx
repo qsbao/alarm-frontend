@@ -4,6 +4,8 @@ import type { Issue } from '../../types';
 import type { BlockerInfo } from '../../hooks/useIssue';
 import type { PayloadFieldSchema, Step, StepStatus } from '../../lib/workflows/types';
 import { getFieldKind } from '../../lib/workflows/fieldKindRegistry';
+import { getStepKind } from '../../lib/workflows/stepKindRegistry';
+import type { StepKindActions } from '../../lib/workflows/stepKindRegistry';
 import type { HighlightCandidate } from '../../lib/relations/highlightCandidates';
 import { getDefinition, getAllDefinitions } from '../../lib/workflows/definitions';
 import { getStepDisplayList, canUserActOnStep, canSkipStep, canReviveStep, canEditStep } from '../../lib/workflows/panelHelpers';
@@ -151,6 +153,88 @@ function StepRow({
   const userCanRevive = status === 'skipped' && canReviveStep(step, workflow);
   const userCanEdit = status === 'completed' && canEditStep(step, workflow, issue, currentUser.id);
   const Icon = STATUS_ICON[status];
+
+  const stepKindSpec = step.stepKind ? getStepKind(step.stepKind) : undefined;
+  const stepState = workflow.stepStates[step.id] ?? { status: 'pending' };
+
+  if (stepKindSpec) {
+    const StepKindComponent = stepKindSpec.component;
+    const actions: StepKindActions = {
+      edit: async (payload) => {
+        await onEditStep?.(step.id, currentUser.id, payload);
+      },
+      complete: async (payload) => {
+        await onCompleteStep?.(step.id, currentUser.id, payload);
+      },
+      skip: async () => {
+        await onSkipStep?.(step.id, currentUser.id);
+      },
+    };
+
+    return (
+      <li>
+        <div className="flex items-center gap-2 py-1.5 px-2 rounded-md bg-surface-overlay/30">
+          <div className={`shrink-0 ${
+            status === 'completed'
+              ? 'text-green-600 dark:text-green-400'
+              : status === 'ongoing'
+                ? 'text-amber-500'
+                : status === 'skipped'
+                  ? 'text-theme-muted'
+                  : 'text-theme-muted/50'
+          }`}>
+            <Icon size={14} />
+          </div>
+          <span className="text-xs font-medium text-theme-primary flex-1">
+            {step.label}
+          </span>
+
+          {status === 'skipped' && userCanRevive && (
+            <button
+              disabled={revivePending}
+              onClick={async () => {
+                setRevivePending(true);
+                try { await onReviveStep?.(step.id, currentUser.id); } finally { setRevivePending(false); }
+              }}
+              className="text-[10px] font-medium px-2 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 transition-colors"
+            >
+              {revivePending ? 'Reviving...' : 'Revive'}
+            </button>
+          )}
+
+          {status === 'pending' && waitingOnLabels.length > 0 && (
+            <span className="text-[10px] text-theme-muted italic">
+              Waiting on: {waitingOnLabels.join(', ')}
+            </span>
+          )}
+
+          <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+            status === 'completed'
+              ? 'bg-green-500/10 text-green-600 dark:text-green-400'
+              : status === 'ongoing'
+                ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                : status === 'skipped'
+                  ? 'bg-surface-overlay/60 text-theme-muted'
+                  : 'bg-surface-overlay/40 text-theme-muted/60'
+          }`}>
+            {status === 'completed' ? 'Done' : status === 'ongoing' ? 'Ongoing' : status === 'skipped' ? 'Skipped' : 'Pending'}
+          </span>
+        </div>
+
+        {(status === 'ongoing' || status === 'completed') && (
+          <div className="ml-8 mt-1 mb-1" data-step-kind={step.stepKind}>
+            <StepKindComponent
+              step={step}
+              state={stepState}
+              issue={issue}
+              actions={actions}
+              canSkip={userCanSkip}
+            />
+          </div>
+        )}
+      </li>
+    );
+  }
 
   return (
     <li>

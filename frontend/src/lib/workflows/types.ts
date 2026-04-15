@@ -20,6 +20,7 @@ export interface Step {
   order: number; // display only — does not influence DAG
   preSteps: string[]; // step ids that must be completed/skipped before this step activates
   gate?: (ctx: { user: { id: UserId }; instance: WorkflowInstance; issue: Issue }) => boolean;
+  stepKind?: string;
   payloadSchema?: PayloadSchema;
   impliesStatus?: IssueStatus;
   defaultSkipIf?: (issue: Issue) => boolean;
