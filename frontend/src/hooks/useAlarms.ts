@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { backend } from '../api/backendClient';
-import type { Alarm, AlarmActivityEntry, AlarmFilters, Module } from '../types';
+import type { Alarm, AlarmActivityEntry, AlarmDetails, AlarmFilters, AlarmSource, Module } from '../types';
 
 interface BackendAlarm {
   id: string;
@@ -36,6 +36,12 @@ interface BackendAlarm {
   status: string;
   riskLevel?: string;
   labels: string[];
+  details?: AlarmDetails;
+  source?: string;
+  sourceAlarmId?: string;
+  sourceAlarmBody?: string;
+  externalStatus?: string;
+  externalStatusUpdatedAt?: string;
 }
 
 function toAlarm(raw: BackendAlarm): Alarm {
@@ -74,6 +80,12 @@ function toAlarm(raw: BackendAlarm): Alarm {
     riskLevel: raw.riskLevel as Alarm['riskLevel'],
     labels: (raw.labels ?? []) as Alarm['labels'],
     activity: [],
+    details: raw.details,
+    source: raw.source as AlarmSource | undefined,
+    sourceAlarmId: raw.sourceAlarmId,
+    sourceAlarmBody: raw.sourceAlarmBody,
+    externalStatus: raw.externalStatus,
+    externalStatusUpdatedAt: raw.externalStatusUpdatedAt,
   };
 }
 

@@ -5,6 +5,8 @@ import com.fabalarm.model.*;
 import com.fabalarm.service.AlarmAlreadyExistsException;
 import com.fabalarm.service.AlarmService;
 import com.fabalarm.service.PermissionDeniedException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
@@ -20,9 +22,11 @@ import java.util.stream.Collectors;
 public class AlarmController {
 
     private final AlarmService alarmService;
+    private final ObjectMapper objectMapper;
 
-    public AlarmController(AlarmService alarmService) {
+    public AlarmController(AlarmService alarmService, ObjectMapper objectMapper) {
         this.alarmService = alarmService;
+        this.objectMapper = objectMapper;
     }
 
     @Operation(summary = "Create alarm", description = "Create a new alarm with optional type-specific details. Returns 409 if alarm ID already exists.")
@@ -201,7 +205,14 @@ public class AlarmController {
         dto.put("status", a.getStatus().name());
         if (a.getRiskLevel() != null) dto.put("riskLevel", a.getRiskLevel().name());
         dto.put("labels", a.getLabels().stream().map(AlarmLabel::name).sorted().collect(Collectors.toList()));
-        if (a.getDetails() != null) dto.put("details", a.getDetails());
+        if (a.getDetails() != null) {
+            // Convert to Map so the `kind` discriminator is always present in the
+            // JSON response, independent of Jackson's polymorphic-type-info cache state.
+            Map<String, Object> detailsMap = objectMapper.convertValue(
+                    a.getDetails(), new TypeReference<Map<String, Object>>() {});
+            detailsMap.putIfAbsent("kind", a.getType());
+            dto.put("details", detailsMap);
+        }
         if (a.getSource() != null) dto.put("source", a.getSource().name());
         if (a.getSourceAlarmId() != null) dto.put("sourceAlarmId", a.getSourceAlarmId());
         if (a.getSourceAlarmBody() != null) dto.put("sourceAlarmBody", a.getSourceAlarmBody());
