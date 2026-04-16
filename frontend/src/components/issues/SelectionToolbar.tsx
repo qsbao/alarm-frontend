@@ -46,9 +46,12 @@ export function SelectionToolbar({ pageItems }: SelectionToolbarProps) {
 
   const [sources, setSources] = useState<MergeSource[]>([]);
 
-  // Fetch alarm data for selected issues when merge dialog opens
+  // Fetch alarm data for selected issues when merge dialog opens.
+  // Key on a stable string of ids so re-renders don't refire the effect.
+  const selectedIdsKey = [...selectedIds].sort().join(',');
   useEffect(() => {
     if (!showMergeDialog) return;
+    let cancelled = false;
     (async () => {
       const result: MergeSource[] = [];
       for (const issue of selectedIssues) {
@@ -65,9 +68,11 @@ export function SelectionToolbar({ pageItems }: SelectionToolbarProps) {
         }
         result.push({ issue, alarms });
       }
-      setSources(result);
+      if (!cancelled) setSources(result);
     })();
-  }, [showMergeDialog, selectedIssues]);
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showMergeDialog, selectedIdsKey]);
 
   return (
     <>
