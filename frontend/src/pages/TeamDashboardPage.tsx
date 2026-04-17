@@ -1,8 +1,14 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useDashboardData } from '../hooks/useDashboardData';
 import type { EnrichedAlarmRow } from '../hooks/useDashboardData';
 import { SummaryStrip } from '../components/dashboard/SummaryStrip';
 import { AlarmRow } from '../components/dashboard/AlarmRow';
+import { TriageDrawer } from '../components/dashboard/TriageDrawer';
+import {
+  collectCandidateIssues,
+  buildMergeSourceFromRow,
+} from '../components/dashboard/triageDrawerHelpers';
 import {
   filterRowsByBucket,
   type SummaryFilter,
@@ -11,6 +17,9 @@ import { sortRows, type SortMode } from '../components/dashboard/alarmRowSort';
 import { sortMeetingRows, formatMeetingLabel } from '../components/dashboard/meetingSort';
 import { getOngoingStepLabels } from '../lib/workflows/discovery';
 import { getDefinition } from '../lib/workflows/definitions';
+import { MergeDialog, type MergeSource } from '../components/issue-detail/MergeDialog';
+import { useCurrentUserStore } from '../stores/currentUserStore';
+import { backend } from '../api/backendClient';
 
 function buildClusterSizes(rows: EnrichedAlarmRow[]): Map<string, number> {
   const sizes = new Map<string, number>();
@@ -28,9 +37,17 @@ function stepLabelFor(row: EnrichedAlarmRow): string | undefined {
 }
 
 export function TeamDashboardPage() {
-  const { rows, counts, alarmDate, department, loading } = useDashboardData();
+  const navigate = useNavigate();
+  const { rows, counts, alarmDate, department, loading, refresh } = useDashboardData();
+  const currentUser = useCurrentUserStore((s) => s.currentUser);
   const [filter, setFilter] = useState<SummaryFilter>(null);
   const [sortMode, setSortMode] = useState<SortMode>('default');
+  const [activeCauseId, setActiveCauseId] = useState<string | null>(null);
+  const [triagingAlarmId, setTriagingAlarmId] = useState<string | null>(null);
+  const [mergeState, setMergeState] = useState<{
+    sources: MergeSource[];
+    preselectedTargetId?: string;
+  } | null>(null);
 
   const clusterSizes = useMemo(() => buildClusterSizes(rows), [rows]);
 
@@ -38,8 +55,6 @@ export function TeamDashboardPage() {
     () => sortMeetingRows(rows.filter((r) => r.meetingBound)),
     [rows],
   );
-
-  const [activeCauseId, setActiveCauseId] = useState<string | null>(null);
 
   const visibleRows = useMemo(() => {
     const byBucket = filterRowsByBucket(rows, filter);
@@ -49,6 +64,11 @@ export function TeamDashboardPage() {
     return sortRows(byCause, sortMode);
   }, [rows, filter, activeCauseId, sortMode]);
 
+  const triagingRow = useMemo(
+    () => (triagingAlarmId ? rows.find((r) => r.alarm.id === triagingAlarmId) : undefined),
+    [rows, triagingAlarmId],
+  );
+
   const handleCauseClick = (issueId: string) => {
     setActiveCauseId((current) => (current === issueId ? null : issueId));
   };
@@ -56,6 +76,61 @@ export function TeamDashboardPage() {
   const toggleSortByCause = () => {
     setSortMode((mode) => (mode === 'by-cause' ? 'default' : 'by-cause'));
   };
+
+  const handleRowClick = useCallback(
+    (row: EnrichedAlarmRow) => {
+      if (row.bucket === 'Un-triaged') {
+        setTriagingAlarmId(row.alarm.id);
+      }
+    },
+    [],
+  );
+
+  const handleOpenIssue = useCallback(
+    (row: EnrichedAlarmRow) => {
+      if (row.issue) navigate(`/issues/${row.issue.id}`);
+    },
+    [navigate],
+  );
+
+  const handleMergeRow = useCallback(
+    (row: EnrichedAlarmRow) => {
+      const source = buildMergeSourceFromRow(row, rows);
+      if (source) setMergeState({ sources: [source] });
+    },
+    [rows],
+  );
+
+  const handleTriageStartNew = useCallback(() => {
+    setTriagingAlarmId(null);
+  }, []);
+
+  const handleTriageMerge = useCallback(
+    (preselectedTargetId?: string) => {
+      if (!triagingRow) return;
+      const source = buildMergeSourceFromRow(triagingRow, rows);
+      if (!source) return;
+      setMergeState({ sources: [source], preselectedTargetId });
+      setTriagingAlarmId(null);
+    },
+    [triagingRow, rows],
+  );
+
+  const handleMergeConfirm = useCallback(
+    async (targetId: string) => {
+      if (!mergeState) return;
+      const sourceIds = mergeState.sources.map((s) => s.issue.id);
+      const { error } = await backend.POST('/api/issues/{id}/merge', {
+        params: { path: { id: targetId } },
+        body: { sourceIds } as any,
+      });
+      if (!error) {
+        setMergeState(null);
+        await refresh();
+      }
+    },
+    [mergeState, refresh],
+  );
 
   return (
     <div className="h-full flex flex-col bg-surface-base">
@@ -97,6 +172,9 @@ export function TeamDashboardPage() {
               rows={meetingRows}
               clusterSizes={clusterSizes}
               onCauseClick={handleCauseClick}
+              onRowClick={handleRowClick}
+              onOpenIssue={handleOpenIssue}
+              onMergeRow={handleMergeRow}
               meetingLabelFor={(row) => formatMeetingLabel(row.meetingTime)}
             />
           )}
@@ -132,10 +210,33 @@ export function TeamDashboardPage() {
               rows={visibleRows}
               clusterSizes={clusterSizes}
               onCauseClick={handleCauseClick}
+              onRowClick={handleRowClick}
+              onOpenIssue={handleOpenIssue}
+              onMergeRow={handleMergeRow}
             />
           )}
         </section>
       </div>
+
+      {triagingRow && (
+        <TriageDrawer
+          alarm={triagingRow.alarm}
+          candidateIssues={collectCandidateIssues(rows, triagingRow.issue?.id ?? null)}
+          onClose={() => setTriagingAlarmId(null)}
+          onStartNewWorkflow={handleTriageStartNew}
+          onMergeInto={handleTriageMerge}
+        />
+      )}
+
+      {mergeState && (
+        <MergeDialog
+          sources={mergeState.sources}
+          preselectedTargetId={mergeState.preselectedTargetId}
+          onConfirm={handleMergeConfirm}
+          onCancel={() => setMergeState(null)}
+          currentUserDepartment={currentUser.department}
+        />
+      )}
     </div>
   );
 }
@@ -144,11 +245,17 @@ function AlarmTable({
   rows,
   clusterSizes,
   onCauseClick,
+  onRowClick,
+  onOpenIssue,
+  onMergeRow,
   meetingLabelFor,
 }: {
   rows: EnrichedAlarmRow[];
   clusterSizes: Map<string, number>;
   onCauseClick: (issueId: string) => void;
+  onRowClick: (row: EnrichedAlarmRow) => void;
+  onOpenIssue: (row: EnrichedAlarmRow) => void;
+  onMergeRow: (row: EnrichedAlarmRow) => void;
   meetingLabelFor?: (row: EnrichedAlarmRow) => string | undefined;
 }) {
   return (
@@ -173,6 +280,9 @@ function AlarmTable({
             stepLabel={stepLabelFor(row)}
             meetingLabel={meetingLabelFor?.(row)}
             onCauseClick={onCauseClick}
+            onRowClick={row.bucket === 'Un-triaged' ? onRowClick : undefined}
+            onOpenIssue={onOpenIssue}
+            onMergeRow={onMergeRow}
           />
         ))}
       </tbody>

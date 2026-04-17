@@ -15,11 +15,12 @@ interface MergeDialogProps {
   onConfirm: (targetId: string) => Promise<void>;
   onCancel: () => void;
   currentUserDepartment: string;
+  preselectedTargetId?: string;
 }
 
-export function MergeDialog({ sources, onConfirm, onCancel, currentUserDepartment }: MergeDialogProps) {
+export function MergeDialog({ sources, onConfirm, onCancel, currentUserDepartment, preselectedTargetId }: MergeDialogProps) {
   const [candidates, setCandidates] = useState<Issue[]>([]);
-  const [selectedTargetId, setSelectedTargetId] = useState<string | null>(null);
+  const [selectedTargetId, setSelectedTargetId] = useState<string | null>(preselectedTargetId ?? null);
   const [targetAlarmCount, setTargetAlarmCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [merging, setMerging] = useState(false);

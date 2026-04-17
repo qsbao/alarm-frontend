@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ChevronDown, ChevronRight, MoreHorizontal } from 'lucide-react';
 import type { EnrichedAlarmRow } from '../../hooks/useDashboardData';
 import { getUserById } from '../../lib/users';
@@ -17,16 +17,47 @@ interface AlarmRowProps {
   stepLabel?: string;
   meetingLabel?: string;
   onCauseClick?: (issueId: string) => void;
+  onRowClick?: (row: EnrichedAlarmRow) => void;
+  onOpenIssue?: (row: EnrichedAlarmRow) => void;
+  onMergeRow?: (row: EnrichedAlarmRow) => void;
 }
 
-export function AlarmRow({ row, clusterSize, stepLabel, meetingLabel, onCauseClick }: AlarmRowProps) {
+export function AlarmRow({
+  row,
+  clusterSize,
+  stepLabel,
+  meetingLabel,
+  onCauseClick,
+  onRowClick,
+  onOpenIssue,
+  onMergeRow,
+}: AlarmRowProps) {
   const [expanded, setExpanded] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   const { alarm, issue, stage } = row;
   const owner = getUserById(alarm.owner);
   const ownerName = owner?.name ?? alarm.owner;
   const bandClass = sameCauseBandClass(issue?.id);
   const ackEntry = alarm.activity.find((e) => e.type === 'acked');
   const latestComment = issue ? latestCommentText(issue.activity) : undefined;
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function handleDocClick(e: MouseEvent) {
+      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
+    }
+    document.addEventListener('mousedown', handleDocClick);
+    return () => document.removeEventListener('mousedown', handleDocClick);
+  }, [menuOpen]);
+
+  const handleRowClick = () => {
+    if (onRowClick) {
+      onRowClick(row);
+      return;
+    }
+    setExpanded((v) => !v);
+  };
 
   return (
     <>
@@ -35,10 +66,10 @@ export function AlarmRow({ row, clusterSize, stepLabel, meetingLabel, onCauseCli
         data-alarm-id={alarm.id}
         data-issue-id={issue?.id ?? ''}
         className={`cursor-pointer hover:bg-surface-overlay/40 transition-colors border-b border-border-subtle/40 ${bandClass}`}
-        onClick={() => setExpanded((v) => !v)}
+        onClick={handleRowClick}
       >
         <td className="pl-2 pr-1 py-2 w-6 text-theme-muted">
-          {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          {onRowClick ? null : expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         </td>
         <td className="px-2 py-2 text-sm whitespace-nowrap">
           {alarm.riskLevel ? <RiskBadge level={alarm.riskLevel} /> : <span className="text-theme-muted">—</span>}
@@ -80,18 +111,60 @@ export function AlarmRow({ row, clusterSize, stepLabel, meetingLabel, onCauseCli
           </span>
         </td>
         <td className="px-2 py-2 text-sm w-8">
-          <button
-            type="button"
-            data-testid="alarm-row-menu"
-            onClick={(e) => e.stopPropagation()}
-            className="btn-ghost btn-xs"
-            aria-label="Row menu"
-          >
-            <MoreHorizontal size={14} />
-          </button>
+          <div ref={menuRef} className="relative inline-block">
+            <button
+              type="button"
+              data-testid="alarm-row-menu"
+              onClick={(e) => {
+                e.stopPropagation();
+                setMenuOpen((v) => !v);
+              }}
+              className="btn-ghost btn-xs"
+              aria-label="Row menu"
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+            >
+              <MoreHorizontal size={14} />
+            </button>
+            {menuOpen && (
+              <div
+                data-testid="alarm-row-menu-popover"
+                role="menu"
+                onClick={(e) => e.stopPropagation()}
+                className="absolute right-0 top-full mt-1 z-30 min-w-[220px] rounded border border-border-default bg-surface-raised shadow-lg py-1"
+              >
+                <button
+                  type="button"
+                  data-testid="alarm-row-menu-open-issue"
+                  role="menuitem"
+                  disabled={!issue}
+                  onClick={() => {
+                    setMenuOpen(false);
+                    if (issue) onOpenIssue?.(row);
+                  }}
+                  className="w-full text-left text-xs px-3 py-1.5 text-theme-primary hover:bg-surface-overlay/40 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Open issue
+                </button>
+                <button
+                  type="button"
+                  data-testid="alarm-row-menu-merge"
+                  role="menuitem"
+                  disabled={!issue}
+                  onClick={() => {
+                    setMenuOpen(false);
+                    if (issue) onMergeRow?.(row);
+                  }}
+                  className="w-full text-left text-xs px-3 py-1.5 text-theme-primary hover:bg-surface-overlay/40 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Merge this cause into another…
+                </button>
+              </div>
+            )}
+          </div>
         </td>
       </tr>
-      {expanded && (
+      {expanded && !onRowClick && (
         <tr data-testid="alarm-row-details" className={bandClass}>
           <td />
           <td colSpan={6} className="px-2 pb-3 text-xs text-theme-secondary">
