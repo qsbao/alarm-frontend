@@ -1,9 +1,49 @@
+import { useMemo, useState } from 'react';
 import { useDashboardData } from '../hooks/useDashboardData';
+import type { EnrichedAlarmRow } from '../hooks/useDashboardData';
+import { SummaryStrip } from '../components/dashboard/SummaryStrip';
+import { AlarmRow } from '../components/dashboard/AlarmRow';
+import {
+  filterRowsByBucket,
+  type SummaryFilter,
+} from '../components/dashboard/summaryFilter';
+import { getOngoingStepLabels } from '../lib/workflows/discovery';
+import { getDefinition } from '../lib/workflows/definitions';
+
+function buildClusterSizes(rows: EnrichedAlarmRow[]): Map<string, number> {
+  const sizes = new Map<string, number>();
+  for (const r of rows) {
+    if (!r.issue) continue;
+    sizes.set(r.issue.id, (sizes.get(r.issue.id) ?? 0) + 1);
+  }
+  return sizes;
+}
+
+function stepLabelFor(row: EnrichedAlarmRow): string | undefined {
+  if (!row.issue) return undefined;
+  const labels = getOngoingStepLabels(row.issue, getDefinition);
+  return labels[0];
+}
 
 export function TeamDashboardPage() {
   const { rows, counts, alarmDate, department, loading } = useDashboardData();
+  const [filter, setFilter] = useState<SummaryFilter>(null);
 
-  const meetingRows = rows.filter((r) => r.meetingBound);
+  const clusterSizes = useMemo(() => buildClusterSizes(rows), [rows]);
+
+  const meetingRows = useMemo(() => rows.filter((r) => r.meetingBound), [rows]);
+
+  const [activeCauseId, setActiveCauseId] = useState<string | null>(null);
+
+  const visibleRows = useMemo(() => {
+    const byBucket = filterRowsByBucket(rows, filter);
+    if (!activeCauseId) return byBucket;
+    return byBucket.filter((r) => r.issue?.id === activeCauseId);
+  }, [rows, filter, activeCauseId]);
+
+  const handleCauseClick = (issueId: string) => {
+    setActiveCauseId((current) => (current === issueId ? null : issueId));
+  };
 
   return (
     <div className="h-full flex flex-col bg-surface-base">
@@ -15,17 +55,20 @@ export function TeamDashboardPage() {
       </div>
 
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
-        <section
-          aria-label="Summary"
-          data-testid="dashboard-summary"
-          className="grid grid-cols-5 gap-3"
-        >
-          <SummaryTile label="Total" value={counts.total} />
-          <SummaryTile label="Un-triaged" value={counts.unTriaged} />
-          <SummaryTile label="In-workflow" value={counts.inWorkflow} />
-          <SummaryTile label="Done" value={counts.done} />
-          <SummaryTile label="Upcoming meetings" value={counts.meetingBound} />
-        </section>
+        <SummaryStrip counts={counts} activeFilter={filter} onFilterChange={setFilter} />
+
+        {activeCauseId && (
+          <div className="text-xs text-theme-muted">
+            Filtered by cause:{' '}
+            <button
+              type="button"
+              onClick={() => setActiveCauseId(null)}
+              className="underline hover:text-theme-primary"
+            >
+              clear
+            </button>
+          </div>
+        )}
 
         <section aria-label="Upcoming meetings" data-testid="dashboard-meetings">
           <h2 className="text-sm font-semibold text-theme-primary mb-2">
@@ -38,36 +81,30 @@ export function TeamDashboardPage() {
               No meeting-bound alarms for this team today.
             </div>
           ) : (
-            <ul className="text-sm text-theme-secondary space-y-1">
-              {meetingRows.map((r) => (
-                <li key={r.alarm.id}>
-                  {r.alarm.eqpId} — {r.issue?.title ?? r.alarm.message}
-                  {r.meetingTime ? ` · ${r.meetingTime}` : ' · Meeting TBD'}
-                </li>
-              ))}
-            </ul>
+            <AlarmTable
+              rows={meetingRows}
+              clusterSizes={clusterSizes}
+              onCauseClick={handleCauseClick}
+            />
           )}
         </section>
 
         <section aria-label="All alarms" data-testid="dashboard-all-alarms">
           <h2 className="text-sm font-semibold text-theme-primary mb-2">
-            All alarms ({counts.total})
+            All alarms ({visibleRows.length})
           </h2>
           {loading ? (
             <div className="text-sm text-theme-muted">Loading…</div>
-          ) : rows.length === 0 ? (
+          ) : visibleRows.length === 0 ? (
             <div className="text-sm text-theme-muted">
-              No alarms for this team today.
+              No alarms match the current filter.
             </div>
           ) : (
-            <ul className="text-sm text-theme-secondary space-y-1">
-              {rows.map((r) => (
-                <li key={r.alarm.id}>
-                  <span className="font-mono">{r.alarm.id}</span> · {r.alarm.eqpId} ·{' '}
-                  {r.bucket} · {r.stage}
-                </li>
-              ))}
-            </ul>
+            <AlarmTable
+              rows={visibleRows}
+              clusterSizes={clusterSizes}
+              onCauseClick={handleCauseClick}
+            />
           )}
         </section>
       </div>
@@ -75,11 +112,39 @@ export function TeamDashboardPage() {
   );
 }
 
-function SummaryTile({ label, value }: { label: string; value: number }) {
+function AlarmTable({
+  rows,
+  clusterSizes,
+  onCauseClick,
+}: {
+  rows: EnrichedAlarmRow[];
+  clusterSizes: Map<string, number>;
+  onCauseClick: (issueId: string) => void;
+}) {
   return (
-    <div className="rounded-md border border-border-subtle bg-surface-overlay/30 p-3">
-      <div className="text-xs text-theme-muted">{label}</div>
-      <div className="text-2xl font-semibold text-theme-primary mt-1">{value}</div>
-    </div>
+    <table className="w-full text-left border-collapse">
+      <thead>
+        <tr className="text-[10px] uppercase tracking-wider text-theme-muted border-b border-border-subtle/60">
+          <th className="w-6" />
+          <th className="px-2 py-1 font-medium">Risk</th>
+          <th className="px-2 py-1 font-medium">Alarm</th>
+          <th className="px-2 py-1 font-medium">Cause</th>
+          <th className="px-2 py-1 font-medium">Stage/Step</th>
+          <th className="px-2 py-1 font-medium">Owner</th>
+          <th className="w-8" />
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((row) => (
+          <AlarmRow
+            key={row.alarm.id}
+            row={row}
+            clusterSize={row.issue ? clusterSizes.get(row.issue.id) ?? 1 : 0}
+            stepLabel={stepLabelFor(row)}
+            onCauseClick={onCauseClick}
+          />
+        ))}
+      </tbody>
+    </table>
   );
 }
