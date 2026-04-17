@@ -4,6 +4,14 @@ export function isMeetingTbd(row: EnrichedAlarmRow): boolean {
   return row.meetingBound && !row.meetingTime;
 }
 
+export function formatMeetingLabel(meetingTime: string | undefined): string {
+  if (!meetingTime) return 'Meeting TBD';
+  const d = new Date(meetingTime);
+  const date = d.toISOString().slice(0, 10);
+  const time = d.toISOString().slice(11, 16);
+  return `${date} ${time}`;
+}
+
 export function sortMeetingRows(rows: EnrichedAlarmRow[]): EnrichedAlarmRow[] {
   const indexed = rows.map((row, index) => ({ row, index }));
   indexed.sort((a, b) => {

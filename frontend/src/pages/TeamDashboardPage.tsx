@@ -7,6 +7,8 @@ import {
   filterRowsByBucket,
   type SummaryFilter,
 } from '../components/dashboard/summaryFilter';
+import { sortRows, type SortMode } from '../components/dashboard/alarmRowSort';
+import { sortMeetingRows, formatMeetingLabel } from '../components/dashboard/meetingSort';
 import { getOngoingStepLabels } from '../lib/workflows/discovery';
 import { getDefinition } from '../lib/workflows/definitions';
 
@@ -28,21 +30,31 @@ function stepLabelFor(row: EnrichedAlarmRow): string | undefined {
 export function TeamDashboardPage() {
   const { rows, counts, alarmDate, department, loading } = useDashboardData();
   const [filter, setFilter] = useState<SummaryFilter>(null);
+  const [sortMode, setSortMode] = useState<SortMode>('default');
 
   const clusterSizes = useMemo(() => buildClusterSizes(rows), [rows]);
 
-  const meetingRows = useMemo(() => rows.filter((r) => r.meetingBound), [rows]);
+  const meetingRows = useMemo(
+    () => sortMeetingRows(rows.filter((r) => r.meetingBound)),
+    [rows],
+  );
 
   const [activeCauseId, setActiveCauseId] = useState<string | null>(null);
 
   const visibleRows = useMemo(() => {
     const byBucket = filterRowsByBucket(rows, filter);
-    if (!activeCauseId) return byBucket;
-    return byBucket.filter((r) => r.issue?.id === activeCauseId);
-  }, [rows, filter, activeCauseId]);
+    const byCause = activeCauseId
+      ? byBucket.filter((r) => r.issue?.id === activeCauseId)
+      : byBucket;
+    return sortRows(byCause, sortMode);
+  }, [rows, filter, activeCauseId, sortMode]);
 
   const handleCauseClick = (issueId: string) => {
     setActiveCauseId((current) => (current === issueId ? null : issueId));
+  };
+
+  const toggleSortByCause = () => {
+    setSortMode((mode) => (mode === 'by-cause' ? 'default' : 'by-cause'));
   };
 
   return (
@@ -85,14 +97,30 @@ export function TeamDashboardPage() {
               rows={meetingRows}
               clusterSizes={clusterSizes}
               onCauseClick={handleCauseClick}
+              meetingLabelFor={(row) => formatMeetingLabel(row.meetingTime)}
             />
           )}
         </section>
 
         <section aria-label="All alarms" data-testid="dashboard-all-alarms">
-          <h2 className="text-sm font-semibold text-theme-primary mb-2">
-            All alarms ({visibleRows.length})
-          </h2>
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-sm font-semibold text-theme-primary">
+              All alarms ({visibleRows.length})
+            </h2>
+            <button
+              type="button"
+              data-testid="sort-by-cause-toggle"
+              aria-pressed={sortMode === 'by-cause'}
+              onClick={toggleSortByCause}
+              className={`text-xs px-2 py-1 rounded border ${
+                sortMode === 'by-cause'
+                  ? 'border-sky-500 text-sky-600 bg-sky-500/10'
+                  : 'border-border-subtle text-theme-secondary hover:bg-surface-overlay/40'
+              }`}
+            >
+              {sortMode === 'by-cause' ? 'Sorted by cause' : 'Sort by cause'}
+            </button>
+          </div>
           {loading ? (
             <div className="text-sm text-theme-muted">Loading…</div>
           ) : visibleRows.length === 0 ? (
@@ -116,10 +144,12 @@ function AlarmTable({
   rows,
   clusterSizes,
   onCauseClick,
+  meetingLabelFor,
 }: {
   rows: EnrichedAlarmRow[];
   clusterSizes: Map<string, number>;
   onCauseClick: (issueId: string) => void;
+  meetingLabelFor?: (row: EnrichedAlarmRow) => string | undefined;
 }) {
   return (
     <table className="w-full text-left border-collapse">
@@ -141,6 +171,7 @@ function AlarmTable({
             row={row}
             clusterSize={row.issue ? clusterSizes.get(row.issue.id) ?? 1 : 0}
             stepLabel={stepLabelFor(row)}
+            meetingLabel={meetingLabelFor?.(row)}
             onCauseClick={onCauseClick}
           />
         ))}

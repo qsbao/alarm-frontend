@@ -15,10 +15,11 @@ interface AlarmRowProps {
   row: EnrichedAlarmRow;
   clusterSize: number;
   stepLabel?: string;
+  meetingLabel?: string;
   onCauseClick?: (issueId: string) => void;
 }
 
-export function AlarmRow({ row, clusterSize, stepLabel, onCauseClick }: AlarmRowProps) {
+export function AlarmRow({ row, clusterSize, stepLabel, meetingLabel, onCauseClick }: AlarmRowProps) {
   const [expanded, setExpanded] = useState(false);
   const { alarm, issue, stage } = row;
   const owner = getUserById(alarm.owner);
@@ -45,6 +46,14 @@ export function AlarmRow({ row, clusterSize, stepLabel, onCauseClick }: AlarmRow
         <td className="px-2 py-2 text-sm text-theme-primary whitespace-nowrap">
           <div className="font-medium">{alarm.eqpId}</div>
           <div className="text-xs text-theme-muted">{formatEventTime(alarm.eventTime ?? alarm.alarmTime)}</div>
+          {meetingLabel && (
+            <div
+              data-testid="alarm-row-meeting-label"
+              className="text-[10px] uppercase tracking-wider text-amber-600 mt-0.5"
+            >
+              {meetingLabel}
+            </div>
+          )}
         </td>
         <td className="px-2 py-2 text-sm">
           {issue ? (

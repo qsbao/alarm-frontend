@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sortMeetingRows, isMeetingTbd } from './meetingSort';
+import { sortMeetingRows, isMeetingTbd, formatMeetingLabel } from './meetingSort';
 import type { EnrichedAlarmRow } from '../../hooks/useDashboardData';
 
 function meetingRow(id: string, meetingTime?: string): EnrichedAlarmRow {
@@ -68,5 +68,15 @@ describe('isMeetingTbd', () => {
 
   it('returns false when meetingTime is present', () => {
     expect(isMeetingTbd(meetingRow('scheduled', '2026-04-17T16:00:00Z'))).toBe(false);
+  });
+});
+
+describe('formatMeetingLabel', () => {
+  it('returns "Meeting TBD" when meetingTime is missing', () => {
+    expect(formatMeetingLabel(undefined)).toBe('Meeting TBD');
+  });
+
+  it('returns yyyy-MM-dd HH:mm for ISO input', () => {
+    expect(formatMeetingLabel('2026-04-17T17:00:00Z')).toBe('2026-04-17 17:00');
   });
 });
