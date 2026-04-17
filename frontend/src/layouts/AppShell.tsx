@@ -8,7 +8,7 @@ export function AppShell() {
     <div className="h-screen flex flex-col bg-surface-base">
       <header className="header-bar flex items-center px-4 h-10 shrink-0 gap-3">
         <Link
-          to="/issues"
+          to="/"
           className="shrink-0 flex items-center justify-center w-6 h-6 rounded-md bg-accent-subtle text-theme-accent"
           title="Fab Alarm"
         >
@@ -20,6 +20,19 @@ export function AppShell() {
         <div className="w-px h-4 bg-border-subtle" />
 
         <nav className="flex items-center gap-0.5">
+          <NavLink
+            to="/"
+            end
+            className={({ isActive }) =>
+              `inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-150 ${
+                isActive
+                  ? 'text-theme-accent bg-accent-subtle'
+                  : 'text-theme-secondary hover:text-theme-primary hover:bg-surface-overlay/50'
+              }`
+            }
+          >
+            Dashboard
+          </NavLink>
           <NavLink
             to="/issues"
             className={({ isActive }) =>
