@@ -38,24 +38,26 @@ SLEEP_BETWEEN_NO_WORK="${SLEEP_BETWEEN_NO_WORK:-300}"
 PER_ISSUE_TIMEOUT="${PER_ISSUE_TIMEOUT:-3600}"
 MODEL="${MODEL:-}"
 
-# Issue dependency graph from PRD #119. Keep in sync with the PRD if it changes.
+# Issue dependency graph from PRD #128. Keep in sync with the PRD if it changes.
 # (Function-based instead of `declare -A` so it works on macOS bash 3.2.)
 #
-#   #120 Slice 1: Meeting MVP (schedule + pass) with stepKind hook   (no blockers)
-#   #121 Slice 2: Reschedule + history timeline + completed summary  (needs 120)
-#   #122 Slice 3: In-place edits for tail scheduled + latest failure (needs 121)
-#   #123 Slice 4: Skip affordance + revive handling                  (needs 120)
+#   #129 Slice 1/5: classifyAlarm + findSimilarCauses pure modules        (no blockers)
+#   #130 Slice 2/5: useDashboardData hook + page skeleton + routing       (needs 129)
+#   #131 Slice 3/5: SummaryStrip + AlarmRow + StageStepChip + CauseChip   (needs 130)
+#   #132 Slice 4/5: All-alarms + Upcoming-meetings sections               (needs 131)
+#   #133 Slice 5/5: TriageDrawer + row menu actions                       (needs 132)
 #
 blockers_for() {
   case "$1" in
-    120) echo "" ;;
-    121) echo "120" ;;
-    122) echo "121" ;;
-    123) echo "120" ;;
+    129) echo "" ;;
+    130) echo "129" ;;
+    131) echo "130" ;;
+    132) echo "131" ;;
+    133) echo "132" ;;
     *)   echo "" ;;
   esac
 }
-ALL_ISSUES="120 121 122 123"
+ALL_ISSUES="129 130 131 132 133"
 
 # -------------------------------------------------------------------- helpers
 
@@ -120,8 +122,8 @@ You are working autonomously on GitHub issue #$n in the repository $REPO.
 Step 1. Read the issue:
   gh issue view $n --repo $REPO
 
-Step 2. Read the parent PRD (issue #119) for full architectural context:
-  gh issue view 119 --repo $REPO
+Step 2. Read the parent PRD (issue #128) for full architectural context:
+  gh issue view 128 --repo $REPO
 
 Step 3. Use the tdd skill (red-green-refactor). For each acceptance criterion:
 write a failing test first, watch it fail, write the minimum code to make it
