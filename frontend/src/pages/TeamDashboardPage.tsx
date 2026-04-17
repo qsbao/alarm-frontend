@@ -36,9 +36,20 @@ function stepLabelFor(row: EnrichedAlarmRow): string | undefined {
   return labels[0];
 }
 
+function todayAlarmDate(): string {
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 export function TeamDashboardPage() {
   const navigate = useNavigate();
-  const { rows, counts, alarmDate, department, loading, refresh } = useDashboardData();
+  const [selectedDate, setSelectedDate] = useState<string>(todayAlarmDate);
+  const { rows, counts, alarmDate, department, loading, refresh } = useDashboardData({
+    alarmDate: selectedDate,
+  });
   const currentUser = useCurrentUserStore((s) => s.currentUser);
   const [filter, setFilter] = useState<SummaryFilter>(null);
   const [sortMode, setSortMode] = useState<SortMode>('default');
@@ -134,11 +145,33 @@ export function TeamDashboardPage() {
 
   return (
     <div className="h-full flex flex-col bg-surface-base">
-      <div className="header-bar px-6 py-4">
-        <h1 className="text-lg font-semibold text-theme-primary">Team Dashboard</h1>
-        <p className="text-xs text-theme-muted mt-1">
-          {department} · {alarmDate}
-        </p>
+      <div className="header-bar px-6 py-4 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-lg font-semibold text-theme-primary">Team Dashboard</h1>
+          <p className="text-xs text-theme-muted mt-1">
+            {department} · {alarmDate}
+          </p>
+        </div>
+        <label className="flex items-center gap-2 text-xs text-theme-muted">
+          <span>Date</span>
+          <input
+            type="date"
+            data-testid="dashboard-date-picker"
+            value={selectedDate}
+            max={todayAlarmDate()}
+            onChange={(e) => setSelectedDate(e.target.value || todayAlarmDate())}
+            className="bg-surface-overlay border border-border-subtle rounded px-2 py-1 text-theme-primary"
+          />
+          {selectedDate !== todayAlarmDate() && (
+            <button
+              type="button"
+              onClick={() => setSelectedDate(todayAlarmDate())}
+              className="underline hover:text-theme-primary"
+            >
+              Today
+            </button>
+          )}
+        </label>
       </div>
 
       <div className="flex-1 overflow-y-auto p-6 space-y-6">

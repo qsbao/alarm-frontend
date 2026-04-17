@@ -260,11 +260,13 @@ export function useDashboardData(options: UseDashboardDataOptions = {}) {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
+      const from = `${alarmDate}T00:00:00Z`;
+      const to = `${alarmDate}T23:59:59.999Z`;
       const { data: alarmsData } = await backend.GET('/api/alarms', {
         params: {
           query: {
-            from: alarmDate,
-            to: alarmDate,
+            from,
+            to,
             department: [department],
           } as any,
         },
